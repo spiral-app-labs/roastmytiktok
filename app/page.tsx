@@ -136,17 +136,18 @@ export default function Home() {
             >
               🎬 Upload Video
             </button>
-            <button
-              type="button"
-              onClick={() => setInputMode('url')}
-              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
-                inputMode === 'url'
-                  ? 'bg-zinc-700 text-white'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              🔗 Paste URL
-            </button>
+            <span className="relative flex-1 group">
+              <button
+                type="button"
+                disabled
+                className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-zinc-600 cursor-not-allowed"
+              >
+                🔗 Paste URL
+              </button>
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                Coming soon
+              </span>
+            </span>
           </div>
 
           <form onSubmit={handleSubmit}>
