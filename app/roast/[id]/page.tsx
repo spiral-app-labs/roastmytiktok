@@ -127,6 +127,15 @@ export default function RoastPage() {
             &larr; Roast another
           </Link>
 
+          {/* Watch Live Roast CTA */}
+          <Link
+            href={`/roast/${id}/live`}
+            className="inline-flex items-center gap-2 fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity mb-4"
+          >
+            <span className="text-lg">&#9654;</span>
+            Watch Live Roast
+          </Link>
+
           <h1 className="text-4xl md:text-5xl font-bold mt-4">
             <span className="fire-text">The Verdict</span>
           </h1>
