@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { getHistory, getChronicIssues, HistoryEntry, ChronicIssue } from '@/lib/history';
+import { fetchHistory, getChronicIssues, getEscalationLevel, HistoryEntry, ChronicIssue } from '@/lib/history';
 import { AGENTS } from '@/lib/agents';
 
 function ScoreChip({ score }: { score: number }) {
@@ -23,7 +23,7 @@ function RepeatOffenderBadge({ count, dimension }: { count: number; dimension: s
   const label = `${count}× ${agent?.name ?? dimension} offender`;
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold">
-      🔁 {label}
+      {label}
     </span>
   );
 }
@@ -32,12 +32,15 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [chronic, setChronic] = useState<ChronicIssue[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const h = getHistory();
-    setHistory(h);
-    setChronic(getChronicIssues(h));
     setMounted(true);
+    fetchHistory().then(h => {
+      setHistory(h);
+      setChronic(getChronicIssues(h));
+      setLoading(false);
+    });
   }, []);
 
   if (!mounted) return null;
@@ -56,15 +59,17 @@ export default function HistoryPage() {
           className="mb-10"
         >
           <Link href="/" className="text-sm text-zinc-500 hover:text-orange-400 transition-colors mb-4 inline-block">
-            ← Roast another
+            &larr; Roast another
           </Link>
           <h1 className="text-4xl font-bold">
             <span className="fire-text">Your Roast History</span>
           </h1>
           <p className="text-zinc-400 mt-2">
-            {history.length === 0
-              ? 'No roasts yet. Go get destroyed.'
-              : `${history.length} roast${history.length !== 1 ? 's' : ''}. ${history.length >= 3 ? 'The pattern is becoming clear.' : 'Keep going.'}`}
+            {loading
+              ? 'Loading your shame...'
+              : history.length === 0
+                ? 'No roasts yet. Go get destroyed.'
+                : `${history.length} roast${history.length !== 1 ? 's' : ''}. ${history.length >= 3 ? 'The pattern is becoming clear.' : 'Keep going.'}`}
           </p>
         </motion.div>
 
@@ -77,7 +82,7 @@ export default function HistoryPage() {
             className="mb-8 bg-red-500/5 border border-red-500/30 rounded-2xl p-6"
           >
             <h2 className="text-lg font-bold text-red-400 mb-1 flex items-center gap-2">
-              🔁 Repeat Offender Alert
+              Repeat Offender Alert
             </h2>
             <p className="text-sm text-zinc-400 mb-4">
               These issues keep showing up across your roasts. We&apos;ve tried being nice about it.
@@ -85,20 +90,17 @@ export default function HistoryPage() {
             <div className="space-y-3">
               {chronic.slice(0, 5).map((issue, i) => {
                 const agent = AGENTS.find(a => a.key === issue.dimension);
-                const escalation =
-                  issue.occurrences >= 4 ? "At this point it's personal." :
-                  issue.occurrences === 3 ? "We've said this three times now." :
-                  "We've mentioned this before.";
+                const { label } = getEscalationLevel(issue.occurrences);
                 return (
                   <div key={i} className="flex items-start gap-3">
-                    <span className="text-xl shrink-0">{agent?.emoji ?? '⚠️'}</span>
+                    <span className="text-xl shrink-0">{agent?.emoji ?? '\u26a0\ufe0f'}</span>
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-semibold text-zinc-200">{agent?.name ?? issue.dimension}</span>
                         <RepeatOffenderBadge count={issue.occurrences} dimension={issue.dimension} />
                       </div>
                       <p className="text-sm text-zinc-400">{issue.finding}</p>
-                      <p className="text-xs text-red-400 mt-0.5 italic">{escalation}</p>
+                      <p className="text-xs text-red-400 mt-0.5 italic">{label}</p>
                     </div>
                   </div>
                 );
@@ -107,10 +109,18 @@ export default function HistoryPage() {
           </motion.div>
         )}
 
-        {/* History list */}
-        {history.length === 0 ? (
+        {/* Loading state */}
+        {loading && (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">🎬</div>
+            <div className="text-4xl mb-4 animate-pulse">&#128293;</div>
+            <p className="text-zinc-500">Fetching your roast history...</p>
+          </div>
+        )}
+
+        {/* History list */}
+        {!loading && history.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">&#127916;</div>
             <p className="text-zinc-500">No roast history yet.</p>
             <Link
               href="/"
@@ -119,7 +129,7 @@ export default function HistoryPage() {
               Get Roasted
             </Link>
           </div>
-        ) : (
+        ) : !loading && (
           <div className="space-y-4">
             {history.map((entry, i) => (
               <motion.div
@@ -135,8 +145,8 @@ export default function HistoryPage() {
                       <span className="text-xs text-zinc-500">
                         {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      <span className="text-xs text-zinc-600">·</span>
-                      <span className="text-xs text-zinc-500">{entry.source === 'upload' ? '📁 Upload' : '🔗 URL'}</span>
+                      <span className="text-xs text-zinc-600">&middot;</span>
+                      <span className="text-xs text-zinc-500">{entry.source === 'upload' ? 'Upload' : 'URL'}</span>
                     </div>
                     {entry.filename && (
                       <p className="text-sm text-zinc-400 truncate">{entry.filename}</p>
@@ -167,11 +177,22 @@ export default function HistoryPage() {
                       >
                         <span>{agent?.emoji}</span>
                         <span>{score}</span>
-                        {chronicDim && <span className="text-red-500">↻</span>}
+                        {chronicDim && <span className="text-red-500">&orarr;</span>}
                       </div>
                     );
                   })}
                 </div>
+
+                {/* Key findings */}
+                {entry.findings && Object.keys(entry.findings).length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {Object.entries(entry.findings).flatMap(([, items]) => items).slice(0, 3).map((f, fi) => (
+                      <span key={fi} className="text-xs text-zinc-600 bg-zinc-800/40 px-2 py-0.5 rounded-lg truncate max-w-[200px]">
+                        {f.slice(0, 50)}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Verdict excerpt */}
                 <p className="text-xs text-zinc-500 italic line-clamp-2">
@@ -182,7 +203,7 @@ export default function HistoryPage() {
                   href={`/roast/${entry.id}`}
                   className="mt-3 inline-block text-xs text-orange-400 hover:text-orange-300 transition-colors"
                 >
-                  View full roast →
+                  View full roast &rarr;
                 </Link>
               </motion.div>
             ))}
@@ -197,7 +218,7 @@ export default function HistoryPage() {
             transition={{ delay: 0.5 }}
             className="mt-8 bg-green-500/5 border border-green-500/20 rounded-2xl p-5 text-center"
           >
-            <p className="text-green-400 font-semibold">🎉 No repeat issues detected</p>
+            <p className="text-green-400 font-semibold">No repeat issues detected</p>
             <p className="text-zinc-500 text-sm mt-1">
               You&apos;re actually listening. We&apos;re genuinely surprised.
             </p>

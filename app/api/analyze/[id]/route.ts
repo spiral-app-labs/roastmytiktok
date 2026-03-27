@@ -93,8 +93,82 @@ async function fetchTrendingContext(): Promise<string> {
   }
 }
 
-export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id]'>) {
+interface ChronicIssueForPrompt {
+  dimension: string;
+  finding: string;
+  count: number;
+}
+
+async function fetchChronicIssues(sessionId: string): Promise<ChronicIssueForPrompt[]> {
+  if (!sessionId || sessionId === 'server') return [];
+
+  try {
+    const { data, error } = await supabaseServer
+      .from('rmt_roast_sessions')
+      .select('findings')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error || !data || data.length < 2) return [];
+
+    // Count finding occurrences across all previous roasts
+    const issueCounts: Record<string, { count: number; dimension: string; finding: string }> = {};
+
+    for (const row of data) {
+      const findings = row.findings as Record<string, string[]> | null;
+      if (!findings) continue;
+
+      for (const [dim, items] of Object.entries(findings)) {
+        for (const finding of items) {
+          const key = `${dim}::${finding.slice(0, 40).toLowerCase()}`;
+          if (!issueCounts[key]) {
+            issueCounts[key] = { count: 0, dimension: dim, finding };
+          }
+          issueCounts[key].count++;
+        }
+      }
+    }
+
+    return Object.values(issueCounts)
+      .filter(i => i.count >= 2)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  } catch (err) {
+    console.warn('[analyze] Failed to fetch chronic issues:', err);
+    return [];
+  }
+}
+
+function buildEscalationContext(chronicIssues: ChronicIssueForPrompt[], dimension: DimensionKey): string {
+  if (chronicIssues.length === 0) return '';
+
+  // Filter for issues relevant to this dimension, plus overall context
+  const dimIssues = chronicIssues.filter(i => i.dimension === dimension);
+  const otherIssues = chronicIssues.filter(i => i.dimension !== dimension).slice(0, 3);
+
+  if (dimIssues.length === 0 && otherIssues.length === 0) return '';
+
+  let context = '\n\nIMPORTANT: This user has been roasted before. Previous roasts flagged these recurring issues:\n';
+
+  for (const issue of dimIssues) {
+    context += `- [YOUR DIMENSION - ${issue.dimension}] "${issue.finding}" (flagged ${issue.count} times) — ESCALATE your roast on this. No mercy.\n`;
+  }
+
+  for (const issue of otherIssues) {
+    context += `- [${issue.dimension}] "${issue.finding}" (flagged ${issue.count} times)\n`;
+  }
+
+  context += '\nEscalate intensity for repeat issues. Reference that you\'ve told them before. Be disappointed, not just savage. Make them feel the weight of not listening.';
+
+  return context;
+}
+
+export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]'>) {
   const { id } = await ctx.params;
+
+  // Extract session_id from query params
+  const sessionId = req.nextUrl.searchParams.get('session_id') ?? 'server';
 
   // Find the video file in /tmp
   const tmpFiles = readdirSync('/tmp').filter(f => f.startsWith(`rmt-${id}.`));
@@ -111,8 +185,9 @@ export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id
       };
 
       try {
-        // Fetch trending context in parallel with frame extraction
+        // Fetch trending context and chronic issues in parallel with frame extraction
         const trendingContextPromise = fetchTrendingContext();
+        const chronicIssuesPromise = fetchChronicIssues(sessionId);
 
         // Extract frames
         send({ type: 'status', message: 'Extracting frames...' });
@@ -132,6 +207,11 @@ export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         const agentResults: Record<string, { score: number; roastText: string; findings: string[]; improvementTip: string }> = {};
         const trendingContext = await trendingContextPromise;
+        const chronicIssues = await chronicIssuesPromise;
+
+        if (chronicIssues.length > 0) {
+          send({ type: 'status', message: 'Repeat offender detected. Escalating intensity...' });
+        }
 
         // Run each agent sequentially
         for (const dimension of DIMENSION_ORDER) {
@@ -148,7 +228,8 @@ export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id
               },
             }));
 
-            const fullPrompt = prompt + trendingContext;
+            const escalationContext = buildEscalationContext(chronicIssues, dimension);
+            const fullPrompt = prompt + trendingContext + escalationContext;
 
             const response = await anthropic.messages.create({
               model: 'claude-sonnet-4-5-20250514',
@@ -202,6 +283,10 @@ export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id
         // Generate verdict
         let verdict: string;
         try {
+          const repeatContext = chronicIssues.length > 0
+            ? `\n\nThis is a REPEAT OFFENDER. They've been roasted ${chronicIssues.length > 3 ? 'many' : 'a few'} times before and keep making the same mistakes. Reference this in the verdict. Be extra disappointed.`
+            : '';
+
           const verdictResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-5-20250514',
             max_tokens: 300,
@@ -210,7 +295,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id
               content: `You are a brutal TikTok roast machine. Given these agent scores and roasts for a video, write a 2-3 sentence savage overall verdict. Be funny and specific.
 
 Scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d]?.score])))}
-Agent summaries: ${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}
+Agent summaries: ${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${repeatContext}
 
 Write ONLY the verdict text, no JSON, no quotes.`,
             }],
@@ -255,7 +340,7 @@ Write ONLY the verdict text, no JSON, no quotes.`,
 
           await supabaseServer.from('rmt_roast_sessions').upsert({
             id,
-            session_id: 'server',
+            session_id: sessionId,
             source: 'upload',
             overall_score: overallScore,
             verdict,

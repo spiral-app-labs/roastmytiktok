@@ -6,7 +6,8 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
-import { saveToHistory, getChronicIssues, getHistory, getFixedIssues } from '@/lib/history';
+import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
+import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
 
 export default function RoastPage() {
@@ -63,7 +64,7 @@ export default function RoastPage() {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">🔥</div>
+          <div className="text-4xl mb-4 animate-pulse">&#128293;</div>
           <p className="text-zinc-400">Loading your roast...</p>
         </div>
       </main>
@@ -74,7 +75,7 @@ export default function RoastPage() {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">😵</div>
+          <div className="text-4xl mb-4">&#128565;</div>
           <p className="text-zinc-400 mb-4">{error || 'Roast not found.'}</p>
           <Link href="/" className="text-orange-400 hover:text-orange-300 transition-colors">
             &larr; Try again
@@ -91,6 +92,16 @@ export default function RoastPage() {
   ) as Record<DimensionKey, string[]>;
   const chronicIssues = getChronicIssues(history);
   const fixedIssues = getFixedIssues(findings, history);
+
+  // Build a map of chronic dimensions for quick lookup
+  const chronicByDimension: Record<string, ChronicIssue[]> = {};
+  for (const issue of chronicIssues) {
+    if (!chronicByDimension[issue.dimension]) chronicByDimension[issue.dimension] = [];
+    chronicByDimension[issue.dimension].push(issue);
+  }
+
+  // Build set of fixed dimensions
+  const fixedDimensions = new Set(fixedIssues.map(f => f.dimension));
 
   // Check if metadata has real data
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
@@ -169,7 +180,7 @@ export default function RoastPage() {
             transition={{ delay: 0.8 }}
             className="mb-6 bg-green-500/5 border border-green-500/20 rounded-2xl p-5"
           >
-            <p className="text-green-400 font-semibold mb-2">🎉 Progress Detected</p>
+            <p className="text-green-400 font-semibold mb-2">Progress Detected</p>
             {fixedIssues.map((f, i) => (
               <p key={i} className="text-sm text-zinc-400">
                 You finally fixed <span className="text-green-400 font-medium">{f.dimension}</span>: {f.finding.slice(0, 60)}. We&apos;re proud. Genuinely.
@@ -178,7 +189,7 @@ export default function RoastPage() {
           </motion.div>
         )}
 
-        {/* Chronic issue warning */}
+        {/* CHRONIC ISSUES section */}
         {chronicIssues.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -186,24 +197,74 @@ export default function RoastPage() {
             transition={{ delay: 0.9 }}
             className="mb-6 bg-red-500/5 border border-red-500/20 rounded-2xl p-5"
           >
-            <p className="text-red-400 font-semibold mb-1">🔁 Repeat Offender</p>
-            <p className="text-sm text-zinc-400 mb-2">These issues keep showing up. We&apos;ve flagged them before.</p>
-            {chronicIssues.slice(0, 3).map((c, i) => (
-              <p key={i} className="text-xs text-zinc-500 mt-1">
-                <span className="text-red-400 font-medium">{c.dimension}</span> · {c.occurrences}× · {c.finding.slice(0, 60)}
-              </p>
-            ))}
+            <p className="text-red-400 font-bold text-lg mb-1">CHRONIC ISSUES</p>
+            <p className="text-sm text-zinc-400 mb-3">These problems keep appearing across your roasts. We&apos;re keeping count.</p>
+            <div className="space-y-3">
+              {chronicIssues.slice(0, 5).map((c, i) => {
+                const agent = AGENTS.find(a => a.key === c.dimension);
+                const { level, label } = getEscalationLevel(c.occurrences);
+                const levelColors = [
+                  '',
+                  'border-yellow-500/30 bg-yellow-500/5',
+                  'border-orange-500/30 bg-orange-500/5',
+                  'border-red-500/30 bg-red-500/10',
+                ];
+                return (
+                  <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${levelColors[level] || levelColors[1]}`}>
+                    <span className="text-xl shrink-0">{agent?.emoji ?? '\u26a0\ufe0f'}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-sm font-semibold text-zinc-200">{agent?.name ?? c.dimension}</span>
+                        <span className="text-xs font-bold text-red-400">{c.occurrences}x</span>
+                        {level >= 2 && (
+                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-bold">
+                            LVL {level}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-zinc-400">{c.finding.slice(0, 80)}</p>
+                      <p className="text-xs text-red-400 mt-1 italic font-medium">{label}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             <Link href="/history" className="mt-3 inline-block text-xs text-orange-400 hover:text-orange-300 transition-colors">
-              View full history →
+              View full history &rarr;
             </Link>
           </motion.div>
         )}
 
         {/* Agent Roast Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {roast.agents.map((agentRoast, i) => (
-            <AgentCard key={agentRoast.agent} roast={agentRoast} index={i} />
-          ))}
+          {roast.agents.map((agentRoast, i) => {
+            const dimChronic = chronicByDimension[agentRoast.agent];
+            const isFixed = fixedDimensions.has(agentRoast.agent);
+            const maxOccurrences = dimChronic ? Math.max(...dimChronic.map(c => c.occurrences)) : 0;
+
+            // Escalate roast text if chronic
+            const escalatedRoast = maxOccurrences >= 2
+              ? { ...agentRoast, roastText: getEscalatingRoast(agentRoast.roastText, agentRoast.agent, maxOccurrences) }
+              : agentRoast;
+
+            return (
+              <div key={agentRoast.agent} className="relative">
+                {/* FIXED badge */}
+                {isFixed && (
+                  <div className="absolute -top-2 -right-2 z-10 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-green-500/30">
+                    FIXED
+                  </div>
+                )}
+                {/* Chronic badge */}
+                {maxOccurrences >= 2 && !isFixed && (
+                  <div className="absolute -top-2 -right-2 z-10 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-red-500/30">
+                    {maxOccurrences}x REPEAT
+                  </div>
+                )}
+                <AgentCard roast={escalatedRoast} index={i} />
+              </div>
+            );
+          })}
         </div>
 
         {/* Bottom CTA */}
@@ -211,7 +272,7 @@ export default function RoastPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
-          className="text-center mt-12"
+          className="text-center mt-12 space-y-3"
         >
           <Link
             href="/"
@@ -219,6 +280,16 @@ export default function RoastPage() {
           >
             Roast Another TikTok
           </Link>
+          {history.length > 0 && (
+            <div>
+              <Link
+                href="/history"
+                className="text-sm text-zinc-500 hover:text-orange-400 transition-colors"
+              >
+                View roast history ({history.length})
+              </Link>
+            </div>
+          )}
         </motion.div>
       </div>
     </main>

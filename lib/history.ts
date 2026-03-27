@@ -23,8 +23,22 @@ export interface ChronicIssue {
   finding: string;
 }
 
+export type EscalationLevel = 0 | 1 | 2 | 3;
+
+export interface EscalationInfo {
+  level: EscalationLevel;
+  label: string;
+}
+
 const HISTORY_KEY = 'rmt_history';
 const SESSION_KEY = 'rmt_session';
+
+const ESCALATION_LABELS: Record<EscalationLevel, string> = {
+  0: '',
+  1: 'We mentioned this before.',
+  2: 'We mentioned this TWICE. Are you even watching these?',
+  3: 'At this point we are personally offended.',
+};
 
 /** Get or create anonymous session ID */
 export function getSessionId(): string {
@@ -37,7 +51,7 @@ export function getSessionId(): string {
   return id;
 }
 
-/** Load roast history for this session */
+/** Load roast history from localStorage (sync fallback) */
 export function getHistory(): HistoryEntry[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -45,6 +59,47 @@ export function getHistory(): HistoryEntry[] {
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
+  }
+}
+
+/** Fetch history from Supabase for a session, falling back to localStorage */
+export async function fetchHistory(): Promise<HistoryEntry[]> {
+  if (typeof window === 'undefined') return [];
+
+  const sessionId = getSessionId();
+
+  try {
+    const { data, error } = await supabase
+      .from('rmt_roast_sessions')
+      .select('id, created_at, overall_score, verdict, source, filename, tiktok_url, agent_scores, findings')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error || !data || data.length === 0) {
+      return getHistory();
+    }
+
+    const entries: HistoryEntry[] = data.map(row => ({
+      id: row.id,
+      date: row.created_at,
+      overallScore: row.overall_score,
+      verdict: row.verdict ?? '',
+      source: row.source as 'upload' | 'url',
+      filename: row.filename ?? undefined,
+      url: row.tiktok_url ?? undefined,
+      agentScores: (row.agent_scores ?? {}) as Record<DimensionKey, number>,
+      findings: (row.findings ?? {}) as Record<DimensionKey, string[]>,
+    }));
+
+    // Sync to localStorage as cache
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, 50)));
+    } catch { /* localStorage may be full */ }
+
+    return entries;
+  } catch {
+    return getHistory();
   }
 }
 
@@ -114,6 +169,14 @@ export async function uploadVideoToStorage(file: File, sessionId: string): Promi
   return urlData?.publicUrl ?? null;
 }
 
+/** Get escalation level for an issue based on occurrence count */
+export function getEscalationLevel(occurrences: number): EscalationInfo {
+  if (occurrences >= 4) return { level: 3, label: ESCALATION_LABELS[3] };
+  if (occurrences >= 3) return { level: 2, label: ESCALATION_LABELS[2] };
+  if (occurrences >= 2) return { level: 1, label: ESCALATION_LABELS[1] };
+  return { level: 0, label: '' };
+}
+
 /** Detect chronic issues — problems that appear 2+ times */
 export function getChronicIssues(history: HistoryEntry[]): ChronicIssue[] {
   if (history.length < 2) return [];
@@ -161,6 +224,9 @@ export function getEscalatingRoast(
 ): string {
   if (occurrences <= 1) return baseRoast;
 
+  const { level, label } = getEscalationLevel(occurrences);
+  if (level === 0) return baseRoast;
+
   const escalations: Record<DimensionKey, Record<number, string>> = {
     hook: {
       2: `${baseRoast} We've flagged your hook before. You've heard the feedback. The question now is whether you're going to act on it.`,
@@ -194,8 +260,8 @@ export function getEscalatingRoast(
     },
   };
 
-  const level = Math.min(occurrences, 4);
-  return escalations[dimension]?.[level] ?? baseRoast;
+  const clampedLevel = Math.min(occurrences, 4);
+  return escalations[dimension]?.[clampedLevel] ?? `[${label}] ${baseRoast}`;
 }
 
 /** Check if a previously chronic issue was fixed */
