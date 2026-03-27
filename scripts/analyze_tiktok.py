@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 """
 RoastMyTikTok — TikTok Video Analysis Pipeline
-Downloads a TikTok video, extracts frames, analyzes with GPT-4o Vision,
+Downloads or accepts a local TikTok video, extracts frames, analyzes with GPT-4o Vision,
 transcribes audio, and outputs 100+ structured data points as JSON.
 
-Usage: python analyze_tiktok.py <tiktok_url>
+Usage:
+  python analyze_tiktok.py --url https://www.tiktok.com/@user/video/...
+  python analyze_tiktok.py --file /tmp/my_video.mp4
+  python analyze_tiktok.py <tiktok_url>  (legacy positional arg)
 """
 
 import sys
 import os
 import json
+import argparse
 import subprocess
 import tempfile
 import glob
 import base64
+import shutil
 from pathlib import Path
 
 try:
@@ -259,15 +264,43 @@ def compute_aggregates(frame_analyses: list[dict], metadata: dict, transcript: s
 
 
 def main():
-    if len(sys.argv) < 2:
-        print(json.dumps({"error": "Usage: python analyze_tiktok.py <tiktok_url>"}))
+    parser = argparse.ArgumentParser(description="RoastMyTikTok analysis pipeline")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--url", help="TikTok URL to download and analyze")
+    group.add_argument("--file", help="Local video file path to analyze (skips download)")
+    # Legacy positional arg support
+    parser.add_argument("positional_url", nargs="?", help=argparse.SUPPRESS)
+    args = parser.parse_args()
+
+    # Resolve input
+    tiktok_url = args.url or args.positional_url
+    local_file = args.file
+
+    if not tiktok_url and not local_file:
+        print(json.dumps({"error": "Usage: python analyze_tiktok.py --url <url> OR --file <path>"}))
         sys.exit(1)
 
-    tiktok_url = sys.argv[1]
-
     with tempfile.TemporaryDirectory(prefix="roast_") as tmpdir:
-        print(json.dumps({"status": "downloading"}), flush=True)
-        dl = download_video(tiktok_url, tmpdir)
+        if local_file:
+            # File upload path: skip yt-dlp, copy file to tmpdir
+            print(json.dumps({"status": "using_local_file", "file": local_file}), flush=True)
+            video_path = os.path.join(tmpdir, "video.mp4")
+            shutil.copy2(local_file, video_path)
+            metadata = {
+                "source": "upload",
+                "filename": os.path.basename(local_file),
+                "view_count": None,
+                "like_count": None,
+                "comment_count": None,
+                "share_count": None,
+                "duration": None,
+                "description": None,
+                "uploader": None,
+            }
+            dl = {"video_path": video_path, "metadata": metadata}
+        else:
+            print(json.dumps({"status": "downloading"}), flush=True)
+            dl = download_video(tiktok_url, tmpdir)
 
         print(json.dumps({"status": "extracting_frames"}), flush=True)
         frames = extract_frames(dl["video_path"], tmpdir, interval=2.0)
@@ -288,7 +321,9 @@ def main():
         # Final output
         result = {
             "status": "complete",
+            "source": "upload" if local_file else "url",
             "url": tiktok_url,
+            "file": local_file,
             "frame_analyses": frame_analyses,
             "aggregates": aggregates,
             "data_point_count": (
