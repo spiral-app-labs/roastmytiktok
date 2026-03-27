@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { AGENTS } from '@/lib/agents';
 import { getSessionId } from '@/lib/history';
+import WaitlistLanding from '@/components/WaitlistLanding';
 
 type InputMode = 'upload' | 'url';
 
-export default function Home() {
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
+function UploadUI() {
   const [inputMode, setInputMode] = useState<InputMode>('upload');
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -19,8 +22,6 @@ export default function Home() {
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-
-  const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
   const handleFile = useCallback((f: File) => {
     setFileError(null);
@@ -55,7 +56,6 @@ export default function Home() {
     setUploadStatus(null);
 
     if (inputMode === 'url') {
-      // URL analysis not yet supported
       setFileError('URL analysis coming soon — please upload a file for now.');
       setLoading(false);
       return;
@@ -110,9 +110,8 @@ export default function Home() {
             <span className="text-white">My TikTok</span>
           </h1>
           <p className="mt-4 text-lg md:text-xl text-zinc-400 max-w-xl mx-auto">
-            Before you post.{' '}
-            <span className="text-zinc-200 font-medium">After you regret.</span>{' '}
-            <span className="text-orange-400 font-semibold">Your call.</span>
+            6 AI agents. 100+ data points. Zero mercy.{' '}
+            <span className="text-orange-400 font-semibold">Upload and find out.</span>
           </p>
         </motion.div>
 
@@ -306,4 +305,40 @@ export default function Home() {
       </div>
     </main>
   );
+}
+
+const WAITLIST_MODE = process.env.NEXT_PUBLIC_WAITLIST_MODE === 'true';
+
+export default function Home() {
+  const [bypassed, setBypassed] = useState(!WAITLIST_MODE);
+  const [checked, setChecked] = useState(!WAITLIST_MODE);
+
+  useEffect(() => {
+    if (!WAITLIST_MODE) return;
+
+    // Check for bypass cookie via API (httpOnly cookie can't be read client-side)
+    let cancelled = false;
+    fetch('/api/bypass/check')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) {
+          setBypassed(data.bypassed === true);
+          setChecked(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setChecked(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!checked) {
+    return <main className="min-h-screen" />;
+  }
+
+  if (WAITLIST_MODE && !bypassed) {
+    return <WaitlistLanding />;
+  }
+
+  return <UploadUI />;
 }

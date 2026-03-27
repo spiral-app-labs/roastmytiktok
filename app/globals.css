@@ -48,3 +48,23 @@ body {
 .card-glow {
   box-shadow: 0 0 40px rgba(255, 107, 53, 0.15), 0 0 80px rgba(247, 37, 133, 0.05);
 }
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes ember-rise {
+  0% { transform: translateY(100vh) scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-20vh) scale(0.3); opacity: 0; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 6s ease-in-out infinite;
+}
+
+.animate-ember-rise {
+  animation: ember-rise 6s ease-out infinite;
+}

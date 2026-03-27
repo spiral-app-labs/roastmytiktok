@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://eayiazyiotnkggnsvhto.supabase.co';
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+// Fallback to a placeholder at build time so createClient doesn't throw during
+// static page collection (the real key is set via env vars at runtime on Vercel).
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-build-key';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
