@@ -14,6 +14,7 @@ export interface AgentRoast {
   roastText: string;
   findings: string[];
   improvementTip: string;
+  timestamp_seconds?: number;
 }
 
 export interface RoastResult {

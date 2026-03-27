@@ -36,6 +36,15 @@ const AGENT_PROMPTS: Record<DimensionKey, { name: string; prompt: string }> = {
 };
 
 const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity'];
+const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
+  hook: 0.5,
+  visual: 1.5,
+  caption: 3.0,
+  audio: 5.0,
+  algorithm: 8.0,
+  authenticity: 12.0,
+};
+
 const DIMENSION_WEIGHTS: Record<DimensionKey, number> = {
   hook: 0.25,
   visual: 0.20,
@@ -342,6 +351,7 @@ Write ONLY the verdict text, no JSON, no quotes.`,
             roastText: agentResults[dim].roastText,
             findings: agentResults[dim].findings,
             improvementTip: agentResults[dim].improvementTip,
+            timestamp_seconds: AGENT_TIMESTAMPS[dim],
           })),
           metadata: {
             views: 0,
