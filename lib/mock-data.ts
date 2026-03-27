@@ -1,0 +1,96 @@
+import { RoastResult } from './types';
+
+export const MOCK_ROAST: RoastResult = {
+  id: 'demo-001',
+  tiktokUrl: 'https://www.tiktok.com/@user/video/1234567890',
+  overallScore: 34,
+  verdict: "This video didn't just miss the FYP — it filed a restraining order against it. Your hook was nonexistent, your lighting looked like a hostage video, and the algorithm personally asked us to intervene. The only thing going viral here is secondhand embarrassment.",
+  agents: [
+    {
+      agent: 'hook',
+      score: 22,
+      roastText: "I've seen more compelling openings on a garage door. Your first 3 seconds were so forgettable that my attention span actually filed a missing persons report. The viewer's thumb was already scrolling before your video even loaded.",
+      findings: [
+        'No visual hook in first 1.5 seconds — static frame with no movement',
+        'First spoken word at 4.2 seconds — way too late for TikTok',
+        'Opening frame is visually identical to a thousand other videos',
+        'No text overlay to anchor attention in the critical first moment',
+      ],
+      improvementTip: 'Start with movement, a bold text overlay, or a provocative question in the first 0.5 seconds. The hook window on TikTok is brutal — you have 1-2 seconds max.',
+    },
+    {
+      agent: 'visual',
+      score: 31,
+      roastText: "The lighting in this video suggests you're either in witness protection or your ring light finally gave up on you. The composition screams 'I pointed my phone at my face and hit record.' Spielberg is not losing sleep.",
+      findings: [
+        'Underlit face — shadows obscure 40% of facial features',
+        'Background clutter visible: unmade bed, random objects',
+        'No color grading — flat, desaturated look throughout',
+        'Camera angle slightly below eye level (unflattering)',
+        'No transition effects between scenes',
+      ],
+      improvementTip: 'Face a window for natural lighting, or invest in a ring light. Clean your background or use portrait mode. Shoot at eye level or slightly above.',
+    },
+    {
+      agent: 'caption',
+      score: 41,
+      roastText: "Your captions look like they were written during an earthquake. The font choice says 'default settings' and the placement says 'I\'ll just put it wherever.' Your hashtag strategy is just #fyp and a prayer.",
+      findings: [
+        'On-screen text appears at 5s — should be immediate',
+        'Font size too small for mobile viewing',
+        'Caption overlaps with TikTok UI elements at bottom',
+        'Only 3 hashtags used, none trending',
+        'No CTA in video or description',
+      ],
+      improvementTip: 'Use bold, large text from frame 1. Keep text in the safe zone (middle 60% of screen). Use 5-8 relevant hashtags mixing niche and broad.',
+    },
+    {
+      agent: 'audio',
+      score: 38,
+      roastText: "Your audio quality suggests you recorded this inside a tin can during a thunderstorm. The background noise is louder than your actual content. And no, using a trending sound doesn't count if you bury it under your echo-chamber narration.",
+      findings: [
+        'Room echo detected — no sound dampening',
+        'Background noise level exceeds voice at multiple points',
+        'No trending sound used — original audio only',
+        'Voice pacing too slow for TikTok format (under 120 WPM)',
+        'No music bed or audio layering',
+      ],
+      improvementTip: 'Record in a closet or small room with soft surfaces. Use a trending sound even at low volume. Speak faster and with more energy — TikTok rewards pace.',
+    },
+    {
+      agent: 'algorithm',
+      score: 29,
+      roastText: "The algorithm took one look at your video and said 'not today, not ever.' Your posting time was basically 3 AM in every timezone that matters. The engagement signals are giving 'please clap' energy.",
+      findings: [
+        'Posted at 2:47 AM EST — lowest engagement window',
+        'Watch time estimated under 40% — viewers dropping at 3s mark',
+        'No engagement prompt (question, poll, duet invitation)',
+        'Hashtags have zero trend momentum this week',
+        'Description is 6 words with no searchable keywords',
+      ],
+      improvementTip: 'Post between 7-9 AM or 7-11 PM in your target timezone. Add a question or controversial take to drive comments. Use TikTok\'s keyword insights for hashtag research.',
+    },
+    {
+      agent: 'authenticity',
+      score: 45,
+      roastText: "I can physically feel you trying too hard through my screen. The forced energy is giving 'corporate team-building exercise' vibes. You're one finger-gun away from a LinkedIn video. At least the cringe is authentic, I'll give you that.",
+      findings: [
+        'Forced enthusiasm detected — energy doesn\'t match content tone',
+        'Script reading detected — eyes frequently look off-camera',
+        'Content format is oversaturated in niche (talking head advice)',
+        'No personal story or unique angle to differentiate',
+        'Relatability score low — feels performative rather than genuine',
+      ],
+      improvementTip: 'Talk like you\'re telling a friend, not performing for a camera. Share a specific personal experience. Find your unique angle — what can ONLY you say about this topic?',
+    },
+  ],
+  metadata: {
+    views: 847,
+    likes: 23,
+    comments: 4,
+    shares: 1,
+    duration: 34,
+    hashtags: ['#fyp', '#advice', '#trending'],
+    description: 'watch this trust me fr',
+  },
+};
