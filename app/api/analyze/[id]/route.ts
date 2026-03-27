@@ -66,6 +66,33 @@ function parseAgentResponse(text: string): { score: number; roastText: string; f
   };
 }
 
+async function fetchTrendingContext(): Promise<string> {
+  try {
+    const { data } = await supabaseServer
+      .from('tmt_trending_content')
+      .select('hook_text, view_count, duration_sec, audio_title')
+      .gte('fetched_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order('fetched_at', { ascending: false })
+      .limit(10);
+
+    if (!data || data.length === 0) return '';
+
+    const examples = data
+      .filter((r: { hook_text: string | null }) => r.hook_text)
+      .slice(0, 5)
+      .map((r: { hook_text: string; view_count: number | null; duration_sec: number | null; audio_title: string | null }) =>
+        `- Hook: "${r.hook_text}" | Views: ${r.view_count?.toLocaleString() ?? 'N/A'} | Duration: ${r.duration_sec ?? 'N/A'}s | Audio: "${r.audio_title ?? 'N/A'}"`)
+      .join('\n');
+
+    if (!examples) return '';
+
+    return `\n\nCurrently trending TikTok content (last 24h):\n${examples}\n\nUse this trending context to make your roast more relevant — compare their content to what's actually working right now.`;
+  } catch (err) {
+    console.warn('[analyze] Failed to fetch trending context:', err);
+    return '';
+  }
+}
+
 export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id]'>) {
   const { id } = await ctx.params;
 
@@ -84,6 +111,9 @@ export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id
       };
 
       try {
+        // Fetch trending context in parallel with frame extraction
+        const trendingContextPromise = fetchTrendingContext();
+
         // Extract frames
         send({ type: 'status', message: 'Extracting frames...' });
         let frames: string[] = [];
@@ -101,6 +131,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         const agentResults: Record<string, { score: number; roastText: string; findings: string[]; improvementTip: string }> = {};
+        const trendingContext = await trendingContextPromise;
 
         // Run each agent sequentially
         for (const dimension of DIMENSION_ORDER) {
@@ -117,6 +148,8 @@ export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id
               },
             }));
 
+            const fullPrompt = prompt + trendingContext;
+
             const response = await anthropic.messages.create({
               model: 'claude-sonnet-4-5-20250514',
               max_tokens: 1024,
@@ -124,7 +157,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext<'/api/analyze/[id
                 role: 'user',
                 content: [
                   ...imageContent,
-                  { type: 'text' as const, text: prompt },
+                  { type: 'text' as const, text: fullPrompt },
                 ],
               }],
             });
