@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { extractFrames } from '@/lib/frame-extractor';
 import { supabaseServer } from '@/lib/supabase-server';
-import { existsSync, readdirSync, unlinkSync } from 'fs';
+import { existsSync, unlinkSync } from 'fs';
+import { writeFile } from 'fs/promises';
 import { DimensionKey } from '@/lib/types';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
@@ -170,12 +171,34 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
   // Extract session_id from query params
   const sessionId = req.nextUrl.searchParams.get('session_id') ?? 'server';
 
-  // Find the video file in /tmp
-  const tmpFiles = readdirSync('/tmp').filter(f => f.startsWith(`rmt-${id}.`));
-  if (tmpFiles.length === 0) {
+  // Fetch video path from Supabase session record
+  const { data: session, error: sessionError } = await supabaseServer
+    .from('rmt_roast_sessions')
+    .select('video_url, filename')
+    .eq('id', id)
+    .single();
+
+  if (sessionError || !session?.video_url) {
     return Response.json({ error: 'Video not found. It may have expired.' }, { status: 404 });
   }
-  const videoPath = `/tmp/${tmpFiles[0]}`;
+
+  const storagePath = session.video_url as string;
+  const ext = storagePath.split('.').pop() || 'mp4';
+  const localPath = `/tmp/rmt-${id}.${ext}`;
+
+  // Download video from Supabase Storage to /tmp for ffmpeg
+  const { data: fileData, error: downloadError } = await supabaseServer.storage
+    .from('roast-videos')
+    .download(storagePath);
+
+  if (downloadError || !fileData) {
+    return Response.json({ error: 'Failed to retrieve video from storage.' }, { status: 500 });
+  }
+
+  const buffer = Buffer.from(await fileData.arrayBuffer());
+  await writeFile(localPath, buffer);
+
+  const videoPath = localPath;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -333,21 +356,18 @@ Write ONLY the verdict text, no JSON, no quotes.`,
 
         send({ type: 'verdict', overallScore, verdict });
 
-        // Store in Supabase (best-effort)
+        // Update session in Supabase with results
         try {
           const agentScores = Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d].score]));
           const findings = Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d].findings]));
 
-          await supabaseServer.from('rmt_roast_sessions').upsert({
-            id,
-            session_id: sessionId,
-            source: 'upload',
+          await supabaseServer.from('rmt_roast_sessions').update({
             overall_score: overallScore,
             verdict,
             agent_scores: agentScores,
             findings,
             result_json: result,
-          });
+          }).eq('id', id);
         } catch (err) {
           console.warn('[analyze] Supabase save failed:', err);
         }

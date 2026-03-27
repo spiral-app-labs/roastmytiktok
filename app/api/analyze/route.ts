@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { writeFile } from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
+import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,12 +26,46 @@ export async function POST(request: NextRequest) {
 
     const id = uuidv4();
     const ext = video.name.split('.').pop() || 'mp4';
-    const tmpPath = `/tmp/rmt-${id}.${ext}`;
+    const storagePath = `videos/${id}.${ext}`;
 
+    // Ensure bucket exists (no-op if already created)
+    await supabaseServer.storage.createBucket('roast-videos', { public: false }).catch(() => {});
+
+    // Upload to Supabase Storage
     const buffer = Buffer.from(await video.arrayBuffer());
-    await writeFile(tmpPath, buffer);
+    const { error: uploadError } = await supabaseServer.storage
+      .from('roast-videos')
+      .upload(storagePath, buffer, {
+        contentType: video.type || 'video/mp4',
+        upsert: false,
+      });
 
-    return Response.json({ id, tmpPath, sessionId });
+    if (uploadError) {
+      console.error('[analyze] Supabase Storage upload error:', uploadError);
+      return Response.json(
+        { error: 'Failed to upload video' },
+        { status: 500 }
+      );
+    }
+
+    // Create session record so the GET handler can find the video
+    try {
+      await supabaseServer.from('rmt_roast_sessions').insert({
+        id,
+        session_id: sessionId ?? 'anonymous',
+        source: 'upload',
+        filename: video.name,
+        video_url: storagePath,
+        overall_score: 0,
+        verdict: '',
+        agent_scores: {},
+        findings: {},
+      });
+    } catch (err) {
+      console.warn('[analyze] Session record insert failed:', err);
+    }
+
+    return Response.json({ id, videoPath: storagePath, sessionId });
   } catch (err) {
     console.error('[analyze] Upload error:', err);
     return Response.json(
