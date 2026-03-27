@@ -1,21 +1,69 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { AGENTS } from '@/lib/agents';
 
+type InputMode = 'upload' | 'url';
+
 export default function Home() {
+  const [inputMode, setInputMode] = useState<InputMode>('upload');
   const [url, setUrl] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
+  const handleFile = useCallback((f: File) => {
+    setFileError(null);
+    if (f.size > MAX_FILE_SIZE) {
+      setFileError('File too large. Max 500MB.');
+      return;
+    }
+    if (!f.type.startsWith('video/')) {
+      setFileError('Please upload a video file (mp4, mov, avi).');
+      return;
+    }
+    setFile(f);
+    const objUrl = URL.createObjectURL(f);
+    setPreviewUrl(objUrl);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const dropped = e.dataTransfer.files[0];
+      if (dropped) handleFile(dropped);
+    },
+    [handleFile]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) return;
+    if (inputMode === 'upload' && !file) return;
+    if (inputMode === 'url' && !url.trim()) return;
     setLoading(true);
-    // For MVP, go straight to the demo roast
-    router.push(`/analyze/demo-001?url=${encodeURIComponent(url)}`);
+
+    if (inputMode === 'url') {
+      router.push(`/analyze/demo-001?url=${encodeURIComponent(url)}`);
+    } else {
+      // For MVP: navigate to analysis with a file indicator
+      router.push(`/analyze/demo-001?source=upload&filename=${encodeURIComponent(file!.name)}`);
+    }
+  };
+
+  const clearFile = () => {
+    setFile(null);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setFileError(null);
   };
 
   return (
@@ -27,7 +75,7 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 max-w-3xl w-full text-center space-y-8">
-        {/* Logo / Title */}
+        {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -38,46 +86,152 @@ export default function Home() {
             <span className="text-white">My TikTok</span>
           </h1>
           <p className="mt-4 text-lg md:text-xl text-zinc-400 max-w-xl mx-auto">
-            Your TikTok is cringe.{' '}
-            <span className="text-zinc-200 font-medium">Watch AI prove it.</span>
+            Before you post.{' '}
+            <span className="text-zinc-200 font-medium">After you regret.</span>{' '}
+            <span className="text-orange-400 font-semibold">Your call.</span>
           </p>
         </motion.div>
 
-        {/* URL Input */}
-        <motion.form
-          onSubmit={handleSubmit}
+        {/* Input tabs */}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="relative"
+          className="max-w-xl mx-auto"
         >
-          <div className="flex gap-3 max-w-xl mx-auto">
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Paste your TikTok URL..."
-              className="flex-1 bg-zinc-900/80 border border-zinc-700/50 rounded-xl px-5 py-4 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/25 transition-all"
-            />
+          {/* Tab switcher */}
+          <div className="flex gap-1 mb-4 bg-zinc-900/60 border border-zinc-800 rounded-xl p-1">
             <button
-              type="submit"
-              disabled={loading || !url.trim()}
-              className="fire-gradient text-white font-semibold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              type="button"
+              onClick={() => setInputMode('upload')}
+              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
+                inputMode === 'upload'
+                  ? 'fire-gradient text-white shadow-lg shadow-orange-500/20'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
             >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Roasting...
-                </span>
-              ) : (
-                'Roast It'
-              )}
+              🎬 Upload Video
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode('url')}
+              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
+                inputMode === 'url'
+                  ? 'bg-zinc-700 text-white'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              🔗 Paste URL
             </button>
           </div>
-        </motion.form>
+
+          <form onSubmit={handleSubmit}>
+            {inputMode === 'upload' ? (
+              <div className="space-y-3">
+                {!file ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-2xl p-10 cursor-pointer transition-all ${
+                      dragOver
+                        ? 'border-orange-500 bg-orange-500/10'
+                        : 'border-zinc-700 hover:border-orange-500/50 hover:bg-zinc-900/40'
+                    }`}
+                  >
+                    <div className="text-5xl mb-3">🔥</div>
+                    <p className="text-zinc-300 font-semibold text-lg">Drop your TikTok here</p>
+                    <p className="text-zinc-500 text-sm mt-1">or click to browse — mp4, mov, avi · max 500MB</p>
+                  </div>
+                ) : (
+                  <div className="bg-zinc-900/80 border border-zinc-700/60 rounded-2xl p-4 flex items-center gap-4">
+                    {previewUrl && (
+                      <video
+                        src={previewUrl}
+                        className="w-20 h-20 object-cover rounded-xl shrink-0"
+                        muted
+                      />
+                    )}
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-white font-semibold text-sm truncate">{file.name}</p>
+                      <p className="text-zinc-500 text-xs mt-0.5">
+                        {(file.size / (1024 * 1024)).toFixed(1)} MB
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearFile}
+                      className="text-zinc-500 hover:text-red-400 transition-colors text-xl shrink-0"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {fileError && (
+                  <p className="text-red-400 text-sm">{fileError}</p>
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFile(f);
+                  }}
+                />
+
+                <button
+                  type="submit"
+                  disabled={loading || !file}
+                  className="w-full fire-gradient text-white font-semibold py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Roasting...
+                    </span>
+                  ) : (
+                    '🔥 Roast My Video'
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://www.tiktok.com/@user/video/..."
+                  className="flex-1 bg-zinc-900/80 border border-zinc-700/50 rounded-xl px-5 py-4 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/25 transition-all"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !url.trim()}
+                  className="fire-gradient text-white font-semibold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Roasting...
+                    </span>
+                  ) : (
+                    'Roast It'
+                  )}
+                </button>
+              </div>
+            )}
+          </form>
+        </motion.div>
 
         {/* Agent Preview Cards */}
         <motion.div
