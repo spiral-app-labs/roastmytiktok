@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const sessionId = formData.get('session_id') as string | null;
+
     const id = uuidv4();
     const ext = video.name.split('.').pop() || 'mp4';
     const tmpPath = `/tmp/rmt-${id}.${ext}`;
@@ -29,7 +31,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await video.arrayBuffer());
     await writeFile(tmpPath, buffer);
 
-    return Response.json({ id, tmpPath });
+    return Response.json({ id, tmpPath, sessionId });
   } catch (err) {
     console.error('[analyze] Upload error:', err);
     return Response.json(

@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { AGENTS } from '@/lib/agents';
+import { getSessionId } from '@/lib/history';
 
 type InputMode = 'upload' | 'url';
 
@@ -64,6 +65,7 @@ export default function Home() {
       setUploadStatus('Uploading video...');
       const formData = new FormData();
       formData.append('video', file!);
+      formData.append('session_id', getSessionId());
 
       const res = await fetch('/api/analyze', { method: 'POST', body: formData });
       if (!res.ok) {

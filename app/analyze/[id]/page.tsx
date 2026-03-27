@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { AGENTS } from '@/lib/agents';
 import { AgentRoast, RoastResult, DimensionKey } from '@/lib/types';
+import { getSessionId } from '@/lib/history';
 
 interface AgentStatus {
   status: 'waiting' | 'analyzing' | 'done';
@@ -33,7 +34,8 @@ export default function AnalyzePage() {
     let overallScore = 0;
     let verdict = '';
 
-    const eventSource = new EventSource(`/api/analyze/${id}`);
+    const sessionId = getSessionId();
+    const eventSource = new EventSource(`/api/analyze/${id}?session_id=${encodeURIComponent(sessionId)}`);
 
     eventSource.onmessage = (event) => {
       try {
