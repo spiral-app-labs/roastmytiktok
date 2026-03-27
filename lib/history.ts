@@ -1,6 +1,7 @@
 'use client';
 
 import { RoastResult, DimensionKey } from './types';
+import { supabase } from './supabase';
 
 export interface HistoryEntry {
   id: string;
@@ -47,10 +48,11 @@ export function getHistory(): HistoryEntry[] {
   }
 }
 
-/** Save a roast result to history */
+/** Save a roast result to history — localStorage + Supabase */
 export function saveToHistory(result: RoastResult, source: 'upload' | 'url', filename?: string): void {
   if (typeof window === 'undefined') return;
   const history = getHistory();
+  const sessionId = getSessionId();
 
   const entry: HistoryEntry = {
     id: result.id,
@@ -72,9 +74,44 @@ export function saveToHistory(result: RoastResult, source: 'upload' | 'url', fil
   const exists = history.find(h => h.id === entry.id);
   if (!exists) {
     history.unshift(entry);
-    // Keep last 50 roasts
+    // Keep last 50 in localStorage
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
+
+    // Persist to Supabase (fire-and-forget, graceful fallback)
+    supabase.from('rmt_roast_sessions').insert({
+      id: entry.id,
+      session_id: sessionId,
+      created_at: entry.date,
+      source: entry.source,
+      filename: entry.filename,
+      video_url: undefined,
+      tiktok_url: entry.url,
+      overall_score: entry.overallScore,
+      verdict: entry.verdict,
+      agent_scores: entry.agentScores,
+      findings: entry.findings,
+    }).then(({ error }) => {
+      if (error) console.warn('[RoastMyTikTok] Supabase save failed (table may not exist yet):', error.message);
+    });
   }
+}
+
+/** Upload video file to Supabase Storage — returns public URL or null */
+export async function uploadVideoToStorage(file: File, sessionId: string): Promise<string | null> {
+  const ext = file.name.split('.').pop() ?? 'mp4';
+  const path = `${sessionId}/${Date.now()}.${ext}`;
+
+  const { data, error } = await supabase.storage
+    .from('roast-videos')
+    .upload(path, file, { cacheControl: '3600', upsert: false });
+
+  if (error) {
+    console.warn('[RoastMyTikTok] Video upload failed:', error.message);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage.from('roast-videos').getPublicUrl(data.path);
+  return urlData?.publicUrl ?? null;
 }
 
 /** Detect chronic issues — problems that appear 2+ times */
