@@ -1,13 +1,33 @@
 'use client';
 
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
 import { MOCK_ROAST } from '@/lib/mock-data';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
+import { saveToHistory, getChronicIssues, getHistory, getFixedIssues } from '@/lib/history';
 import Link from 'next/link';
+import { DimensionKey } from '@/lib/types';
 
 export default function RoastPage() {
   const roast = MOCK_ROAST;
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Save this roast to history on first view
+    const source = searchParams.get('source') === 'upload' ? 'upload' : 'url';
+    const filename = searchParams.get('filename') ?? undefined;
+    saveToHistory(roast, source, filename);
+  }, [roast, searchParams]);
+
+  // Detect chronic issues and fixed issues for escalation UI
+  const history = getHistory();
+  const findings = Object.fromEntries(
+    roast.agents.map(a => [a.agent, a.findings.slice(0, 2)])
+  ) as Record<DimensionKey, string[]>;
+  const chronicIssues = getChronicIssues(history);
+  const fixedIssues = getFixedIssues(findings, history);
 
   return (
     <main className="min-h-screen pb-20 relative">
@@ -72,6 +92,44 @@ export default function RoastPage() {
             <span>{roast.metadata.hashtags.join(' ')}</span>
           </motion.div>
         </motion.div>
+
+        {/* Fixed issues celebration */}
+        {fixedIssues.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="mb-6 bg-green-500/5 border border-green-500/20 rounded-2xl p-5"
+          >
+            <p className="text-green-400 font-semibold mb-2">🎉 Progress Detected</p>
+            {fixedIssues.map((f, i) => (
+              <p key={i} className="text-sm text-zinc-400">
+                You finally fixed <span className="text-green-400 font-medium">{f.dimension}</span>: {f.finding.slice(0, 60)}. We&apos;re proud. Genuinely.
+              </p>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Chronic issue warning */}
+        {chronicIssues.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+            className="mb-6 bg-red-500/5 border border-red-500/20 rounded-2xl p-5"
+          >
+            <p className="text-red-400 font-semibold mb-1">🔁 Repeat Offender</p>
+            <p className="text-sm text-zinc-400 mb-2">These issues keep showing up. We&apos;ve flagged them before.</p>
+            {chronicIssues.slice(0, 3).map((c, i) => (
+              <p key={i} className="text-xs text-zinc-500 mt-1">
+                <span className="text-red-400 font-medium">{c.dimension}</span> · {c.occurrences}× · {c.finding.slice(0, 60)}
+              </p>
+            ))}
+            <Link href="/history" className="mt-3 inline-block text-xs text-orange-400 hover:text-orange-300 transition-colors">
+              View full history →
+            </Link>
+          </motion.div>
+        )}
 
         {/* Agent Roast Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
