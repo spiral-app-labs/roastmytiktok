@@ -14,6 +14,7 @@ export default function Home() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -50,12 +51,33 @@ export default function Home() {
     if (inputMode === 'upload' && !file) return;
     if (inputMode === 'url' && !url.trim()) return;
     setLoading(true);
+    setUploadStatus(null);
 
     if (inputMode === 'url') {
-      router.push(`/analyze/demo-001?url=${encodeURIComponent(url)}`);
-    } else {
-      // For MVP: navigate to analysis with a file indicator
-      router.push(`/analyze/demo-001?source=upload&filename=${encodeURIComponent(file!.name)}`);
+      // URL analysis not yet supported
+      setFileError('URL analysis coming soon — please upload a file for now.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setUploadStatus('Uploading video...');
+      const formData = new FormData();
+      formData.append('video', file!);
+
+      const res = await fetch('/api/analyze', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      const { id } = await res.json();
+      setUploadStatus('Starting analysis...');
+      router.push(`/analyze/${id}?source=upload&filename=${encodeURIComponent(file!.name)}`);
+    } catch (err) {
+      setFileError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
+      setLoading(false);
+      setUploadStatus(null);
     }
   };
 
@@ -173,6 +195,16 @@ export default function Home() {
                   <p className="text-red-400 text-sm">{fileError}</p>
                 )}
 
+                {uploadStatus && (
+                  <p className="text-orange-400 text-sm flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    {uploadStatus}
+                  </p>
+                )}
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -195,7 +227,7 @@ export default function Home() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      Roasting...
+                      Uploading...
                     </span>
                   ) : (
                     '🔥 Roast My Video'

@@ -1,25 +1,88 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useSearchParams } from 'next/navigation';
-import { MOCK_ROAST } from '@/lib/mock-data';
+import { useParams, useSearchParams } from 'next/navigation';
+import { RoastResult, DimensionKey } from '@/lib/types';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues } from '@/lib/history';
 import Link from 'next/link';
-import { DimensionKey } from '@/lib/types';
 
 export default function RoastPage() {
-  const roast = MOCK_ROAST;
+  const params = useParams();
   const searchParams = useSearchParams();
+  const id = params.id as string;
+
+  const [roast, setRoast] = useState<RoastResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Save this roast to history on first view
-    const source = searchParams.get('source') === 'upload' ? 'upload' : 'url';
-    const filename = searchParams.get('filename') ?? undefined;
-    saveToHistory(roast, source, filename);
-  }, [roast, searchParams]);
+    async function loadRoast() {
+      // Try sessionStorage first (set by analyze page)
+      try {
+        const cached = sessionStorage.getItem(`roast_${id}`);
+        if (cached) {
+          const parsed = JSON.parse(cached) as RoastResult;
+          setRoast(parsed);
+          setLoading(false);
+
+          // Save to history
+          const source = searchParams.get('source') === 'upload' ? 'upload' : 'url';
+          const filename = searchParams.get('filename') ?? undefined;
+          saveToHistory(parsed, source, filename);
+          return;
+        }
+      } catch { /* ignore */ }
+
+      // Fallback: fetch from API (Supabase)
+      try {
+        const res = await fetch(`/api/roast/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setRoast(data);
+
+          const source = searchParams.get('source') === 'upload' ? 'upload' : 'url';
+          const filename = searchParams.get('filename') ?? undefined;
+          saveToHistory(data, source, filename);
+        } else {
+          setError('Roast not found. It may have expired.');
+        }
+      } catch {
+        setError('Failed to load roast results.');
+      }
+
+      setLoading(false);
+    }
+
+    loadRoast();
+  }, [id, searchParams]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4 animate-pulse">🔥</div>
+          <p className="text-zinc-400">Loading your roast...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !roast) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">😵</div>
+          <p className="text-zinc-400 mb-4">{error || 'Roast not found.'}</p>
+          <Link href="/" className="text-orange-400 hover:text-orange-300 transition-colors">
+            &larr; Try again
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   // Detect chronic issues and fixed issues for escalation UI
   const history = getHistory();
@@ -28,6 +91,9 @@ export default function RoastPage() {
   ) as Record<DimensionKey, string[]>;
   const chronicIssues = getChronicIssues(history);
   const fixedIssues = getFixedIssues(findings, history);
+
+  // Check if metadata has real data
+  const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
 
   return (
     <main className="min-h-screen pb-20 relative">
@@ -74,23 +140,25 @@ export default function RoastPage() {
             </p>
           </motion.div>
 
-          {/* Metadata */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="flex flex-wrap justify-center gap-4 mt-6 text-xs text-zinc-500"
-          >
-            <span>{roast.metadata.views.toLocaleString()} views</span>
-            <span className="text-zinc-700">|</span>
-            <span>{roast.metadata.likes} likes</span>
-            <span className="text-zinc-700">|</span>
-            <span>{roast.metadata.comments} comments</span>
-            <span className="text-zinc-700">|</span>
-            <span>{roast.metadata.duration}s duration</span>
-            <span className="text-zinc-700">|</span>
-            <span>{roast.metadata.hashtags.join(' ')}</span>
-          </motion.div>
+          {/* Metadata (only show if we have real data) */}
+          {hasMetadata && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="flex flex-wrap justify-center gap-4 mt-6 text-xs text-zinc-500"
+            >
+              <span>{roast.metadata.views.toLocaleString()} views</span>
+              <span className="text-zinc-700">|</span>
+              <span>{roast.metadata.likes} likes</span>
+              <span className="text-zinc-700">|</span>
+              <span>{roast.metadata.comments} comments</span>
+              <span className="text-zinc-700">|</span>
+              <span>{roast.metadata.duration}s duration</span>
+              <span className="text-zinc-700">|</span>
+              <span>{roast.metadata.hashtags.join(' ')}</span>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Fixed issues celebration */}
