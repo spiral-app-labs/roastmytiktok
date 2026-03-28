@@ -1,7 +1,6 @@
 'use client';
 
 import { RoastResult, DimensionKey } from './types';
-import { supabase } from './supabase';
 
 export interface HistoryEntry {
   id: string;
@@ -62,45 +61,9 @@ export function getHistory(): HistoryEntry[] {
   }
 }
 
-/** Fetch history from Supabase for a session, falling back to localStorage */
+/** Fetch history from localStorage */
 export async function fetchHistory(): Promise<HistoryEntry[]> {
-  if (typeof window === 'undefined') return [];
-
-  const sessionId = getSessionId();
-
-  try {
-    const { data, error } = await supabase
-      .from('rmt_roast_sessions')
-      .select('id, created_at, overall_score, verdict, source, filename, tiktok_url, agent_scores, findings')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error || !data || data.length === 0) {
-      return getHistory();
-    }
-
-    const entries: HistoryEntry[] = data.map(row => ({
-      id: row.id,
-      date: row.created_at,
-      overallScore: row.overall_score,
-      verdict: row.verdict ?? '',
-      source: row.source as 'upload' | 'url',
-      filename: row.filename ?? undefined,
-      url: row.tiktok_url ?? undefined,
-      agentScores: (row.agent_scores ?? {}) as Record<DimensionKey, number>,
-      findings: (row.findings ?? {}) as Record<DimensionKey, string[]>,
-    }));
-
-    // Sync to localStorage as cache
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, 50)));
-    } catch { /* localStorage may be full */ }
-
-    return entries;
-  } catch {
-    return getHistory();
-  }
+  return getHistory();
 }
 
 /** Save a roast result to history — localStorage + Supabase */
@@ -131,43 +94,9 @@ export function saveToHistory(result: RoastResult, source: 'upload' | 'url', fil
     history.unshift(entry);
     // Keep last 50 in localStorage
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
-
-    // Persist to Supabase (fire-and-forget, graceful fallback)
-    supabase.from('rmt_roast_sessions').insert({
-      id: entry.id,
-      session_id: sessionId,
-      created_at: entry.date,
-      source: entry.source,
-      filename: entry.filename,
-      video_url: undefined,
-      tiktok_url: entry.url,
-      overall_score: entry.overallScore,
-      verdict: entry.verdict,
-      agent_scores: entry.agentScores,
-      findings: entry.findings,
-    }).then(({ error }) => {
-      if (error) console.warn('[RoastMyTikTok] Supabase save failed (table may not exist yet):', error.message);
-    });
   }
 }
 
-/** Upload video file to Supabase Storage — returns public URL or null */
-export async function uploadVideoToStorage(file: File, sessionId: string): Promise<string | null> {
-  const ext = file.name.split('.').pop() ?? 'mp4';
-  const path = `${sessionId}/${Date.now()}.${ext}`;
-
-  const { data, error } = await supabase.storage
-    .from('roast-videos')
-    .upload(path, file, { cacheControl: '3600', upsert: false });
-
-  if (error) {
-    console.warn('[RoastMyTikTok] Video upload failed:', error.message);
-    return null;
-  }
-
-  const { data: urlData } = supabase.storage.from('roast-videos').getPublicUrl(data.path);
-  return urlData?.publicUrl ?? null;
-}
 
 /** Get escalation level for an issue based on occurrence count */
 export function getEscalationLevel(occurrences: number): EscalationInfo {
