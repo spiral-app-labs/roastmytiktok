@@ -9,7 +9,7 @@ import { getSessionId, fetchHistory, HistoryEntry } from '@/lib/history';
 
 type InputMode = 'upload' | 'url';
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150MB
 
 function ScoreChip({ score, large = false }: { score: number; large?: boolean }) {
   const color =
@@ -107,7 +107,7 @@ export default function UploadUI() {
   const handleFile = useCallback((f: File) => {
     setFileError(null);
     if (f.size > MAX_FILE_SIZE) {
-      setFileError('File too large. Max 500MB.');
+      setFileError('File too large (max 150MB). Video compression coming soon!');
       return;
     }
     if (!f.type.startsWith('video/')) {
@@ -143,18 +143,40 @@ export default function UploadUI() {
     }
 
     try {
-      setUploadStatus('Uploading video...');
-      const formData = new FormData();
-      formData.append('video', file!);
-      formData.append('session_id', getSessionId());
+      setUploadStatus('Preparing upload...');
 
-      const res = await fetch('/api/analyze', { method: 'POST', body: formData });
+      // Step 1: Get a signed upload URL from our API
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file!.name,
+          contentType: file!.type || 'video/mp4',
+          sessionId: getSessionId(),
+        }),
+      });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Upload failed');
       }
 
-      const { id } = await res.json();
+      const { id, signedUrl, token } = await res.json();
+
+      // Step 2: Upload directly to Supabase Storage using the signed URL
+      setUploadStatus('Uploading video...');
+      const uploadRes = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file!.type || 'video/mp4',
+          ...(token ? { 'x-upsert': 'false' } : {}),
+        },
+        body: file!,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Video upload failed');
+      }
+
       setUploadStatus('Starting analysis...');
       router.push(`/analyze/${id}?source=upload&filename=${encodeURIComponent(file!.name)}`);
     } catch (err) {
@@ -266,6 +288,7 @@ export default function UploadUI() {
             <form onSubmit={handleSubmit}>
               {inputMode === 'upload' ? (
                 <div className="space-y-3">
+<<<<<<< Updated upstream
                   <AnimatePresence mode="wait">
                     {!file ? (
                       <motion.div
@@ -278,6 +301,43 @@ export default function UploadUI() {
                         onDragLeave={() => setDragOver(false)}
                         onDrop={handleDrop}
                         className="relative cursor-pointer"
+=======
+                  {!file ? (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={handleDrop}
+                      className={`border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all text-center ${
+                        dragOver
+                          ? 'border-orange-500 bg-orange-500/10'
+                          : 'border-zinc-700 hover:border-orange-500/50 hover:bg-zinc-900/40'
+                      }`}
+                    >
+                      <div className="text-3xl mb-2">+</div>
+                      <p className="text-zinc-300 font-medium text-sm">Drop your video here</p>
+                      <p className="text-zinc-500 text-xs mt-1">mp4, mov, avi &middot; max 150MB</p>
+                    </div>
+                  ) : (
+                    <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl p-4 flex items-center gap-4">
+                      {previewUrl && (
+                        <video
+                          src={previewUrl}
+                          className="w-16 h-16 object-cover rounded-lg shrink-0"
+                          muted
+                        />
+                      )}
+                      <div className="text-left flex-1 min-w-0">
+                        <p className="text-white font-semibold text-sm truncate">{file.name}</p>
+                        <p className="text-zinc-500 text-xs mt-0.5">
+                          {(file.size / (1024 * 1024)).toFixed(1)} MB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearFile}
+                        className="text-zinc-500 hover:text-red-400 transition-colors text-lg shrink-0"
+>>>>>>> Stashed changes
                       >
                         <motion.div
                           animate={dragOver ? { scale: 1.02 } : { scale: 1 }}
