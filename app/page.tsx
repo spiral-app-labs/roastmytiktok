@@ -307,14 +307,23 @@ function UploadUI() {
   );
 }
 
-const WAITLIST_MODE = process.env.NEXT_PUBLIC_WAITLIST_MODE === 'true';
+// Waitlist is active until NEXT_PUBLIC_LAUNCH_DATE (ISO UTC string, e.g. "2026-04-06T16:00:00Z")
+const LAUNCH_DATE = process.env.NEXT_PUBLIC_LAUNCH_DATE
+  ? new Date(process.env.NEXT_PUBLIC_LAUNCH_DATE)
+  : null;
+
+function isPreLaunch(): boolean {
+  if (!LAUNCH_DATE) return false;
+  return new Date() < LAUNCH_DATE;
+}
 
 export default function Home() {
-  const [bypassed, setBypassed] = useState(!WAITLIST_MODE);
-  const [checked, setChecked] = useState(!WAITLIST_MODE);
+  const waitlistMode = isPreLaunch();
+  const [bypassed, setBypassed] = useState(!waitlistMode);
+  const [checked, setChecked] = useState(!waitlistMode);
 
   useEffect(() => {
-    if (!WAITLIST_MODE) return;
+    if (!waitlistMode) return;
 
     // Check for bypass cookie via API (httpOnly cookie can't be read client-side)
     let cancelled = false;
@@ -330,13 +339,13 @@ export default function Home() {
         if (!cancelled) setChecked(true);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [waitlistMode]);
 
   if (!checked) {
     return <main className="min-h-screen" />;
   }
 
-  if (WAITLIST_MODE && !bypassed) {
+  if (waitlistMode && !bypassed) {
     return <WaitlistLanding />;
   }
 
