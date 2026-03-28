@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadUI from '@/components/UploadUI';
+import { GlassCard, GradientButton } from '@/components/ui';
 
 // Floating particle for background
 function Particle({ delay, duration, x, y, size }: { delay: number; duration: number; x: number; y: number; size: number }) {
@@ -161,7 +162,7 @@ export default function Home() {
               {/* Social proof bar */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/80 border border-zinc-700/50 backdrop-blur-sm">
                 <div className="flex -space-x-1">
-                  {['🧑', '👩', '🧑‍💻'].map((e, i) => (
+                  {['🧑', '👩', '🧑💻'].map((e, i) => (
                     <span key={i} className="text-base">{e}</span>
                   ))}
                 </div>
@@ -188,20 +189,17 @@ export default function Home() {
               {/* Feature highlights */}
               <div className="grid grid-cols-2 gap-3">
                 {FEATURES.map((f) => (
-                  <div
-                    key={f.title}
-                    className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm"
-                  >
+                  <GlassCard key={f.title} variant="surface" className="p-3">
                     <div className="text-xl mb-1">{f.icon}</div>
                     <div className="text-white font-semibold text-sm">{f.title}</div>
                     <div className="text-zinc-500 text-xs mt-0.5 leading-snug">{f.desc}</div>
-                  </div>
+                  </GlassCard>
                 ))}
               </div>
 
               {/* Agent previews */}
               <div className="space-y-2">
-                <p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">Who's judging you</p>
+                <p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">Who&apos;s judging you</p>
                 <div className="flex flex-wrap gap-2">
                   {AGENTS_PREVIEW.slice(0, 4).map((a) => (
                     <div
@@ -227,7 +225,7 @@ export default function Home() {
               className="space-y-5"
             >
               {/* Main card */}
-              <div className="relative p-8 rounded-2xl bg-zinc-900/80 border border-zinc-700/50 backdrop-blur-xl shadow-2xl shadow-black/50">
+              <GlassCard variant="highlighted" className="relative p-8 shadow-2xl shadow-black/50">
                 {/* Glow */}
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-orange-500/5 to-pink-500/5 pointer-events-none" />
 
@@ -264,23 +262,16 @@ export default function Home() {
                       )}
                     </AnimatePresence>
 
-                    <button
+                    <GradientButton
                       type="submit"
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
                       disabled={loading || !password}
-                      className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold py-3.5 rounded-xl hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
+                      loading={loading}
                     >
-                      {loading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          Verifying...
-                        </span>
-                      ) : (
-                        'Get Roasted →'
-                      )}
-                    </button>
+                      {loading ? 'Verifying...' : 'Get Roasted →'}
+                    </GradientButton>
                   </form>
 
                   <div className="flex items-center gap-3">
@@ -302,7 +293,7 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </GlassCard>
 
               {/* Testimonial rotator */}
               <div className="relative h-20 overflow-hidden">
@@ -313,12 +304,14 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -12 }}
                     transition={{ duration: 0.4 }}
-                    className="absolute inset-0 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50 backdrop-blur-sm"
+                    className="absolute inset-0"
                   >
-                    <p className="text-zinc-300 text-xs italic leading-relaxed">
-                      &ldquo;{TESTIMONIALS[activeTestimonial].text}&rdquo;
-                    </p>
-                    <p className="text-zinc-500 text-xs mt-1.5 font-medium">{TESTIMONIALS[activeTestimonial].handle}</p>
+                    <GlassCard variant="surface" className="h-full p-4">
+                      <p className="text-zinc-300 text-xs italic leading-relaxed">
+                        &ldquo;{TESTIMONIALS[activeTestimonial].text}&rdquo;
+                      </p>
+                      <p className="text-zinc-500 text-xs mt-1.5 font-medium">{TESTIMONIALS[activeTestimonial].handle}</p>
+                    </GlassCard>
                   </motion.div>
                 </AnimatePresence>
               </div>

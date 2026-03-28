@@ -68,3 +68,7 @@ body {
 .animate-ember-rise {
   animation: ember-rise 6s ease-out infinite;
 }
+
+@keyframes shimmer {
+  to { transform: translateX(200%); }
+}

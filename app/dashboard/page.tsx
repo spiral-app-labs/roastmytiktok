@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getHistory, getSessionId, HistoryEntry } from '@/lib/history'
 import { AGENTS } from '@/lib/agents'
 import { ScoreRing } from '@/components/ScoreRing'
+import { GlassCard, GradientButton, ScoreBadge, EmptyState } from '@/components/ui'
 
 /* ─── quick tips ─── */
 const TIPS = [
@@ -45,13 +46,6 @@ function scoreColor(score: number) {
   return 'text-red-400'
 }
 
-function scoreBg(score: number) {
-  if (score >= 80) return 'bg-green-500/10 border-green-500/20'
-  if (score >= 60) return 'bg-yellow-500/10 border-yellow-500/20'
-  if (score >= 40) return 'bg-orange-500/10 border-orange-500/20'
-  return 'bg-red-500/10 border-red-500/20'
-}
-
 function trendArrow(current: number, previous: number) {
   const diff = current - previous
   if (diff > 0) return { icon: '↑', color: 'text-green-400', label: `+${diff}` }
@@ -66,11 +60,12 @@ function StatCard({ label, value, sub, delay = 0 }: { label: string; value: Reac
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
-      className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5"
     >
-      <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-1">{label}</p>
-      <div className="text-2xl font-bold text-white">{value}</div>
-      {sub && <div className="text-xs text-zinc-500 mt-1">{sub}</div>}
+      <GlassCard variant="surface" className="p-5">
+        <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-1">{label}</p>
+        <div className="text-2xl font-bold text-white">{value}</div>
+        {sub && <div className="text-xs text-zinc-500 mt-1">{sub}</div>}
+      </GlassCard>
     </motion.div>
   )
 }
@@ -142,68 +137,67 @@ function UploadArea() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
-      className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 card-glow"
     >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl fire-gradient flex items-center justify-center text-lg">🎬</div>
-        <div>
-          <h2 className="text-lg font-bold text-white">Upload New Video</h2>
-          <p className="text-xs text-zinc-500">Get your TikTok roasted by 6 AI agents</p>
-        </div>
-      </div>
-
-      {!file ? (
-        <div
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-xl p-10 cursor-pointer transition-all text-center ${
-            dragOver
-              ? 'border-orange-500 bg-orange-500/10'
-              : 'border-zinc-700 hover:border-orange-500/50 hover:bg-zinc-800/40'
-          }`}
-        >
-          <div className="text-4xl mb-3">📤</div>
-          <p className="text-zinc-200 font-semibold">Drop your video here</p>
-          <p className="text-zinc-500 text-sm mt-1">or click to browse</p>
-          <p className="text-zinc-600 text-xs mt-2">mp4, mov, avi &middot; max 500MB</p>
-        </div>
-      ) : (
-        <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl p-4 flex items-center gap-4">
-          {previewUrl && (
-            <video src={previewUrl} className="w-20 h-20 object-cover rounded-lg shrink-0" muted />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-white font-semibold text-sm truncate">{file.name}</p>
-            <p className="text-zinc-500 text-xs mt-0.5">{(file.size / (1024 * 1024)).toFixed(1)} MB</p>
+      <GlassCard variant="surface" className="p-6 card-glow">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl fire-gradient flex items-center justify-center text-lg">🎬</div>
+          <div>
+            <h2 className="text-lg font-bold text-white">Upload New Video</h2>
+            <p className="text-xs text-zinc-500">Get your TikTok roasted by 6 AI agents</p>
           </div>
-          <button onClick={clearFile} className="text-zinc-500 hover:text-red-400 transition-colors text-lg shrink-0">✕</button>
         </div>
-      )}
 
-      {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
-      {status && (
-        <p className="text-orange-400 text-sm mt-3 flex items-center gap-2">
-          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-          {status}
-        </p>
-      )}
+        {!file ? (
+          <div
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-xl p-10 cursor-pointer transition-all text-center ${
+              dragOver
+                ? 'border-orange-500 bg-orange-500/10'
+                : 'border-zinc-700 hover:border-orange-500/50 hover:bg-zinc-800/40'
+            }`}
+          >
+            <div className="text-4xl mb-3">📤</div>
+            <p className="text-zinc-200 font-semibold">Drop your video here</p>
+            <p className="text-zinc-500 text-sm mt-1">or click to browse</p>
+            <p className="text-zinc-600 text-xs mt-2">mp4, mov, avi &middot; max 500MB</p>
+          </div>
+        ) : (
+          <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl p-4 flex items-center gap-4">
+            {previewUrl && (
+              <video src={previewUrl} className="w-20 h-20 object-cover rounded-lg shrink-0" muted />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-semibold text-sm truncate">{file.name}</p>
+              <p className="text-zinc-500 text-xs mt-0.5">{(file.size / (1024 * 1024)).toFixed(1)} MB</p>
+            </div>
+            <button onClick={clearFile} className="text-zinc-500 hover:text-red-400 transition-colors text-lg shrink-0">✕</button>
+          </div>
+        )}
 
-      <input ref={inputRef} type="file" accept="video/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+        {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
+        {status && (
+          <p className="text-orange-400 text-sm mt-3 flex items-center gap-2">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            {status}
+          </p>
+        )}
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !file}
-        className="w-full mt-4 fire-gradient text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed text-sm"
-      >
-        {loading ? (
-          <span className="flex items-center justify-center gap-2">
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-            Uploading...
-          </span>
-        ) : 'Roast My Video'}
-      </button>
+        <input ref={inputRef} type="file" accept="video/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+
+        <GradientButton
+          variant="primary"
+          size="lg"
+          className="w-full mt-4"
+          onClick={handleSubmit}
+          disabled={loading || !file}
+          loading={loading}
+        >
+          {loading ? 'Uploading...' : 'Roast My Video'}
+        </GradientButton>
+      </GlassCard>
     </motion.div>
   )
 }
@@ -259,7 +253,6 @@ export default function DashboardPage() {
   const totalRoasts = history.length
   const avgScore = totalRoasts > 0 ? Math.round(history.reduce((s, h) => s + h.overallScore, 0) / totalRoasts) : 0
   const bestScore = totalRoasts > 0 ? Math.max(...history.map(h => h.overallScore)) : 0
-  const worstScore = totalRoasts > 0 ? Math.min(...history.map(h => h.overallScore)) : 0
 
   const trend = totalRoasts >= 2
     ? trendArrow(history[0].overallScore, history[1].overallScore)
@@ -304,12 +297,14 @@ export default function DashboardPage() {
             {userEmail && <p className="text-xs text-zinc-600">{userEmail}</p>}
           </div>
         </div>
-        <button
+        <GradientButton
+          variant="ghost"
+          size="sm"
           onClick={handleSignOut}
-          className="text-sm text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-600 px-4 py-1.5 rounded-lg transition-colors"
+          className="border border-zinc-800 hover:border-zinc-600"
         >
           Sign out
-        </button>
+        </GradientButton>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 md:px-8 space-y-8">
@@ -320,27 +315,28 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-10"
           >
-            <motion.div
-              animate={{ scale: [1, 1.1, 1], rotate: [-5, 5, -5] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              className="text-6xl mb-4"
-            >
-              🔥
-            </motion.div>
-            <h1 className="text-3xl font-bold text-white mb-3">Ready to get roasted?</h1>
-            <p className="text-zinc-500 max-w-md mx-auto mb-6">
-              {`Upload your first TikTok and 6 AI agents will tear it apart — brutally, accurately, and with your growth in mind.`}
-            </p>
+            <EmptyState
+              icon={
+                <motion.span
+                  animate={{ scale: [1, 1.1, 1], rotate: [-5, 5, -5] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="inline-block"
+                >
+                  🔥
+                </motion.span>
+              }
+              title="Ready to get roasted?"
+              description="Upload your first TikTok and 6 AI agents will tear it apart — brutally, accurately, and with your growth in mind."
+            />
             <div className="flex flex-wrap justify-center gap-4 text-sm text-zinc-400 mb-8">
               {[
-                { emoji: `🎣`, text: `Hook analysis` },
-                { emoji: `🎥`, text: `Visual critique` },
-                { emoji: `🎵`, text: `Audio review` },
-                { emoji: `🤖`, text: `Algorithm audit` },
-                { emoji: `💬`, text: `Caption check` },
-                { emoji: `✨`, text: `Authenticity score` },
+                { emoji: '🎣', text: 'Hook analysis' },
+                { emoji: '🎥', text: 'Visual critique' },
+                { emoji: '🎵', text: 'Audio review' },
+                { emoji: '🤖', text: 'Algorithm audit' },
+                { emoji: '💬', text: 'Caption check' },
+                { emoji: '✨', text: 'Authenticity score' },
               ].map((item) => (
                 <div key={item.text} className="flex items-center gap-1.5 bg-zinc-900/60 border border-zinc-800 rounded-full px-3 py-1.5">
                   <span>{item.emoji}</span>
@@ -348,7 +344,7 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            <p className="text-zinc-600 text-xs">{`Upload a video below to get started →`}</p>
+            <p className="text-zinc-600 text-xs text-center">Upload a video below to get started →</p>
           </motion.div>
         ) : (
           <>
@@ -366,11 +362,7 @@ export default function DashboardPage() {
 
             {/* Stats Row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard
-                label="Total Roasts"
-                value={totalRoasts}
-                delay={0}
-              />
+              <StatCard label="Total Roasts" value={totalRoasts} delay={0} />
               <StatCard
                 label="Average Score"
                 value={
@@ -383,9 +375,7 @@ export default function DashboardPage() {
               />
               <StatCard
                 label="Best Score"
-                value={
-                  <span className="text-green-400">{bestScore}</span>
-                }
+                value={<span className="text-green-400">{bestScore}</span>}
                 delay={0.1}
               />
               <StatCard
@@ -420,33 +410,34 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5"
               >
-                <h3 className="text-sm font-semibold text-zinc-300 mb-4">Score Trend</h3>
-                <div className="h-40">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
-                      <defs>
-                        <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#fb923c" stopOpacity={0.4} />
-                          <stop offset="100%" stopColor="#fb923c" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#71717a' }} axisLine={false} tickLine={false} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#71717a' }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<ChartTooltip />} />
-                      <Area
-                        type="monotone"
-                        dataKey="score"
-                        stroke="#fb923c"
-                        strokeWidth={2}
-                        fill="url(#scoreGrad)"
-                        dot={{ r: 3, fill: '#fb923c', stroke: '#18181b', strokeWidth: 2 }}
-                        activeDot={{ r: 5, fill: '#fb923c' }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+                <GlassCard variant="surface" className="p-5">
+                  <h3 className="text-sm font-semibold text-zinc-300 mb-4">Score Trend</h3>
+                  <div className="h-40">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+                        <defs>
+                          <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#fb923c" stopOpacity={0.4} />
+                            <stop offset="100%" stopColor="#fb923c" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#71717a' }} axisLine={false} tickLine={false} />
+                        <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#71717a' }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<ChartTooltip />} />
+                        <Area
+                          type="monotone"
+                          dataKey="score"
+                          stroke="#fb923c"
+                          strokeWidth={2}
+                          fill="url(#scoreGrad)"
+                          dot={{ r: 3, fill: '#fb923c', stroke: '#18181b', strokeWidth: 2 }}
+                          activeDot={{ r: 5, fill: '#fb923c' }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </GlassCard>
               </motion.div>
             )}
 
@@ -455,20 +446,21 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5"
             >
-              <h3 className="text-sm font-semibold text-zinc-300 mb-3">Quick Tips</h3>
-              <div className="space-y-3">
-                {visibleTips.map((tip, i) => (
-                  <div key={i} className="flex gap-3 items-start">
-                    <span className="text-lg shrink-0 mt-0.5">{tip.emoji}</span>
-                    <div>
-                      <p className="text-sm font-medium text-zinc-200">{tip.title}</p>
-                      <p className="text-xs text-zinc-500 mt-0.5">{tip.body}</p>
+              <GlassCard variant="surface" className="p-5">
+                <h3 className="text-sm font-semibold text-zinc-300 mb-3">Quick Tips</h3>
+                <div className="space-y-3">
+                  {visibleTips.map((tip, i) => (
+                    <div key={i} className="flex gap-3 items-start">
+                      <span className="text-lg shrink-0 mt-0.5">{tip.emoji}</span>
+                      <div>
+                        <p className="text-sm font-medium text-zinc-200">{tip.title}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5">{tip.body}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </GlassCard>
             </motion.div>
           </div>
         </div>
@@ -495,40 +487,39 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 + i * 0.05 }}
                 >
-                  <Link
-                    href={`/roast/${entry.id}`}
-                    className="block bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 hover:border-orange-500/30 hover:bg-zinc-900/80 transition-all group"
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-zinc-300 font-medium truncate group-hover:text-white transition-colors">
-                          {entry.filename || 'Untitled video'}
-                        </p>
-                        <p className="text-xs text-zinc-600 mt-0.5">
-                          {new Date(entry.date).toLocaleDateString('en-US', {
-                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                          })}
-                        </p>
+                  <Link href={`/roast/${entry.id}`} className="block">
+                    <GlassCard variant="interactive" className="p-5 group">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-zinc-300 font-medium truncate group-hover:text-white transition-colors">
+                            {entry.filename || 'Untitled video'}
+                          </p>
+                          <p className="text-xs text-zinc-600 mt-0.5">
+                            {new Date(entry.date).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        <ScoreRing score={entry.overallScore} size={48} />
                       </div>
-                      <ScoreRing score={entry.overallScore} size={48} />
-                    </div>
 
-                    {/* Agent score row */}
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {Object.entries(entry.agentScores).map(([dim, score]) => {
-                        const agent = AGENTS.find(a => a.key === dim)
-                        return (
-                          <span key={dim} className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800/80 text-xs text-zinc-400">
-                            <span>{agent?.emoji}</span>
-                            <span>{score}</span>
-                          </span>
-                        )
-                      })}
-                    </div>
+                      {/* Agent score row */}
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {Object.entries(entry.agentScores).map(([dim, score]) => {
+                          const agent = AGENTS.find(a => a.key === dim)
+                          return (
+                            <span key={dim} className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800/80 text-xs text-zinc-400">
+                              <span>{agent?.emoji}</span>
+                              <span>{score}</span>
+                            </span>
+                          )
+                        })}
+                      </div>
 
-                    {entry.verdict && (
-                      <p className="text-xs text-zinc-500 italic line-clamp-2">&ldquo;{entry.verdict}&rdquo;</p>
-                    )}
+                      {entry.verdict && (
+                        <p className="text-xs text-zinc-500 italic line-clamp-2">&ldquo;{entry.verdict}&rdquo;</p>
+                      )}
+                    </GlassCard>
                   </Link>
                 </motion.div>
               ))}
