@@ -137,13 +137,14 @@ export default function AnalyzeAccountPage() {
           className="grid grid-cols-3 gap-4 max-w-md mx-auto mt-8"
         >
           {[
-            { label: 'Videos Scanned', value: 'Up to 30' },
-            { label: 'Pattern Detection', value: 'AI-Powered' },
-            { label: 'Next Video Ideas', value: '5 Custom' },
+            { label: 'Videos Scanned', value: 'Up to 30', icon: '📹' },
+            { label: 'Pattern Detection', value: 'AI-Powered', icon: '🧠' },
+            { label: 'Next Video Ideas', value: '5 Custom', icon: '💡' },
           ].map((stat) => (
-            <div key={stat.label} className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl p-3 text-center">
-              <div className="text-sm font-semibold text-white">{stat.value}</div>
-              <div className="text-xs text-zinc-500 mt-1">{stat.label}</div>
+            <div key={stat.label} className="bg-zinc-900/60 backdrop-blur-sm border border-zinc-800/50 rounded-xl p-3 text-center">
+              <div className="text-lg mb-1">{stat.icon}</div>
+              <div className="text-sm font-bold text-white">{stat.value}</div>
+              <div className="text-xs text-zinc-500 mt-0.5">{stat.label}</div>
             </div>
           ))}
         </motion.div>

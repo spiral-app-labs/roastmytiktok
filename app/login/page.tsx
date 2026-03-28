@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 
 function LoginForm() {
   const params = useSearchParams()
@@ -47,43 +48,71 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[#080808]">
-      <div className="w-full max-w-sm">
-        {/* Brand */}
-        <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <span className="text-3xl">🎵</span>
-          <span className="text-3xl font-black bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
-            RoastMyTikTok
-          </span>
-        </Link>
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#080808] relative overflow-hidden">
+      {/* Ambient glow */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-orange-500/8 via-pink-500/5 to-transparent blur-3xl" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[300px] bg-gradient-to-t from-red-500/5 to-transparent blur-2xl" />
+      </div>
 
-        <div className="rounded-2xl border border-gray-800 bg-gray-900/50 p-8">
+      <div className="relative z-10 w-full max-w-sm">
+        {/* Brand */}
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col items-center mb-8"
+        >
+          <Link href="/" className="flex items-center gap-2 mb-3">
+            <span className="text-3xl">🎵</span>
+            <span className="text-2xl font-black bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 bg-clip-text text-transparent">
+              RoastMyTikTok
+            </span>
+          </Link>
+          <p className="text-zinc-600 text-sm">The brutally honest AI content coach</p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 backdrop-blur-sm p-8 shadow-2xl shadow-black/50"
+        >
           <h1 className="text-xl font-bold text-white text-center mb-6">
             Sign in to continue
           </h1>
 
           {error && (
-            <div className="mb-4 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mb-4 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
           {sent ? (
-            <div className="text-center">
-              <div className="text-4xl mb-3">📬</div>
-              <p className="text-white font-medium mb-1">Check your email</p>
-              <p className="text-gray-500 text-sm">
-                We sent a magic link to <span className="text-gray-300">{email}</span>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-4"
+            >
+              <div className="text-5xl mb-4">📬</div>
+              <p className="text-white font-semibold mb-1">Check your email</p>
+              <p className="text-zinc-500 text-sm">
+                Magic link sent to{' '}
+                <span className="text-zinc-300">{email}</span>
               </p>
-            </div>
+            </motion.div>
           ) : (
             <>
               {/* Google OAuth */}
               <button
                 onClick={signInWithGoogle}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white text-gray-900 font-medium text-sm hover:bg-gray-100 transition-colors mb-6"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 active:scale-[0.98] transition-all mb-6 shadow-md"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                   <path
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
                     fill="#4285F4"
@@ -106,44 +135,61 @@ function LoginForm() {
 
               <div className="relative mb-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-800" />
+                  <div className="w-full border-t border-zinc-800" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-gray-900/50 px-3 text-gray-500">or</span>
+                  <span className="bg-zinc-900/60 px-3 text-zinc-600">or use email</span>
                 </div>
               </div>
 
               {/* Magic link */}
-              <form onSubmit={signInWithEmail}>
-                <label htmlFor="email" className="block text-sm text-gray-400 mb-2">
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  className="w-full px-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-orange-500/50 transition-colors mb-4"
-                />
+              <form onSubmit={signInWithEmail} className="space-y-3">
+                <div>
+                  <label htmlFor="email" className="block text-xs font-medium text-zinc-400 mb-1.5">
+                    Email address
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    className="w-full px-4 py-3 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-white placeholder-zinc-600 text-sm focus:outline-none focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/20 transition-all"
+                  />
+                </div>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full px-4 py-3 rounded-xl bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading || !email.trim()}
+                  className="w-full px-4 py-3 rounded-xl fire-gradient text-white font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-orange-500/20"
                 >
-                  {loading ? 'Sending...' : 'Send magic link'}
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Sending...
+                    </span>
+                  ) : (
+                    'Send magic link'
+                  )}
                 </button>
               </form>
             </>
           )}
-        </div>
+        </motion.div>
 
-        <p className="text-center text-gray-600 text-xs mt-6">
-          <Link href="/" className="text-gray-500 hover:text-white transition-colors underline">
-            Back to home
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-center text-zinc-600 text-xs mt-6"
+        >
+          <Link href="/" className="text-zinc-500 hover:text-orange-400 transition-colors">
+            ← Back to home
           </Link>
-        </p>
+        </motion.p>
       </div>
     </div>
   )

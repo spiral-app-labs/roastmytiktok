@@ -6,25 +6,134 @@ import Link from 'next/link';
 import { fetchHistory, getChronicIssues, getEscalationLevel, HistoryEntry, ChronicIssue } from '@/lib/history';
 import { AGENTS } from '@/lib/agents';
 
-function ScoreChip({ score }: { score: number }) {
-  const color =
-    score >= 70 ? 'text-green-400 bg-green-500/10 border-green-500/30' :
-    score >= 50 ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' :
-    'text-red-400 bg-red-500/10 border-red-500/30';
+function getRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = Date.now();
+  const diff = now - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  const cfg =
+    score >= 70
+      ? { text: 'text-green-300', bg: 'bg-green-500/15', ring: 'ring-green-500/30', label: '🟢' }
+      : score >= 50
+      ? { text: 'text-yellow-300', bg: 'bg-yellow-500/15', ring: 'ring-yellow-500/30', label: '🟡' }
+      : { text: 'text-red-300', bg: 'bg-red-500/15', ring: 'ring-red-500/30', label: '🔴' };
+
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-lg border text-sm font-bold ${color}`}>
-      {score}
-    </span>
+    <div className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl ring-1 ${cfg.bg} ${cfg.ring} shrink-0`}>
+      <span className={`text-2xl font-black leading-none ${cfg.text}`}>{score}</span>
+      <span className="text-[10px] text-zinc-500 mt-0.5">/ 100</span>
+    </div>
   );
 }
 
 function RepeatOffenderBadge({ count, dimension }: { count: number; dimension: string }) {
   const agent = AGENTS.find(a => a.key === dimension);
-  const label = `${count}× ${agent?.name ?? dimension} offender`;
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold">
-      {label}
+      {count}× {agent?.name ?? dimension}
     </span>
+  );
+}
+
+function HistoryCard({ entry, index, chronic }: { entry: HistoryEntry; index: number; chronic: ChronicIssue[] }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 + index * 0.06, duration: 0.4 }}
+      className="group relative bg-zinc-900/60 backdrop-blur-sm border border-zinc-800/50 rounded-2xl p-5 hover:border-orange-500/25 hover:bg-zinc-900/80 transition-all duration-200"
+    >
+      {index === 0 && (
+        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+          Latest
+        </div>
+      )}
+
+      <div className="flex items-start gap-4">
+        <ScoreBadge score={entry.overallScore} />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <div className="flex-1 min-w-0">
+              {entry.filename && (
+                <p className="text-sm font-semibold text-zinc-200 truncate">{entry.filename}</p>
+              )}
+              {entry.url && !entry.filename && (
+                <p className="text-xs text-zinc-400 truncate">{entry.url}</p>
+              )}
+              {!entry.filename && !entry.url && (
+                <p className="text-sm text-zinc-500 italic">Untitled roast</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-zinc-500 mb-3">
+            <span>{getRelativeDate(entry.date)}</span>
+            <span>·</span>
+            <span>{entry.source === 'upload' ? '📎 Upload' : '🔗 URL'}</span>
+          </div>
+
+          {/* Agent score pills */}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {Object.entries(entry.agentScores).map(([dim, score]) => {
+              const agent = AGENTS.find(a => a.key === dim);
+              const isWeak = chronic.some(c => c.dimension === dim);
+              return (
+                <div
+                  key={dim}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs border ${
+                    isWeak
+                      ? 'bg-red-500/10 border-red-500/20 text-red-300'
+                      : score >= 70
+                      ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                      : score >= 50
+                      ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
+                      : 'bg-zinc-800/60 border-zinc-700/30 text-zinc-400'
+                  }`}
+                >
+                  <span>{agent?.emoji}</span>
+                  <span className="font-semibold">{score}</span>
+                  {isWeak && <span className="text-red-500 text-[10px]">↑recurring</span>}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Verdict excerpt */}
+          {entry.verdict && (
+            <p className="text-xs text-zinc-500 italic line-clamp-2 mb-3">
+              &ldquo;{entry.verdict}&rdquo;
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="flex items-center justify-between mt-1 pt-3 border-t border-zinc-800/40">
+        <div className="flex flex-wrap gap-1">
+          {chronic.filter(c => Object.keys(entry.agentScores).includes(c.dimension)).slice(0, 2).map((c, i) => (
+            <RepeatOffenderBadge key={i} count={c.occurrences} dimension={c.dimension} />
+          ))}
+        </div>
+        <Link
+          href={`/roast/${entry.id}`}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-400 hover:text-orange-300 bg-orange-500/10 hover:bg-orange-500/15 px-3 py-1.5 rounded-lg transition-all"
+        >
+          View Roast →
+        </Link>
+      </div>
+    </motion.div>
   );
 }
 
@@ -48,7 +157,7 @@ export default function HistoryPage() {
   return (
     <main className="min-h-screen pb-20 relative">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-to-b from-orange-500/5 to-transparent blur-3xl" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-gradient-to-b from-orange-500/6 to-transparent blur-3xl" />
       </div>
 
       <div className="relative z-10 max-w-3xl mx-auto px-4 pt-12">
@@ -59,7 +168,7 @@ export default function HistoryPage() {
           className="mb-10"
         >
           <Link href="/" className="text-sm text-zinc-500 hover:text-orange-400 transition-colors mb-4 inline-block">
-            &larr; Roast another
+            ← Roast another
           </Link>
           <h1 className="text-4xl font-bold">
             <span className="fire-text">Your Roast History</span>
@@ -79,10 +188,10 @@ export default function HistoryPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mb-8 bg-red-500/5 border border-red-500/30 rounded-2xl p-6"
+            className="mb-8 bg-red-500/5 border border-red-500/25 rounded-2xl p-6"
           >
-            <h2 className="text-lg font-bold text-red-400 mb-1 flex items-center gap-2">
-              Repeat Offender Alert
+            <h2 className="text-base font-bold text-red-400 mb-1 flex items-center gap-2">
+              <span>🚨</span> Repeat Offender Alert
             </h2>
             <p className="text-sm text-zinc-400 mb-4">
               These issues keep showing up across your roasts. We&apos;ve tried being nice about it.
@@ -93,7 +202,7 @@ export default function HistoryPage() {
                 const { label } = getEscalationLevel(issue.occurrences);
                 return (
                   <div key={i} className="flex items-start gap-3">
-                    <span className="text-xl shrink-0">{agent?.emoji ?? '\u26a0\ufe0f'}</span>
+                    <span className="text-xl shrink-0">{agent?.emoji ?? '⚠️'}</span>
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-semibold text-zinc-200">{agent?.name ?? issue.dimension}</span>
@@ -112,106 +221,44 @@ export default function HistoryPage() {
         {/* Loading state */}
         {loading && (
           <div className="text-center py-20">
-            <div className="text-4xl mb-4 animate-pulse">&#128293;</div>
+            <div className="text-4xl mb-4 animate-pulse">🔥</div>
             <p className="text-zinc-500">Fetching your roast history...</p>
           </div>
         )}
 
-        {/* History list */}
-        {!loading && history.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">&#127916;</div>
-            <p className="text-zinc-500">No roast history yet.</p>
+        {/* Empty state */}
+        {!loading && history.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-center py-20 px-6"
+          >
+            <div className="text-7xl mb-5">🎬</div>
+            <h2 className="text-2xl font-bold text-white mb-2">No roasts yet</h2>
+            <p className="text-zinc-500 max-w-xs mx-auto mb-8">
+              Upload your first TikTok and let the AI agents tear it apart. It&apos;ll make you better. Probably.
+            </p>
             <Link
               href="/"
-              className="mt-4 inline-block fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-2 fire-gradient text-white font-bold px-8 py-3.5 rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-orange-500/20"
             >
-              Get Roasted
+              <span>🔥</span> Get Roasted
             </Link>
-          </div>
-        ) : !loading && (
+          </motion.div>
+        )}
+
+        {/* History list */}
+        {!loading && history.length > 0 && (
           <div className="space-y-4">
             {history.map((entry, i) => (
-              <motion.div
-                key={entry.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.05 }}
-                className="bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-5 hover:border-orange-500/20 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-zinc-500">
-                        {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      <span className="text-xs text-zinc-600">&middot;</span>
-                      <span className="text-xs text-zinc-500">{entry.source === 'upload' ? 'Upload' : 'URL'}</span>
-                    </div>
-                    {entry.filename && (
-                      <p className="text-sm text-zinc-400 truncate">{entry.filename}</p>
-                    )}
-                    {entry.url && !entry.filename && (
-                      <p className="text-xs text-zinc-500 truncate">{entry.url}</p>
-                    )}
-                  </div>
-                  <div className="shrink-0 flex flex-col items-end gap-1">
-                    <ScoreChip score={entry.overallScore} />
-                    {i === 0 && <span className="text-xs text-zinc-600">latest</span>}
-                  </div>
-                </div>
-
-                {/* Agent scores */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {Object.entries(entry.agentScores).map(([dim, score]) => {
-                    const agent = AGENTS.find(a => a.key === dim);
-                    const chronicDim = chronic.find(c => c.dimension === dim);
-                    return (
-                      <div
-                        key={dim}
-                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs border ${
-                          chronicDim
-                            ? 'bg-red-500/10 border-red-500/20 text-red-300'
-                            : 'bg-zinc-800/60 border-zinc-700/30 text-zinc-400'
-                        }`}
-                      >
-                        <span>{agent?.emoji}</span>
-                        <span>{score}</span>
-                        {chronicDim && <span className="text-red-500">&orarr;</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Key findings */}
-                {entry.findings && Object.keys(entry.findings).length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {Object.entries(entry.findings).flatMap(([, items]) => items).slice(0, 3).map((f, fi) => (
-                      <span key={fi} className="text-xs text-zinc-600 bg-zinc-800/40 px-2 py-0.5 rounded-lg truncate max-w-[200px]">
-                        {f.slice(0, 50)}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Verdict excerpt */}
-                <p className="text-xs text-zinc-500 italic line-clamp-2">
-                  &ldquo;{entry.verdict}&rdquo;
-                </p>
-
-                <Link
-                  href={`/roast/${entry.id}`}
-                  className="mt-3 inline-block text-xs text-orange-400 hover:text-orange-300 transition-colors"
-                >
-                  View full roast &rarr;
-                </Link>
-              </motion.div>
+              <HistoryCard key={entry.id} entry={entry} index={i} chronic={chronic} />
             ))}
           </div>
         )}
 
-        {/* Progress celebration placeholder */}
-        {history.length >= 2 && chronic.length === 0 && (
+        {/* Clean bill of health */}
+        {history.length >= 2 && chronic.length === 0 && !loading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -222,6 +269,23 @@ export default function HistoryPage() {
             <p className="text-zinc-500 text-sm mt-1">
               You&apos;re actually listening. We&apos;re genuinely surprised.
             </p>
+          </motion.div>
+        )}
+
+        {/* Upload another CTA */}
+        {!loading && history.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-8 text-center"
+          >
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-orange-400 transition-colors"
+            >
+              + Upload another video
+            </Link>
           </motion.div>
         )}
       </div>

@@ -37,15 +37,15 @@ function formatNumber(n: number): string {
   return n.toString();
 }
 
-function Section({ title, children, delay = 0 }: { title: string; children: React.ReactNode; delay?: number }) {
+function Section({ title, children, delay = 0, accent }: { title: string; children: React.ReactNode; delay?: number; accent?: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className="bg-zinc-900/80 border border-zinc-800/50 rounded-2xl p-6"
+      className="bg-zinc-900/70 backdrop-blur-sm border border-zinc-800/60 rounded-2xl p-6"
     >
-      <h2 className="text-lg font-bold text-white mb-4">{title}</h2>
+      <h2 className={`text-base font-bold mb-4 ${accent ?? 'text-white'}`}>{title}</h2>
       {children}
     </motion.div>
   );
@@ -154,18 +154,18 @@ export default function AccountResultsPage() {
         </Section>
 
         {/* What's Working */}
-        <Section title="What&apos;s Working" delay={0.2}>
+        <Section title="✅ What&apos;s Working" delay={0.2} accent="text-green-400">
           <div className="space-y-3">
             {analysis.topPerformingFormats.map((fmt, i) => (
-              <div key={i} className="bg-zinc-800/50 rounded-xl p-4">
+              <div key={i} className="bg-green-500/5 border border-green-500/15 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white font-semibold">{fmt.format}</span>
-                  <span className="text-green-400 text-sm font-mono">{formatNumber(fmt.avgViews)} avg</span>
+                  <span className="text-green-400 text-sm font-bold">{formatNumber(fmt.avgViews)} avg views</span>
                 </div>
                 {fmt.examples && fmt.examples.length > 0 && (
-                  <div className="space-y-1">
+                  <div className="space-y-1 mt-2">
                     {fmt.examples.map((ex, j) => (
-                      <p key={j} className="text-zinc-500 text-sm truncate">&ldquo;{ex}&rdquo;</p>
+                      <p key={j} className="text-zinc-500 text-xs truncate italic">&ldquo;{ex}&rdquo;</p>
                     ))}
                   </div>
                 )}
@@ -175,15 +175,15 @@ export default function AccountResultsPage() {
         </Section>
 
         {/* What's Not Working */}
-        <Section title="What&apos;s Not Working" delay={0.25}>
+        <Section title="❌ What&apos;s Not Working" delay={0.25} accent="text-red-400">
           <div className="space-y-3">
             {analysis.worstPerformingFormats.map((fmt, i) => (
-              <div key={i} className="bg-zinc-800/50 rounded-xl p-4">
+              <div key={i} className="bg-red-500/5 border border-red-500/15 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white font-semibold">{fmt.format}</span>
-                  <span className="text-red-400 text-sm font-mono">{formatNumber(fmt.avgViews)} avg</span>
+                  <span className="text-red-400 text-sm font-bold">{formatNumber(fmt.avgViews)} avg views</span>
                 </div>
-                {fmt.why && <p className="text-zinc-400 text-sm">{fmt.why}</p>}
+                {fmt.why && <p className="text-zinc-400 text-sm mt-1">{fmt.why}</p>}
               </div>
             ))}
           </div>
