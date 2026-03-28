@@ -12,10 +12,10 @@ interface MonitorCardProps {
   onRemove: (id: string) => void;
 }
 
-const trendConfig: Record<ScoreTrend, { arrow: string; label: string; color: string }> = {
-  improving: { arrow: '↑', label: 'Improving', color: '#4ade80' },
-  declining: { arrow: '↓', label: 'Declining', color: '#f87171' },
-  stable:    { arrow: '→', label: 'Stable',    color: '#a1a1aa' },
+const trendConfig: Record<ScoreTrend, { arrow: string; label: string; color: string; bg: string }> = {
+  improving: { arrow: '↑', label: 'Improving', color: '#4ade80', bg: 'bg-green-500/10' },
+  declining: { arrow: '↓', label: 'Declining', color: '#f87171', bg: 'bg-red-500/10'  },
+  stable:    { arrow: '→', label: 'Stable',    color: '#a1a1aa', bg: 'bg-zinc-800/60'  },
 };
 
 const frequencyLabels: Record<string, string> = {
@@ -24,9 +24,22 @@ const frequencyLabels: Record<string, string> = {
   monthly: 'Monthly',
 };
 
+function getRelativeTime(date: Date): string {
+  const now = Date.now();
+  const diff = now - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'yesterday';
+  return `${days}d ago`;
+}
+
 export function MonitorCard({ monitor, index, onToggle, onRemove }: MonitorCardProps) {
   const trend = getScoreTrend(monitor);
-  const { arrow, label, color: trendColor } = trendConfig[trend];
+  const { arrow, label, color: trendColor, bg: trendBg } = trendConfig[trend];
   const scoreColor = getScoreColor(monitor.lastScore);
   const grade = getLetterGrade(monitor.lastScore);
 
@@ -44,10 +57,10 @@ export function MonitorCard({ monitor, index, onToggle, onRemove }: MonitorCardP
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08 }}
-      className={`bg-zinc-900/60 border rounded-2xl p-5 transition-all ${
+      className={`bg-zinc-900/60 backdrop-blur-sm border rounded-2xl p-5 transition-all ${
         monitor.isActive
-          ? 'border-zinc-800 hover:border-zinc-700'
-          : 'border-zinc-800/50 opacity-50'
+          ? 'border-zinc-800/60 hover:border-zinc-700/60 hover:bg-zinc-900/80'
+          : 'border-zinc-800/30 opacity-50'
       }`}
     >
       {/* Top row: filename + controls */}
@@ -59,18 +72,19 @@ export function MonitorCard({ monitor, index, onToggle, onRemove }: MonitorCardP
           <p className="text-xs text-zinc-500 mt-0.5">Last run {timeAgo}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-3">
-          <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-medium">
-            {frequencyLabels[monitor.frequency]}
+          <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 font-medium">
+            {frequencyLabels[monitor.frequency] ?? monitor.frequency}
           </span>
+          {/* Toggle switch */}
           <button
             onClick={() => onToggle(monitor.id)}
-            className={`w-9 h-5 rounded-full transition-colors relative ${
+            className={`w-9 h-5 rounded-full transition-colors relative focus:outline-none ${
               monitor.isActive ? 'bg-orange-500' : 'bg-zinc-700'
             }`}
             title={monitor.isActive ? 'Pause monitoring' : 'Resume monitoring'}
           >
             <span
-              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
                 monitor.isActive ? 'left-[18px]' : 'left-0.5'
               }`}
             />
@@ -95,20 +109,20 @@ export function MonitorCard({ monitor, index, onToggle, onRemove }: MonitorCardP
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-lg" style={{ color: trendColor }}>{arrow}</span>
+          <div className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full ${trendBg}`}>
+            <span className="text-sm font-bold leading-none" style={{ color: trendColor }}>{arrow}</span>
             <span className="text-xs font-medium" style={{ color: trendColor }}>{label}</span>
           </div>
         </div>
 
         {/* Mini sparkline */}
         {monitor.scoreHistory.length >= 2 && (
-          <div className="w-24 h-10">
+          <div className="w-24 h-12">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
                 <defs>
                   <linearGradient id={`spark-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={scoreColor} stopOpacity={0.4} />
+                    <stop offset="0%" stopColor={scoreColor} stopOpacity={0.45} />
                     <stop offset="100%" stopColor={scoreColor} stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -117,7 +131,7 @@ export function MonitorCard({ monitor, index, onToggle, onRemove }: MonitorCardP
                   type="monotone"
                   dataKey="score"
                   stroke={scoreColor}
-                  strokeWidth={1.5}
+                  strokeWidth={2}
                   fill={`url(#spark-${monitor.id})`}
                   dot={false}
                 />
@@ -129,40 +143,33 @@ export function MonitorCard({ monitor, index, onToggle, onRemove }: MonitorCardP
 
       {/* Score history dots */}
       {monitor.scoreHistory.length > 1 && (
-        <div className="flex items-center gap-1 mb-3">
-          {monitor.scoreHistory.slice(-8).map((s, i) => (
+        <div className="flex items-center gap-1.5 mb-4">
+          {monitor.scoreHistory.slice(-8).map((s, i, arr) => (
             <div
               key={i}
-              className="w-2 h-2 rounded-full"
+              title={`Run ${i + 1}: ${s}`}
+              className={`rounded-full transition-all ${
+                i === arr.length - 1 ? 'w-3 h-3' : 'w-2 h-2 opacity-60'
+              }`}
               style={{ backgroundColor: getScoreColor(s) }}
-              title={`Score: ${s}`}
             />
           ))}
+          <span className="text-[10px] text-zinc-600 ml-1">{monitor.scoreHistory.length} runs</span>
         </div>
       )}
 
       {/* Remove button */}
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between pt-3 border-t border-zinc-800/40">
+        <p className="text-xs text-zinc-600">
+          Score: <span className="text-zinc-400 font-semibold">{monitor.lastScore}/100</span>
+        </p>
         <button
           onClick={() => onRemove(monitor.id)}
-          className="text-xs text-zinc-600 hover:text-red-400 transition-colors"
+          className="text-xs text-zinc-600 hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
         >
           Remove
         </button>
       </div>
     </motion.div>
   );
-}
-
-function getRelativeTime(date: Date): string {
-  const now = Date.now();
-  const diff = now - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return 'yesterday';
-  return `${days}d ago`;
 }
