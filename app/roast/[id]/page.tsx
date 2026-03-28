@@ -10,6 +10,15 @@ import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalat
 import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
 
+function getLetterGrade(score: number): string {
+  if (score >= 90) return 'A+';
+  if (score >= 80) return 'A';
+  if (score >= 70) return 'B';
+  if (score >= 60) return 'C';
+  if (score >= 50) return 'D';
+  return 'F';
+}
+
 export default function RoastPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -127,36 +136,33 @@ export default function RoastPage() {
             &larr; Roast another
           </Link>
 
-          {/* Watch Live Roast CTA */}
-          <Link
-            href={`/roast/${id}/live`}
-            className="inline-flex items-center gap-2 fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity mb-4"
-          >
-            <span className="text-lg">&#9654;</span>
-            Watch Live Roast
-          </Link>
-
-          <h1 className="text-4xl md:text-5xl font-bold mt-4">
-            <span className="fire-text">The Verdict</span>
-          </h1>
-
-          {/* Overall Score */}
-          <div className="flex flex-col items-center mt-8">
-            <ScoreRing score={roast.overallScore} size={120} />
-            <p className="text-zinc-400 text-sm mt-4 max-w-md mx-auto">
-              Overall Score
-            </p>
+          {/* Overall Score with Letter Grade */}
+          <div className="flex flex-col items-center mt-4">
+            <div className="flex items-center gap-6">
+              <ScoreRing score={roast.overallScore} size={100} />
+              <div className="flex flex-col items-center">
+                <span className="text-6xl font-black fire-text leading-none">
+                  {getLetterGrade(roast.overallScore)}
+                </span>
+                <span className="text-zinc-400 text-lg font-semibold mt-1">
+                  {roast.overallScore}/100
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Verdict */}
+          {/* TL;DR Verdict */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="mt-6 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-6 max-w-2xl mx-auto"
+            className="mt-8 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-6 max-w-2xl mx-auto"
           >
-            <p className="text-sm text-zinc-300 leading-relaxed italic">
-              &ldquo;{roast.verdict}&rdquo;
+            <p className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-3">
+              TL;DR
+            </p>
+            <p className="text-sm text-zinc-300 leading-relaxed">
+              {roast.verdict}
             </p>
           </motion.div>
 
@@ -276,12 +282,28 @@ export default function RoastPage() {
           })}
         </div>
 
+        {/* Watch Live Roast CTA — after agent cards */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="text-center mt-10"
+        >
+          <Link
+            href={`/roast/${id}/live`}
+            className="inline-flex items-center gap-2 fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            <span className="text-lg">&#9654;</span>
+            Watch Live Roast
+          </Link>
+        </motion.div>
+
         {/* Bottom CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
-          className="text-center mt-12 space-y-3"
+          className="text-center mt-8 space-y-3"
         >
           <Link
             href="/"
