@@ -123,7 +123,8 @@ export default function RoastPage() {
     <main className="min-h-screen pb-20 relative">
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-red-500/5 via-orange-500/5 to-transparent blur-3xl" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-gradient-to-b from-orange-500/8 via-pink-500/4 to-transparent blur-3xl" />
+        <div className="absolute top-1/3 left-0 w-[400px] h-[400px] bg-orange-500/3 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 pt-12">
@@ -140,20 +141,51 @@ export default function RoastPage() {
             &larr; Roast another
           </Link>
 
-          {/* Overall Score with Letter Grade */}
-          <div className="flex flex-col items-center mt-4">
-            <div className="flex items-center gap-6">
-              <ScoreRing score={roast.overallScore} size={100} />
-              <div className="flex flex-col items-center">
-                <span className="text-6xl font-black fire-text leading-none">
+          {/* Overall Score — dramatic reveal */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.2 }}
+            className="flex flex-col items-center mt-4"
+          >
+            <div className="flex items-center gap-8">
+              <ScoreRing score={roast.overallScore} size={110} />
+              <div className="flex flex-col items-start">
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-7xl font-black fire-text leading-none"
+                >
                   {getLetterGrade(roast.overallScore)}
-                </span>
-                <span className="text-zinc-400 text-lg font-semibold mt-1">
-                  {roast.overallScore}/100
-                </span>
+                </motion.span>
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-zinc-400 text-xl font-semibold mt-1"
+                >
+                  {roast.overallScore}<span className="text-zinc-600 text-sm">/100</span>
+                </motion.span>
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className={`text-xs font-semibold mt-2 px-2.5 py-1 rounded-full ${
+                    roast.overallScore >= 80 ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                    roast.overallScore >= 60 ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                    roast.overallScore >= 40 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
+                    'bg-red-500/10 text-red-400 border border-red-500/20'
+                  }`}
+                >
+                  {roast.overallScore >= 80 ? `🔥 Actually decent` :
+                   roast.overallScore >= 60 ? `⚡ Work to do` :
+                   roast.overallScore >= 40 ? `💀 Needs help` :
+                   `🚨 We need to talk`}
+                </motion.span>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* TL;DR Verdict */}
           <motion.div

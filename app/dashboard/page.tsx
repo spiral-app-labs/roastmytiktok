@@ -320,12 +320,35 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-6"
+            className="text-center py-10"
           >
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome to Roast My TikTok</h1>
-            <p className="text-zinc-500 max-w-md mx-auto">
-              Upload your first video and let 6 AI agents tear it apart — so you can build it back better.
+            <motion.div
+              animate={{ scale: [1, 1.1, 1], rotate: [-5, 5, -5] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              className="text-6xl mb-4"
+            >
+              🔥
+            </motion.div>
+            <h1 className="text-3xl font-bold text-white mb-3">Ready to get roasted?</h1>
+            <p className="text-zinc-500 max-w-md mx-auto mb-6">
+              {`Upload your first TikTok and 6 AI agents will tear it apart — brutally, accurately, and with your growth in mind.`}
             </p>
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-zinc-400 mb-8">
+              {[
+                { emoji: `🎣`, text: `Hook analysis` },
+                { emoji: `🎥`, text: `Visual critique` },
+                { emoji: `🎵`, text: `Audio review` },
+                { emoji: `🤖`, text: `Algorithm audit` },
+                { emoji: `💬`, text: `Caption check` },
+                { emoji: `✨`, text: `Authenticity score` },
+              ].map((item) => (
+                <div key={item.text} className="flex items-center gap-1.5 bg-zinc-900/60 border border-zinc-800 rounded-full px-3 py-1.5">
+                  <span>{item.emoji}</span>
+                  <span>{item.text}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-zinc-600 text-xs">{`Upload a video below to get started →`}</p>
           </motion.div>
         ) : (
           <>
