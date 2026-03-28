@@ -288,7 +288,6 @@ export default function UploadUI() {
             <form onSubmit={handleSubmit}>
               {inputMode === 'upload' ? (
                 <div className="space-y-3">
-<<<<<<< Updated upstream
                   <AnimatePresence mode="wait">
                     {!file ? (
                       <motion.div
@@ -297,47 +296,13 @@ export default function UploadUI() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => fileInputRef.current?.click()}
-                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOver(true);
+                        }}
                         onDragLeave={() => setDragOver(false)}
                         onDrop={handleDrop}
                         className="relative cursor-pointer"
-=======
-                  {!file ? (
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                      onDragLeave={() => setDragOver(false)}
-                      onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all text-center ${
-                        dragOver
-                          ? 'border-orange-500 bg-orange-500/10'
-                          : 'border-zinc-700 hover:border-orange-500/50 hover:bg-zinc-900/40'
-                      }`}
-                    >
-                      <div className="text-3xl mb-2">+</div>
-                      <p className="text-zinc-300 font-medium text-sm">Drop your video here</p>
-                      <p className="text-zinc-500 text-xs mt-1">mp4, mov, avi &middot; max 150MB</p>
-                    </div>
-                  ) : (
-                    <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl p-4 flex items-center gap-4">
-                      {previewUrl && (
-                        <video
-                          src={previewUrl}
-                          className="w-16 h-16 object-cover rounded-lg shrink-0"
-                          muted
-                        />
-                      )}
-                      <div className="text-left flex-1 min-w-0">
-                        <p className="text-white font-semibold text-sm truncate">{file.name}</p>
-                        <p className="text-zinc-500 text-xs mt-0.5">
-                          {(file.size / (1024 * 1024)).toFixed(1)} MB
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={clearFile}
-                        className="text-zinc-500 hover:text-red-400 transition-colors text-lg shrink-0"
->>>>>>> Stashed changes
                       >
                         <motion.div
                           animate={dragOver ? { scale: 1.02 } : { scale: 1 }}
@@ -356,12 +321,20 @@ export default function UploadUI() {
                           >
                             {dragOver ? '🎯' : '🎬'}
                           </motion.div>
-                          <p className={`font-bold text-sm transition-colors ${dragOver ? 'text-orange-300' : 'text-zinc-300'}`}>
-                            {dragOver ? 'Drop it — we\'re ready' : 'Drop your TikTok video here'}
+                          <p
+                            className={`font-bold text-sm transition-colors ${dragOver ? 'text-orange-300' : 'text-zinc-300'}`}
+                          >
+                            {dragOver ? "Drop it — we're ready" : 'Drop your TikTok video here'}
                           </p>
                           <p className="text-zinc-500 text-xs mt-1.5">
-                            or <span className={`transition-colors ${dragOver ? 'text-orange-400' : 'text-orange-400/70 hover:text-orange-400'}`}>click to browse</span>
-                            {' '}· mp4, mov, avi · max 500MB
+                            or{' '}
+                            <span
+                              className={`transition-colors ${dragOver ? 'text-orange-400' : 'text-orange-400/70 hover:text-orange-400'}`}
+                            >
+                              click to browse
+                            </span>
+                            {' '}
+                            · mp4, mov, avi · max 150MB
                           </p>
                         </motion.div>
                       </motion.div>
@@ -373,13 +346,13 @@ export default function UploadUI() {
                         exit={{ opacity: 0, y: -8 }}
                         className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl p-4 flex items-center gap-4"
                       >
-                        {previewUrl && (
+                        {previewUrl ? (
                           <video
                             src={previewUrl}
                             className="w-16 h-16 object-cover rounded-lg shrink-0 ring-2 ring-orange-500/20"
                             muted
                           />
-                        )}
+                        ) : null}
                         <div className="text-left flex-1 min-w-0">
                           <p className="text-white font-semibold text-sm truncate">{file.name}</p>
                           <p className="text-zinc-500 text-xs mt-0.5">
