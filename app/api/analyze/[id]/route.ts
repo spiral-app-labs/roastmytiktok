@@ -452,8 +452,11 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
         try {
           audioPath = extractAudio(videoPath);
           if (audioPath) {
+            const hasTranscriptionKey = !!process.env.ASSEMBLYAI_API_KEY;
+            if (hasTranscriptionKey) {
+              send({ type: 'status', message: 'Transcribing audio...' });
+            }
             // Run transcription and speech/music detection in parallel
-            send({ type: 'status', message: 'Transcribing audio...' });
             const [transcriptResult, speechMusicResult] = await Promise.all([
               transcribeAudio(audioPath, 120000),
               Promise.resolve(detectSpeechMusic(audioPath)),
@@ -461,7 +464,9 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
             transcript = transcriptResult;
             audioChars = speechMusicResult;
 
-            if (transcript?.text) {
+            if (!hasTranscriptionKey) {
+              send({ type: 'status', message: 'Audio transcription unavailable — running visual analysis.' });
+            } else if (transcript?.text) {
               send({ type: 'status', message: 'Audio transcribed successfully.' });
             } else {
               send({ type: 'status', message: 'No speech detected in audio.' });
@@ -511,7 +516,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
                 .join('\n');
               audioContext = `\n\nAUDIO TRANSCRIPT:\n${transcript.text}\n\nSPEECH SEGMENTS (with timestamps):\n${segmentLines}\n\nAUDIO STRUCTURE: ${audioChars.hasSpeech ? 'Voice detected' : 'No clear voice'} | ${audioChars.hasMusic ? 'Music/background audio detected' : 'No background music'}\n\nNow analyze the ACTUAL audio content above. Reference specific words/phrases the creator said. Quote them. If the transcript is empty, note that the video appears to have no speech.`;
             } else if (dimension === 'audio') {
-              audioContext = '\n\nNo audio transcript available — audio transcription timed out or no speech was detected. Analyze based on visual cues only and note that audio analysis was limited.';
+              audioContext = '\n\nNo audio transcript available — transcription was unavailable or no speech was detected. Analyze based on visual cues only and note that audio analysis was limited.';
             } else if (dimension === 'hook' && transcript?.segments?.length) {
               const firstSegment = transcript.segments[0];
               audioContext = `\n\nThe creator's first spoken words are: "${firstSegment.text}". Analyze whether this opening line is a strong hook.`;
