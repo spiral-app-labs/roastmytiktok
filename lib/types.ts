@@ -23,6 +23,8 @@ export interface RoastResult {
   overallScore: number;
   verdict: string;
   agents: AgentRoast[];
+  audioTranscript?: string;
+  audioSegments?: Array<{ start: number; end: number; text: string }>;
   metadata: {
     views: number;
     likes: number;

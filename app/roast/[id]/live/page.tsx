@@ -18,6 +18,7 @@ export default function LiveRoastPage() {
   const [error, setError] = useState<string | null>(null);
   const [shownComments, setShownComments] = useState<AgentRoast[]>([]);
   const [showScoreCard, setShowScoreCard] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
   const shownRef = useRef(new Set<string>());
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -227,6 +228,47 @@ export default function LiveRoastPage() {
                 </div>
               )}
             </div>
+
+            {/* Collapsible Transcript */}
+            {roast.audioTranscript && (
+              <div className="mt-3">
+                <button
+                  onClick={() => setShowTranscript(prev => !prev)}
+                  className="flex items-center gap-2 text-sm text-zinc-400 hover:text-orange-400 transition-colors w-full text-left"
+                >
+                  <span>{showTranscript ? '\u25BC' : '\u25B6'}</span>
+                  <span>Transcript</span>
+                </button>
+                <AnimatePresence>
+                  {showTranscript && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-2 bg-zinc-900/80 border border-zinc-800/50 rounded-lg p-3 max-h-[200px] overflow-y-auto">
+                        {roast.audioSegments && roast.audioSegments.length > 0 ? (
+                          <div className="space-y-1">
+                            {roast.audioSegments.map((seg, i) => (
+                              <div key={i} className="flex gap-2 text-xs">
+                                <span className="text-zinc-600 font-mono shrink-0">
+                                  {seg.start.toFixed(1)}s
+                                </span>
+                                <span className="text-zinc-300">{seg.text}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-zinc-400">{roast.audioTranscript}</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
 
           {/* RIGHT: Live Comment Feed */}
