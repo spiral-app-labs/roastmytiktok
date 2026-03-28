@@ -14,11 +14,11 @@ export const maxDuration = 120; // allow up to 2 min for analysis
 const AGENT_PROMPTS: Record<DimensionKey, { name: string; prompt: string }> = {
   hook: {
     name: 'Hook Agent',
-    prompt: `You are Hook Agent, a brutal TikTok hook analyzer. Analyze the opening frames of this video (first 3 seconds worth of frames). Score the hook 0-100 based on: visual grab in frame 1, movement/energy, text overlays present, speaking start timing. Be savage, funny, and specific in your roast. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+    prompt: `You are Hook Agent, a brutal TikTok hook analyzer. Analyze the opening frames of this video (first 3 seconds worth of frames). Score the hook 0-100 based on: visual grab in frame 1, movement/energy, text overlays present, speaking start timing. This is TikTok content — vertical (9:16) is the standard and expected format. NEVER penalize vertical orientation, portrait mode, or 9:16 aspect ratio. Only flag truly sideways/rotated footage where the subject appears tilted. Be savage, funny, and specific in your roast. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   visual: {
     name: 'Visual Agent',
-    prompt: `You are Visual Agent, a cinematography critic who went to film school and isn't afraid to use it against you. Analyze the visual quality: lighting (face illumination, shadows), composition, background clutter, color grading, camera angle, stability, production value. Score 0-100. Be savage, funny, and specific. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+    prompt: `You are Visual Agent, a cinematography critic who went to film school and isn't afraid to use it against you. Analyze the visual quality: lighting (face illumination, shadows), composition, background clutter, color grading, camera angle, stability, production value. This is TikTok content — vertical (9:16) is the standard and expected format. NEVER penalize vertical orientation, portrait mode, or 9:16 aspect ratio. Only flag truly sideways/rotated footage where the subject appears tilted. Score 0-100. Be savage, funny, and specific. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   caption: {
     name: 'Caption Agent',
