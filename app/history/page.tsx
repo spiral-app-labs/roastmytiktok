@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { fetchHistory, getChronicIssues, getEscalationLevel, HistoryEntry, ChronicIssue } from '@/lib/history';
 import { AGENTS } from '@/lib/agents';
+import { GlassCard, ScoreBadge, PageHeader, EmptyState, LoadingSkeleton } from '@/components/ui';
 
 function getRelativeDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -19,22 +20,6 @@ function getRelativeDate(dateStr: string): string {
   if (days === 1) return 'yesterday';
   if (days < 7) return `${days}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function ScoreBadge({ score }: { score: number }) {
-  const cfg =
-    score >= 70
-      ? { text: 'text-green-300', bg: 'bg-green-500/15', ring: 'ring-green-500/30', label: '🟢' }
-      : score >= 50
-      ? { text: 'text-yellow-300', bg: 'bg-yellow-500/15', ring: 'ring-yellow-500/30', label: '🟡' }
-      : { text: 'text-red-300', bg: 'bg-red-500/15', ring: 'ring-red-500/30', label: '🔴' };
-
-  return (
-    <div className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl ring-1 ${cfg.bg} ${cfg.ring} shrink-0`}>
-      <span className={`text-2xl font-black leading-none ${cfg.text}`}>{score}</span>
-      <span className="text-[10px] text-zinc-500 mt-0.5">/ 100</span>
-    </div>
-  );
 }
 
 function RepeatOffenderBadge({ count, dimension }: { count: number; dimension: string }) {
@@ -52,87 +37,88 @@ function HistoryCard({ entry, index, chronic }: { entry: HistoryEntry; index: nu
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 + index * 0.06, duration: 0.4 }}
-      className="group relative bg-zinc-900/60 backdrop-blur-sm border border-zinc-800/50 rounded-2xl p-5 hover:border-orange-500/25 hover:bg-zinc-900/80 transition-all duration-200"
     >
-      {index === 0 && (
-        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
-          Latest
-        </div>
-      )}
+      <GlassCard variant="interactive" className="relative p-5 group">
+        {index === 0 && (
+          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+            Latest
+          </div>
+        )}
 
-      <div className="flex items-start gap-4">
-        <ScoreBadge score={entry.overallScore} />
+        <div className="flex items-start gap-4">
+          <ScoreBadge score={entry.overallScore} size="md" />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1.5">
-            <div className="flex-1 min-w-0">
-              {entry.filename && (
-                <p className="text-sm font-semibold text-zinc-200 truncate">{entry.filename}</p>
-              )}
-              {entry.url && !entry.filename && (
-                <p className="text-xs text-zinc-400 truncate">{entry.url}</p>
-              )}
-              {!entry.filename && !entry.url && (
-                <p className="text-sm text-zinc-500 italic">Untitled roast</p>
-              )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div className="flex-1 min-w-0">
+                {entry.filename && (
+                  <p className="text-sm font-semibold text-zinc-200 truncate">{entry.filename}</p>
+                )}
+                {entry.url && !entry.filename && (
+                  <p className="text-xs text-zinc-400 truncate">{entry.url}</p>
+                )}
+                {!entry.filename && !entry.url && (
+                  <p className="text-sm text-zinc-500 italic">Untitled roast</p>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 text-xs text-zinc-500 mb-3">
-            <span>{getRelativeDate(entry.date)}</span>
-            <span>·</span>
-            <span>{entry.source === 'upload' ? '📎 Upload' : '🔗 URL'}</span>
-          </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-500 mb-3">
+              <span>{getRelativeDate(entry.date)}</span>
+              <span>·</span>
+              <span>{entry.source === 'upload' ? '📎 Upload' : '🔗 URL'}</span>
+            </div>
 
-          {/* Agent score pills */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {Object.entries(entry.agentScores).map(([dim, score]) => {
-              const agent = AGENTS.find(a => a.key === dim);
-              const isWeak = chronic.some(c => c.dimension === dim);
-              return (
-                <div
-                  key={dim}
-                  className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs border ${
-                    isWeak
-                      ? 'bg-red-500/10 border-red-500/20 text-red-300'
-                      : score >= 70
-                      ? 'bg-green-500/10 border-green-500/20 text-green-400'
-                      : score >= 50
-                      ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
-                      : 'bg-zinc-800/60 border-zinc-700/30 text-zinc-400'
-                  }`}
-                >
-                  <span>{agent?.emoji}</span>
-                  <span className="font-semibold">{score}</span>
-                  {isWeak && <span className="text-red-500 text-[10px]">↑recurring</span>}
-                </div>
-              );
-            })}
-          </div>
+            {/* Agent score pills */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {Object.entries(entry.agentScores).map(([dim, score]) => {
+                const agent = AGENTS.find(a => a.key === dim);
+                const isWeak = chronic.some(c => c.dimension === dim);
+                return (
+                  <div
+                    key={dim}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs border ${
+                      isWeak
+                        ? 'bg-red-500/10 border-red-500/20 text-red-300'
+                        : score >= 70
+                        ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                        : score >= 50
+                        ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
+                        : 'bg-zinc-800/60 border-zinc-700/30 text-zinc-400'
+                    }`}
+                  >
+                    <span>{agent?.emoji}</span>
+                    <span className="font-semibold">{score}</span>
+                    {isWeak && <span className="text-red-500 text-[10px]">↑recurring</span>}
+                  </div>
+                );
+              })}
+            </div>
 
-          {/* Verdict excerpt */}
-          {entry.verdict && (
-            <p className="text-xs text-zinc-500 italic line-clamp-2 mb-3">
-              &ldquo;{entry.verdict}&rdquo;
-            </p>
-          )}
+            {/* Verdict excerpt */}
+            {entry.verdict && (
+              <p className="text-xs text-zinc-500 italic line-clamp-2 mb-3">
+                &ldquo;{entry.verdict}&rdquo;
+              </p>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* CTA */}
-      <div className="flex items-center justify-between mt-1 pt-3 border-t border-zinc-800/40">
-        <div className="flex flex-wrap gap-1">
-          {chronic.filter(c => Object.keys(entry.agentScores).includes(c.dimension)).slice(0, 2).map((c, i) => (
-            <RepeatOffenderBadge key={i} count={c.occurrences} dimension={c.dimension} />
-          ))}
+        {/* CTA */}
+        <div className="flex items-center justify-between mt-1 pt-3 border-t border-zinc-800/40">
+          <div className="flex flex-wrap gap-1">
+            {chronic.filter(c => Object.keys(entry.agentScores).includes(c.dimension)).slice(0, 2).map((c, i) => (
+              <RepeatOffenderBadge key={i} count={c.occurrences} dimension={c.dimension} />
+            ))}
+          </div>
+          <Link
+            href={`/roast/${entry.id}`}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-400 hover:text-orange-300 bg-orange-500/10 hover:bg-orange-500/15 px-3 py-1.5 rounded-lg transition-all"
+          >
+            View Roast →
+          </Link>
         </div>
-        <Link
-          href={`/roast/${entry.id}`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-400 hover:text-orange-300 bg-orange-500/10 hover:bg-orange-500/15 px-3 py-1.5 rounded-lg transition-all"
-        >
-          View Roast →
-        </Link>
-      </div>
+      </GlassCard>
     </motion.div>
   );
 }
@@ -165,21 +151,19 @@ export default function HistoryPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10"
         >
-          <Link href="/" className="text-sm text-zinc-500 hover:text-orange-400 transition-colors mb-4 inline-block">
-            ← Roast another
-          </Link>
-          <h1 className="text-4xl font-bold">
-            <span className="fire-text">Your Roast History</span>
-          </h1>
-          <p className="text-zinc-400 mt-2">
-            {loading
-              ? 'Loading your shame...'
-              : history.length === 0
-                ? 'No roasts yet. Go get destroyed.'
-                : `${history.length} roast${history.length !== 1 ? 's' : ''}. ${history.length >= 3 ? 'The pattern is becoming clear.' : 'Keep going.'}`}
-          </p>
+          <PageHeader
+            title={<span className="fire-text">Your Roast History</span>}
+            subtitle={
+              loading
+                ? 'Loading your shame...'
+                : history.length === 0
+                  ? 'No roasts yet. Go get destroyed.'
+                  : `${history.length} roast${history.length !== 1 ? 's' : ''}. ${history.length >= 3 ? 'The pattern is becoming clear.' : 'Keep going.'}`
+            }
+            backHref="/"
+            backLabel="← Roast another"
+          />
         </motion.div>
 
         {/* Chronic Issues Alert */}
@@ -188,41 +172,44 @@ export default function HistoryPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mb-8 bg-red-500/5 border border-red-500/25 rounded-2xl p-6"
+            className="mb-8"
           >
-            <h2 className="text-base font-bold text-red-400 mb-1 flex items-center gap-2">
-              <span>🚨</span> Repeat Offender Alert
-            </h2>
-            <p className="text-sm text-zinc-400 mb-4">
-              These issues keep showing up across your roasts. We&apos;ve tried being nice about it.
-            </p>
-            <div className="space-y-3">
-              {chronic.slice(0, 5).map((issue, i) => {
-                const agent = AGENTS.find(a => a.key === issue.dimension);
-                const { label } = getEscalationLevel(issue.occurrences);
-                return (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className="text-xl shrink-0">{agent?.emoji ?? '⚠️'}</span>
-                    <div>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-semibold text-zinc-200">{agent?.name ?? issue.dimension}</span>
-                        <RepeatOffenderBadge count={issue.occurrences} dimension={issue.dimension} />
+            <GlassCard className="bg-red-500/5 border border-red-500/25 p-6">
+              <h2 className="text-base font-bold text-red-400 mb-1 flex items-center gap-2">
+                <span>🚨</span> Repeat Offender Alert
+              </h2>
+              <p className="text-sm text-zinc-400 mb-4">
+                These issues keep showing up across your roasts. We&apos;ve tried being nice about it.
+              </p>
+              <div className="space-y-3">
+                {chronic.slice(0, 5).map((issue, i) => {
+                  const agent = AGENTS.find(a => a.key === issue.dimension);
+                  const { label } = getEscalationLevel(issue.occurrences);
+                  return (
+                    <div key={i} className="flex items-start gap-3">
+                      <span className="text-xl shrink-0">{agent?.emoji ?? '⚠️'}</span>
+                      <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-sm font-semibold text-zinc-200">{agent?.name ?? issue.dimension}</span>
+                          <RepeatOffenderBadge count={issue.occurrences} dimension={issue.dimension} />
+                        </div>
+                        <p className="text-sm text-zinc-400">{issue.finding}</p>
+                        <p className="text-xs text-red-400 mt-0.5 italic">{label}</p>
                       </div>
-                      <p className="text-sm text-zinc-400">{issue.finding}</p>
-                      <p className="text-xs text-red-400 mt-0.5 italic">{label}</p>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </GlassCard>
           </motion.div>
         )}
 
         {/* Loading state */}
         {loading && (
-          <div className="text-center py-20">
-            <div className="text-4xl mb-4 animate-pulse">🔥</div>
-            <p className="text-zinc-500">Fetching your roast history...</p>
+          <div className="space-y-4">
+            {[0, 1, 2].map(i => (
+              <LoadingSkeleton key={i} variant="card" />
+            ))}
           </div>
         )}
 
@@ -232,19 +219,13 @@ export default function HistoryPage() {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-center py-20 px-6"
           >
-            <div className="text-7xl mb-5">🎬</div>
-            <h2 className="text-2xl font-bold text-white mb-2">No roasts yet</h2>
-            <p className="text-zinc-500 max-w-xs mx-auto mb-8">
-              Upload your first TikTok and let the AI agents tear it apart. It&apos;ll make you better. Probably.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 fire-gradient text-white font-bold px-8 py-3.5 rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-orange-500/20"
-            >
-              <span>🔥</span> Get Roasted
-            </Link>
+            <EmptyState
+              icon="🎬"
+              title="No roasts yet"
+              description="Upload your first TikTok and let the AI agents tear it apart. It'll make you better. Probably."
+              cta={{ label: 'Get Roasted', icon: '🔥', href: '/' }}
+            />
           </motion.div>
         )}
 
@@ -263,12 +244,14 @@ export default function HistoryPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="mt-8 bg-green-500/5 border border-green-500/20 rounded-2xl p-5 text-center"
+            className="mt-8"
           >
-            <p className="text-green-400 font-semibold">No repeat issues detected</p>
-            <p className="text-zinc-500 text-sm mt-1">
-              You&apos;re actually listening. We&apos;re genuinely surprised.
-            </p>
+            <GlassCard className="bg-green-500/5 border border-green-500/20 p-5 text-center">
+              <p className="text-green-400 font-semibold">No repeat issues detected</p>
+              <p className="text-zinc-500 text-sm mt-1">
+                You&apos;re actually listening. We&apos;re genuinely surprised.
+              </p>
+            </GlassCard>
           </motion.div>
         )}
 
