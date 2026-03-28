@@ -4,12 +4,38 @@ import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { filename, contentType, sessionId } = body as {
+    const contentTypeHeader = request.headers.get('content-type') ?? '';
+
+    let payload: {
       filename?: string;
       contentType?: string;
       sessionId?: string;
     };
+
+    if (contentTypeHeader.includes('application/json')) {
+      payload = await request.json();
+    } else if (
+      contentTypeHeader.includes('multipart/form-data') ||
+      contentTypeHeader.includes('application/x-www-form-urlencoded')
+    ) {
+      const formData = await request.formData();
+      const video = formData.get('video');
+      payload = {
+        filename: video instanceof File ? video.name : undefined,
+        contentType: video instanceof File ? video.type : undefined,
+        sessionId:
+          typeof formData.get('session_id') === 'string'
+            ? (formData.get('session_id') as string)
+            : undefined,
+      };
+    } else {
+      return Response.json(
+        { error: 'Unsupported content type' },
+        { status: 415 }
+      );
+    }
+
+    const { filename, contentType, sessionId } = payload;
 
     if (!filename) {
       return Response.json(
@@ -60,6 +86,7 @@ export async function POST(request: NextRequest) {
     return Response.json({
       id,
       videoPath: storagePath,
+      contentType: contentType || 'video/mp4',
       signedUrl: signedData.signedUrl,
       token: signedData.token,
     });

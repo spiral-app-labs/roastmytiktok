@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadUI from '@/components/UploadUI';
 import { GlassCard, GradientButton } from '@/components/ui';
 
 // Floating particle for background
-function Particle({ delay, duration, x, y, size }: { delay: number; duration: number; x: number; y: number; size: number }) {
+function Particle({ delay, duration, x, y, size, color }: { delay: number; duration: number; x: number; y: number; size: number; color: string }) {
   return (
     <motion.div
       className="absolute rounded-full pointer-events-none"
@@ -16,7 +16,7 @@ function Particle({ delay, duration, x, y, size }: { delay: number; duration: nu
         top: `${y}%`,
         width: size,
         height: size,
-        background: `radial-gradient(circle, rgba(${Math.random() > 0.5 ? '251,146,60' : '236,72,153'},0.4) 0%, transparent 70%)`,
+        background: `radial-gradient(circle, rgba(${color},0.4) 0%, transparent 70%)`,
       }}
       animate={{
         y: [0, -30, 0],
@@ -64,6 +64,7 @@ const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   size: 40 + (i * 17 % 80),
   delay: (i * 0.4) % 3,
   duration: 4 + (i * 0.7 % 4),
+  color: i % 2 === 0 ? '251,146,60' : '236,72,153',
 }));
 
 export default function Home() {
@@ -136,13 +137,9 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Top nav area */}
-        <div className="relative z-10 flex items-center justify-between px-6 py-5">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🔥</span>
-            <span className="font-black text-white text-sm tracking-tight">RoastMyTikTok</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+        {/* Beta status */}
+        <div className="relative z-10 px-6 py-5">
+          <div className="ml-auto flex w-fit items-center gap-1.5 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
             <span className="text-orange-400 text-xs font-semibold">Private Beta</span>
           </div>
@@ -187,7 +184,7 @@ export default function Home() {
               </div>
 
               {/* Feature highlights */}
-              <div className="grid grid-cols-2 gap-3">
+              <div id="how-it-works" className="grid grid-cols-2 gap-3 scroll-mt-28">
                 {FEATURES.map((f) => (
                   <GlassCard key={f.title} variant="surface" className="p-3">
                     <div className="text-xl mb-1">{f.icon}</div>
@@ -198,7 +195,7 @@ export default function Home() {
               </div>
 
               {/* Agent previews */}
-              <div className="space-y-2">
+              <div id="agents" className="space-y-2 scroll-mt-28">
                 <p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">Who&apos;s judging you</p>
                 <div className="flex flex-wrap gap-2">
                   {AGENTS_PREVIEW.slice(0, 4).map((a) => (

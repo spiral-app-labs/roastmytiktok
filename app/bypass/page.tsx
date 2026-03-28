@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function BypassPage() {
+function BypassForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,10 +22,13 @@ export default function BypassPage() {
     });
 
     if (res.ok) {
-      router.push('/');
+      const nextPath = searchParams.get('next');
+      const destination = nextPath?.startsWith('/') ? nextPath : '/dashboard';
+      router.push(destination);
       router.refresh();
     } else {
-      setError('Wrong password.');
+      const data = await res.json().catch(() => null);
+      setError(data?.error || 'Wrong password.');
       setLoading(false);
     }
   };
@@ -68,5 +72,13 @@ export default function BypassPage() {
         </form>
       </div>
     </main>
+  );
+}
+
+export default function BypassPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-[#080808]" />}>
+      <BypassForm />
+    </Suspense>
   );
 }

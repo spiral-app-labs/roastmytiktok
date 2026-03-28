@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -54,25 +53,19 @@ function Section({ title, children, delay = 0, accent }: { title: string; childr
 export default function AccountResultsPage() {
   const params = useParams();
   const handle = params.handle as string;
+  let analysis: AccountAnalysis | null = null;
 
-  const [analysis, setAnalysis] = useState<AccountAnalysis | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
+  if (typeof window !== 'undefined') {
     try {
       const cached = sessionStorage.getItem(`account_${handle}`);
       if (cached) {
         const data = JSON.parse(cached);
-        setAnalysis(data.analysis);
-        setLoading(false);
-        return;
+        analysis = data.analysis;
       }
-    } catch { /* ignore */ }
-
-    setError('No analysis found. Please analyze your account first.');
-    setLoading(false);
-  }, [handle]);
+    } catch {
+      analysis = null;
+    }
+  }
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -87,23 +80,12 @@ export default function AccountResultsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">&#128202;</div>
-          <p className="text-zinc-400">Loading pattern report...</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (error || !analysis) {
+  if (!analysis) {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">&#128565;</div>
-          <p className="text-zinc-400 mb-4">{error || 'Analysis not found.'}</p>
+          <p className="text-zinc-400 mb-4">No analysis found. Please analyze your account first.</p>
           <Link
             href="/analyze-account"
             className="text-orange-400 hover:text-orange-300 transition-colors"

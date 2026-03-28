@@ -126,19 +126,15 @@ function HistoryCard({ entry, index, chronic }: { entry: HistoryEntry; index: nu
 export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [chronic, setChronic] = useState<ChronicIssue[]>([]);
-  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
     fetchHistory().then(h => {
       setHistory(h);
       setChronic(getChronicIssues(h));
       setLoading(false);
     });
   }, []);
-
-  if (!mounted) return null;
 
   return (
     <main className="min-h-screen pb-20 relative">

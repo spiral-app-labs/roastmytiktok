@@ -4,10 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { AGENTS } from '@/lib/agents';
-import { AgentRoast, RoastResult, DimensionKey } from '@/lib/types';
+import { AgentRoast, RoastResult } from '@/lib/types';
 import { getSessionId } from '@/lib/history';
-import { useIsPaid } from '@/lib/subscription';
-import Link from 'next/link';
 
 interface AgentStatus {
   status: 'waiting' | 'analyzing' | 'done';
@@ -99,8 +97,6 @@ export default function AnalyzePage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const id = params.id as string;
-
-  const isPaid = useIsPaid();
   const [agentStatuses, setAgentStatuses] = useState<Record<string, AgentStatus>>(
     Object.fromEntries(AGENTS.map(a => [a.key, { status: 'waiting' as const }]))
   );
@@ -232,6 +228,7 @@ export default function AnalyzePage() {
           <div className="h-8 text-zinc-400 text-sm">
             <RotatingMessage messages={DEFAULT_LOADING_MESSAGES} />
           </div>
+          <p className="text-xs text-zinc-500">{statusMessage}</p>
 
           {/* Progress bar */}
           <div className="mt-4 space-y-2">
@@ -353,33 +350,13 @@ export default function AnalyzePage() {
                       transition={{ duration: 0.4, ease: 'easeOut' }}
                       className="overflow-hidden"
                     >
-                      {isPaid ? (
-                        <div className="px-4 pb-4 space-y-2 border-t border-zinc-800/50 pt-3">
-                          <p className="text-sm text-zinc-300 leading-relaxed">{result.roastText}</p>
-                          <div className="flex items-start gap-2 text-xs text-zinc-500 bg-zinc-800/30 rounded-lg p-2.5">
-                            <span className="text-orange-400 mt-0.5 shrink-0">💡</span>
-                            <span>{result.improvementTip}</span>
-                          </div>
+                      <div className="px-4 pb-4 space-y-2 border-t border-zinc-800/50 pt-3">
+                        <p className="text-sm text-zinc-300 leading-relaxed">{result.roastText}</p>
+                        <div className="flex items-start gap-2 text-xs text-zinc-500 bg-zinc-800/30 rounded-lg p-2.5">
+                          <span className="text-orange-400 mt-0.5 shrink-0">💡</span>
+                          <span>{result.improvementTip}</span>
                         </div>
-                      ) : (
-                        <div className="px-4 pb-4 border-t border-zinc-800/50 pt-3 relative">
-                          <div className="blur-sm select-none pointer-events-none" aria-hidden="true">
-                            <p className="text-sm text-zinc-300 leading-relaxed">{`Detailed analysis insights about your content quality and what's actually holding you back...`}</p>
-                            <div className="flex items-start gap-2 text-xs text-zinc-500 bg-zinc-800/30 rounded-lg p-2.5 mt-2">
-                              <span className="text-orange-400 mt-0.5 shrink-0">💡</span>
-                              <span>{`One specific tip to dramatically improve this area`}</span>
-                            </div>
-                          </div>
-                          <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <svg className="w-5 h-5 text-zinc-500 mb-1.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                            </svg>
-                            <Link href="/pricing" className="text-xs text-orange-400 hover:text-orange-300 font-semibold transition-colors">
-                              Upgrade to Pro
-                            </Link>
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>

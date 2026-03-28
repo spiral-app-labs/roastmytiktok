@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getHistory, getSessionId, HistoryEntry } from '@/lib/history'
 import { AGENTS } from '@/lib/agents'
 import { ScoreRing } from '@/components/ScoreRing'
-import { GlassCard, GradientButton, ScoreBadge, EmptyState } from '@/components/ui'
+import { GlassCard, GradientButton, EmptyState } from '@/components/ui'
 
 /* ─── quick tips ─── */
 const TIPS = [
@@ -116,14 +116,33 @@ function UploadArea() {
 
   const handleSubmit = async () => {
     if (!file || loading) return
-    setLoading(true); setStatus('Uploading video...')
+    setLoading(true); setStatus('Preparing upload...')
     try {
-      const formData = new FormData()
-      formData.append('video', file)
-      formData.append('session_id', getSessionId())
-      const res = await fetch('/api/analyze', { method: 'POST', body: formData })
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || 'video/mp4',
+          sessionId: getSessionId(),
+        }),
+      })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Upload failed') }
-      const { id } = await res.json()
+
+      const { id, signedUrl, contentType } = await res.json()
+
+      setStatus('Uploading video...')
+      const uploadRes = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentType || file.type || 'video/mp4',
+          'x-upsert': 'false',
+        },
+        body: file,
+      })
+
+      if (!uploadRes.ok) throw new Error('Video upload failed')
+
       setStatus('Starting analysis...')
       router.push(`/analyze/${id}?source=upload&filename=${encodeURIComponent(file.name)}`)
     } catch (err) {
@@ -209,19 +228,25 @@ export default function DashboardPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [checking, setChecking] = useState(true)
   const [history, setHistory] = useState<HistoryEntry[]>([])
-  const [tipIndex, setTipIndex] = useState(0)
+  const [tipIndex] = useState(() => Math.floor(Math.random() * TIPS.length))
 
   useEffect(() => {
     async function checkAccess() {
       try {
-        const bypassRes = await fetch('/api/sub-bypass/check')
+        const bypassRes = await fetch('/api/bypass/check')
         const bypassData = await bypassRes.json()
-        if (bypassData.subBypassed) { setAuthorized(true); setChecking(false); return }
+        if (bypassData.bypassed) {
+          setHistory(getHistory())
+          setAuthorized(true)
+          setChecking(false)
+          return
+        }
       } catch { /* ignore */ }
 
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
+        setHistory(getHistory())
         setAuthorized(true)
         setUserEmail(session.user.email ?? null)
         setChecking(false)
@@ -231,14 +256,6 @@ export default function DashboardPage() {
     }
     checkAccess()
   }, [router])
-
-  useEffect(() => {
-    if (authorized) setHistory(getHistory())
-  }, [authorized])
-
-  useEffect(() => {
-    setTipIndex(Math.floor(Math.random() * TIPS.length))
-  }, [])
 
   async function handleSignOut() {
     const supabase = createClient()
