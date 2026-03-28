@@ -8,6 +8,7 @@ import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
 import { AGENTS } from '@/lib/agents';
+import { useIsPaid } from '@/lib/subscription';
 import Link from 'next/link';
 
 function getLetterGrade(score: number): string {
@@ -24,6 +25,7 @@ export default function RoastPage() {
   const searchParams = useSearchParams();
   const id = params.id as string;
 
+  const isPaid = useIsPaid();
   const [roast, setRoast] = useState<RoastResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -276,7 +278,7 @@ export default function RoastPage() {
                     {maxOccurrences}x REPEAT
                   </div>
                 )}
-                <AgentCard roast={escalatedRoast} index={i} />
+                <AgentCard roast={escalatedRoast} index={i} locked={!isPaid} />
               </div>
             );
           })}
