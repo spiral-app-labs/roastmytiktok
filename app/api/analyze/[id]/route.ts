@@ -284,9 +284,9 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
           audioPath = extractAudio(videoPath);
           if (audioPath) {
             // Run transcription and speech/music detection in parallel
-            send({ type: 'status', message: 'Transcribing audio with Whisper...' });
+            send({ type: 'status', message: 'Transcribing audio...' });
             const [transcriptResult, speechMusicResult] = await Promise.all([
-              transcribeAudio(audioPath, 45000),
+              transcribeAudio(audioPath, 120000),
               Promise.resolve(detectSpeechMusic(audioPath)),
             ]);
             transcript = transcriptResult;
