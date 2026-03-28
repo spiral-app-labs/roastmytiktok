@@ -136,13 +136,14 @@ export default function WaitlistLanding() {
             <span className="fire-text">cringe.</span>
           </h1>
           <h2 className="text-2xl md:text-3xl font-bold text-zinc-300">
-            We have{' '}
-            <span className="fire-text">receipts.</span>
+            We watched it.{' '}
+            <span className="fire-text">We have notes.</span>
           </h2>
 
           <p className="text-base md:text-lg text-zinc-400 max-w-xl mx-auto leading-relaxed">
-            6 AI agents watch your TikTok and roast every frame, caption, cut, and
-            sound choice. It&apos;s like a focus group that actually tells the truth.
+            Upload your video. 6 AI agents tear it apart — frame by frame, word by word, beat by beat.
+            Your hook, your lighting, your audio, your captions. Nothing gets a pass.
+            Get the brutally honest feedback that will actually make you go viral.
           </p>
         </motion.div>
 
@@ -208,7 +209,7 @@ export default function WaitlistLanding() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                 </span>
                 <span className="text-red-400 font-semibold">{slotsRemaining} spots left</span>
-                <span className="text-zinc-600">— then the price goes up</span>
+                <span className="text-zinc-600">— founding rate locked at signup</span>
               </div>
             </>
           )}
@@ -259,18 +260,18 @@ export default function WaitlistLanding() {
             {[
               {
                 step: '01',
-                title: 'Upload your TikTok',
-                desc: 'Drop your video. We accept your worst work.',
+                title: 'Drop your video',
+                desc: 'Upload any TikTok. We\'ll handle the rest. Prepare yourself.',
               },
               {
                 step: '02',
-                title: '6 agents attack it',
-                desc: 'Hook, visuals, audio, captions, algorithm, cringe — nothing survives.',
+                title: '6 agents go to work',
+                desc: 'Hook strength. Lighting. Transcript. Audio energy. Algorithm fit. Authenticity. Frame by frame, word by word.',
               },
               {
                 step: '03',
-                title: 'Get the brutal truth',
-                desc: 'Scores, findings, and exactly what to fix. No participation trophies.',
+                title: 'Watch the roast live',
+                desc: 'Your video plays while agents drop comments in real time. Then a final verdict. No participation trophies.',
               },
             ].map((item) => (
               <div
