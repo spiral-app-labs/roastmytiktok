@@ -43,4 +43,25 @@ export const AGENTS: AgentDef[] = [
     oneLiner: 'Detects cringe at a molecular level',
     analyzes: 'Authenticity score, cringe detection, relatability index, trust signals',
   },
+  {
+    key: 'conversion',
+    emoji: '💰',
+    name: 'Conversion Agent',
+    oneLiner: 'Your CTA is begging for attention and getting none',
+    analyzes: 'CTA placement/clarity, value proposition, social proof, trust signals, friction points, urgency/scarcity',
+  },
+  {
+    key: 'accessibility',
+    emoji: '♿',
+    name: 'Accessibility Agent',
+    oneLiner: 'Not everyone experiences your content the same way',
+    analyzes: 'Caption quality for deaf/HoH viewers, color contrast, text readability, audio descriptions, inclusive content',
+  },
+  {
+    key: 'security',
+    emoji: '🔒',
+    name: 'Security Agent',
+    oneLiner: 'Your digital footprint is showing',
+    analyzes: 'Personal info exposure, location reveals, metadata leaks, phishing bait, account security signals',
+  },
 ];
