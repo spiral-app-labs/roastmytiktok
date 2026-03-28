@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { extractFrames } from '@/lib/frame-extractor';
+import { extractAudio, cleanupAudio } from '@/lib/audio-extractor';
+import { transcribeAudio, TranscriptionResult } from '@/lib/whisper-transcribe';
+import { detectSpeechMusic, AudioCharacteristics } from '@/lib/speech-music-detect';
 import { supabaseServer } from '@/lib/supabase-server';
 import { existsSync, unlinkSync } from 'fs';
 import { writeFile } from 'fs/promises';
@@ -23,7 +26,7 @@ const AGENT_PROMPTS: Record<DimensionKey, { name: string; prompt: string }> = {
   },
   audio: {
     name: 'AudioAutopsy',
-    prompt: `You are AudioAutopsy. Based on what you can see in the video frames (mouth movement, environment, any visible audio equipment, captions/subtitles), infer the likely audio quality: background noise potential, voice clarity indicators, music/sound choice clues, mixing quality. Score 0-100. Be savage, funny, and specific. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+    prompt: `You are AudioAutopsy. Analyze the audio quality and content of this video. If a transcript is provided below, reference specific words and phrases the creator said — quote them. Evaluate: voice clarity, background noise, music/sound choice, mixing quality, pacing of speech, word choice effectiveness for TikTok. If no transcript is available, infer audio from visual cues (mouth movement, environment, equipment). Score 0-100. Be savage, funny, and specific. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   algorithm: {
     name: 'AlgoOracle',
@@ -249,6 +252,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       };
 
+      let audioPath: string | null = null;
+
       try {
         // Fetch trending context, chronic issues, and viral patterns in parallel with frame extraction
         const trendingContextPromise = fetchTrendingContext();
@@ -268,6 +273,36 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
         if (frames.length === 0) {
           // Fallback: still run analysis but note limited visual data
           send({ type: 'status', message: 'No frames extracted. Analysis will be limited.' });
+        }
+
+        // Extract and transcribe audio
+        send({ type: 'status', message: 'Extracting audio...' });
+        let transcript: TranscriptionResult | null = null;
+        let audioChars: AudioCharacteristics = { hasSpeech: false, hasMusic: false, speechPercent: 0 };
+
+        try {
+          audioPath = extractAudio(videoPath);
+          if (audioPath) {
+            // Run transcription and speech/music detection in parallel
+            send({ type: 'status', message: 'Transcribing audio with Whisper...' });
+            const [transcriptResult, speechMusicResult] = await Promise.all([
+              transcribeAudio(audioPath, 45000),
+              Promise.resolve(detectSpeechMusic(audioPath)),
+            ]);
+            transcript = transcriptResult;
+            audioChars = speechMusicResult;
+
+            if (transcript?.text) {
+              send({ type: 'status', message: 'Audio transcribed successfully.' });
+            } else {
+              send({ type: 'status', message: 'No speech detected in audio.' });
+            }
+          } else {
+            send({ type: 'status', message: 'No audio track found in video.' });
+          }
+        } catch (err) {
+          console.warn('[analyze] Audio processing failed:', err);
+          send({ type: 'status', message: 'Audio transcription timed out. Running visual-only analysis...' });
         }
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -298,7 +333,25 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
 
             const escalationContext = buildEscalationContext(chronicIssues, dimension);
             const hookContext = dimension === 'hook' ? playbookContext : '';
-            const fullPrompt = prompt + hookContext + trendingContext + escalationContext;
+
+            // Build audio context for relevant agents
+            let audioContext = '';
+            if (dimension === 'audio' && transcript?.text) {
+              const segmentLines = transcript.segments
+                .map(s => `${s.start.toFixed(1)}s-${s.end.toFixed(1)}s: "${s.text}"`)
+                .join('\n');
+              audioContext = `\n\nAUDIO TRANSCRIPT:\n${transcript.text}\n\nSPEECH SEGMENTS (with timestamps):\n${segmentLines}\n\nAUDIO STRUCTURE: ${audioChars.hasSpeech ? 'Voice detected' : 'No clear voice'} | ${audioChars.hasMusic ? 'Music/background audio detected' : 'No background music'}\n\nNow analyze the ACTUAL audio content above. Reference specific words/phrases the creator said. Quote them. If the transcript is empty, note that the video appears to have no speech.`;
+            } else if (dimension === 'audio') {
+              audioContext = '\n\nNo audio transcript available — audio transcription timed out or no speech was detected. Analyze based on visual cues only and note that audio analysis was limited.';
+            } else if (dimension === 'hook' && transcript?.segments?.length) {
+              const firstSegment = transcript.segments[0];
+              audioContext = `\n\nThe creator's first spoken words are: "${firstSegment.text}". Analyze whether this opening line is a strong hook.`;
+            } else if (dimension === 'algorithm' && transcript?.text) {
+              const words = transcript.text.split(/\s+/).slice(0, 30).join(' ');
+              audioContext = `\n\nThe caption/speech mentions: "${words}". Does this align with trending topics?`;
+            }
+
+            const fullPrompt = prompt + hookContext + audioContext + trendingContext + escalationContext;
 
             const response = await anthropic.messages.create({
               model: 'claude-sonnet-4-5-20250514',
@@ -390,6 +443,8 @@ Write ONLY the verdict text, no JSON, no quotes.`,
             improvementTip: agentResults[dim].improvementTip,
             timestamp_seconds: AGENT_TIMESTAMPS[dim],
           })),
+          ...(transcript?.text ? { audioTranscript: transcript.text } : {}),
+          ...(transcript?.segments?.length ? { audioSegments: transcript.segments } : {}),
           metadata: {
             views: 0,
             likes: 0,
@@ -424,10 +479,11 @@ Write ONLY the verdict text, no JSON, no quotes.`,
         console.error('[analyze] Stream error:', err);
         send({ type: 'error', message: 'Analysis failed. Please try again.' });
       } finally {
-        // Clean up temp video
+        // Clean up temp video and audio
         try {
           if (existsSync(videoPath)) unlinkSync(videoPath);
         } catch { /* ignore cleanup errors */ }
+        if (audioPath) cleanupAudio(audioPath);
         controller.close();
       }
     },
