@@ -1,311 +1,9 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { AGENTS } from '@/lib/agents';
-import { getSessionId } from '@/lib/history';
 import WaitlistLanding from '@/components/WaitlistLanding';
-
-type InputMode = 'upload' | 'url';
-
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-
-function UploadUI() {
-  const [inputMode, setInputMode] = useState<InputMode>('upload');
-  const [url, setUrl] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
-
-  const handleFile = useCallback((f: File) => {
-    setFileError(null);
-    if (f.size > MAX_FILE_SIZE) {
-      setFileError('File too large. Max 500MB.');
-      return;
-    }
-    if (!f.type.startsWith('video/')) {
-      setFileError('Please upload a video file (mp4, mov, avi).');
-      return;
-    }
-    setFile(f);
-    const objUrl = URL.createObjectURL(f);
-    setPreviewUrl(objUrl);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragOver(false);
-      const dropped = e.dataTransfer.files[0];
-      if (dropped) handleFile(dropped);
-    },
-    [handleFile]
-  );
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputMode === 'upload' && !file) return;
-    if (inputMode === 'url' && !url.trim()) return;
-    setLoading(true);
-    setUploadStatus(null);
-
-    if (inputMode === 'url') {
-      setFileError('URL analysis coming soon — please upload a file for now.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setUploadStatus('Uploading video...');
-      const formData = new FormData();
-      formData.append('video', file!);
-      formData.append('session_id', getSessionId());
-
-      const res = await fetch('/api/analyze', { method: 'POST', body: formData });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Upload failed');
-      }
-
-      const { id } = await res.json();
-      setUploadStatus('Starting analysis...');
-      router.push(`/analyze/${id}?source=upload&filename=${encodeURIComponent(file!.name)}`);
-    } catch (err) {
-      setFileError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
-      setLoading(false);
-      setUploadStatus(null);
-    }
-  };
-
-  const clearFile = () => {
-    setFile(null);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    setFileError(null);
-  };
-
-  return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
-      {/* Background fire glow */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-orange-500/10 via-pink-500/5 to-transparent blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-t from-red-500/5 to-transparent blur-2xl" />
-      </div>
-
-      <div className="relative z-10 max-w-3xl w-full text-center space-y-8">
-        {/* Hero */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-            <span className="fire-text">Roast</span>{' '}
-            <span className="text-white">My TikTok</span>
-          </h1>
-          <p className="mt-4 text-lg md:text-xl text-zinc-400 max-w-xl mx-auto">
-            6 AI agents. 100+ data points. Zero mercy.{' '}
-            <span className="text-orange-400 font-semibold">Upload and find out.</span>
-          </p>
-        </motion.div>
-
-        {/* Input tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="max-w-xl mx-auto"
-        >
-          {/* Tab switcher */}
-          <div className="flex gap-1 mb-4 bg-zinc-900/60 border border-zinc-800 rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => setInputMode('upload')}
-              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
-                inputMode === 'upload'
-                  ? 'fire-gradient text-white shadow-lg shadow-orange-500/20'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              🎬 Upload Video
-            </button>
-            <span className="relative flex-1 group">
-              <button
-                type="button"
-                disabled
-                className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-zinc-600 cursor-not-allowed"
-              >
-                🔗 Paste URL
-              </button>
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                Coming soon
-              </span>
-            </span>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            {inputMode === 'upload' ? (
-              <div className="space-y-3">
-                {!file ? (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={handleDrop}
-                    className={`border-2 border-dashed rounded-2xl p-10 cursor-pointer transition-all ${
-                      dragOver
-                        ? 'border-orange-500 bg-orange-500/10'
-                        : 'border-zinc-700 hover:border-orange-500/50 hover:bg-zinc-900/40'
-                    }`}
-                  >
-                    <div className="text-5xl mb-3">🔥</div>
-                    <p className="text-zinc-300 font-semibold text-lg">Drop your TikTok here</p>
-                    <p className="text-zinc-500 text-sm mt-1">or click to browse — mp4, mov, avi · max 500MB</p>
-                  </div>
-                ) : (
-                  <div className="bg-zinc-900/80 border border-zinc-700/60 rounded-2xl p-4 flex items-center gap-4">
-                    {previewUrl && (
-                      <video
-                        src={previewUrl}
-                        className="w-20 h-20 object-cover rounded-xl shrink-0"
-                        muted
-                      />
-                    )}
-                    <div className="text-left flex-1 min-w-0">
-                      <p className="text-white font-semibold text-sm truncate">{file.name}</p>
-                      <p className="text-zinc-500 text-xs mt-0.5">
-                        {(file.size / (1024 * 1024)).toFixed(1)} MB
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={clearFile}
-                      className="text-zinc-500 hover:text-red-400 transition-colors text-xl shrink-0"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-
-                {fileError && (
-                  <p className="text-red-400 text-sm">{fileError}</p>
-                )}
-
-                {uploadStatus && (
-                  <p className="text-orange-400 text-sm flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    {uploadStatus}
-                  </p>
-                )}
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleFile(f);
-                  }}
-                />
-
-                <button
-                  type="submit"
-                  disabled={loading || !file}
-                  className="w-full fire-gradient text-white font-semibold py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Uploading...
-                    </span>
-                  ) : (
-                    '🔥 Roast My Video'
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://www.tiktok.com/@user/video/..."
-                  className="flex-1 bg-zinc-900/80 border border-zinc-700/50 rounded-xl px-5 py-4 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/25 transition-all"
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !url.trim()}
-                  className="fire-gradient text-white font-semibold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Roasting...
-                    </span>
-                  ) : (
-                    'Roast It'
-                  )}
-                </button>
-              </div>
-            )}
-          </form>
-        </motion.div>
-
-        {/* Agent Preview Cards */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl mx-auto mt-12"
-        >
-          {AGENTS.map((agent, i) => (
-            <motion.div
-              key={agent.key}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.6 + i * 0.1 }}
-              className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl p-4 text-left hover:border-orange-500/30 transition-colors group"
-            >
-              <div className="text-2xl mb-2">{agent.emoji}</div>
-              <div className="text-sm font-semibold text-white group-hover:text-orange-400 transition-colors">
-                {agent.name}
-              </div>
-              <div className="text-xs text-zinc-500 mt-1 leading-relaxed">
-                {agent.oneLiner}
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Subtext */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="text-xs text-zinc-600 mt-8"
-        >
-          6 AI agents. 100+ data points. Zero mercy.
-        </motion.p>
-      </div>
-    </main>
-  );
-}
+import Link from 'next/link';
 
 // Waitlist is active until NEXT_PUBLIC_LAUNCH_DATE (ISO UTC string, e.g. "2026-04-06T16:00:00Z")
 const LAUNCH_DATE = process.env.NEXT_PUBLIC_LAUNCH_DATE
@@ -315,6 +13,226 @@ const LAUNCH_DATE = process.env.NEXT_PUBLIC_LAUNCH_DATE
 function isPreLaunch(): boolean {
   if (!LAUNCH_DATE) return false;
   return new Date() < LAUNCH_DATE;
+}
+
+function MarketingHome() {
+  const [annual, setAnnual] = useState(false);
+  const router = useRouter();
+
+  const price = (base: number) =>
+    annual ? Math.round(base * 0.5) : base;
+
+  return (
+    <div className="min-h-screen bg-[#080808] text-white">
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-6 py-4 border-b border-zinc-900 max-w-6xl mx-auto">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🎵</span>
+          <span className="font-bold text-lg bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
+            RoastMyTikTok
+          </span>
+        </div>
+        <Link
+          href="/login"
+          className="text-sm text-zinc-400 hover:text-white transition-colors"
+        >
+          Sign in
+        </Link>
+      </nav>
+
+      {/* Hero */}
+      <section className="max-w-4xl mx-auto px-6 pt-24 pb-20 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium mb-8">
+          🔥 AI-powered TikTok feedback
+        </div>
+        <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight mb-6">
+          Your TikToks deserve{' '}
+          <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
+            brutal honesty.
+          </span>
+        </h1>
+        <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-10">
+          AI agents roast your content frame-by-frame. Hook score, structure analysis, viral
+          benchmarks. Stop guessing why your videos flop.
+        </p>
+        <Link
+          href="/login"
+          className="inline-block bg-[#f97316] hover:bg-orange-500 text-white font-semibold px-10 py-4 rounded-xl text-lg transition-colors shadow-lg shadow-orange-500/20"
+        >
+          Get roasted →
+        </Link>
+        <p className="text-zinc-600 text-sm mt-4">No credit card required to start</p>
+      </section>
+
+      {/* How it works */}
+      <section className="max-w-4xl mx-auto px-6 py-20">
+        <h2 className="text-3xl font-bold text-center mb-4">How it works</h2>
+        <p className="text-zinc-500 text-center mb-14">Three steps to finding out why your content flops</p>
+        <div className="grid md:grid-cols-3 gap-8">
+          {[
+            {
+              step: '01',
+              title: 'Upload or paste',
+              desc: 'Upload a video file or paste a TikTok URL. We handle the rest.',
+              icon: '📤',
+            },
+            {
+              step: '02',
+              title: 'AI agents analyze',
+              desc: 'Six agents tear apart your hook, pacing, script, and viral patterns.',
+              icon: '🤖',
+            },
+            {
+              step: '03',
+              title: 'Get your roast',
+              desc: 'Score, brutal feedback, and an exact fix list. No fluff.',
+              icon: '🔥',
+            },
+          ].map((item) => (
+            <div
+              key={item.step}
+              className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-8 text-center hover:border-orange-500/30 transition-colors"
+            >
+              <div className="text-4xl mb-4">{item.icon}</div>
+              <div className="text-orange-400 font-mono text-sm font-bold mb-2">{item.step}</div>
+              <h3 className="text-lg font-bold mb-2">{item.title}</h3>
+              <p className="text-zinc-500 text-sm leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="max-w-5xl mx-auto px-6 py-20">
+        <h2 className="text-3xl font-bold text-center mb-4">Pricing</h2>
+        <p className="text-zinc-500 text-center mb-8">Pick the plan that matches how serious you are</p>
+
+        {/* Annual toggle */}
+        <div className="flex items-center justify-center gap-4 mb-12">
+          <span className={`text-sm font-medium ${!annual ? 'text-white' : 'text-zinc-500'}`}>Monthly</span>
+          <button
+            onClick={() => setAnnual(!annual)}
+            className={`relative w-12 h-6 rounded-full transition-colors ${annual ? 'bg-orange-500' : 'bg-zinc-700'}`}
+          >
+            <span
+              className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${annual ? 'translate-x-7' : 'translate-x-1'}`}
+            />
+          </button>
+          <span className={`text-sm font-medium flex items-center gap-2 ${annual ? 'text-white' : 'text-zinc-500'}`}>
+            Annual
+            {annual && (
+              <span className="bg-green-500/20 border border-green-500/30 text-green-400 text-xs px-2 py-0.5 rounded-full font-semibold">
+                Save 50%
+              </span>
+            )}
+          </span>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Creator */}
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-8 flex flex-col">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold mb-1">Creator</h3>
+              <div className="flex items-end gap-1 mb-4">
+                <span className="text-4xl font-bold">${price(19)}</span>
+                <span className="text-zinc-500 mb-1">/mo</span>
+              </div>
+              <ul className="space-y-2 text-sm text-zinc-400">
+                {[
+                  '15 video roasts/month',
+                  '1 account analysis/month',
+                  'Hook + structure scoring',
+                  '30-day history & trend benchmarks',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5">✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Link
+              href="/login"
+              className="mt-auto block text-center bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-3 rounded-xl transition-colors"
+            >
+              Get started →
+            </Link>
+          </div>
+
+          {/* Pro */}
+          <div className="bg-zinc-900/60 border-2 border-[#f97316] rounded-2xl p-8 flex flex-col relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#f97316] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
+              ⭐ Most Popular
+            </div>
+            <div className="mb-6">
+              <h3 className="text-lg font-bold mb-1">Pro</h3>
+              <div className="flex items-end gap-1 mb-4">
+                <span className="text-4xl font-bold">${price(49)}</span>
+                <span className="text-zinc-500 mb-1">/mo</span>
+              </div>
+              <ul className="space-y-2 text-sm text-zinc-400">
+                {[
+                  '100 video roasts/month',
+                  '5 account analyses/month',
+                  'Audio & script analysis',
+                  'Viral playbook recommendations',
+                  'PDF export + shareable links',
+                  'Priority support',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5">✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Link
+              href="/login"
+              className="mt-auto block text-center bg-[#f97316] hover:bg-orange-500 text-white font-semibold py-3 rounded-xl transition-colors"
+            >
+              Go Pro →
+            </Link>
+          </div>
+
+          {/* Unlimited */}
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-8 flex flex-col">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold mb-1">Unlimited</h3>
+              <div className="flex items-end gap-1 mb-4">
+                <span className="text-4xl font-bold">${price(99)}</span>
+                <span className="text-zinc-500 mb-1">/mo</span>
+              </div>
+              <ul className="space-y-2 text-sm text-zinc-400">
+                {[
+                  'Unlimited everything',
+                  'Competitor account comparison',
+                  'Team seats (2 included)',
+                  'White-label PDF reports',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5">✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Link
+              href="/login"
+              className="mt-auto block text-center bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-3 rounded-xl transition-colors"
+            >
+              Go Unlimited →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-900 py-10 text-center text-zinc-600 text-sm">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <span>🎵</span>
+          <span className="font-semibold text-zinc-500">RoastMyTikTok</span>
+        </div>
+        <p>© 2026 Spiral App Labs. Zero mercy guaranteed.</p>
+      </footer>
+    </div>
+  );
 }
 
 export default function Home() {
@@ -349,5 +267,5 @@ export default function Home() {
     return <WaitlistLanding />;
   }
 
-  return <UploadUI />;
+  return <MarketingHome />;
 }
