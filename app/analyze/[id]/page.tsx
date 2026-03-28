@@ -1,17 +1,27 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { AGENTS } from '@/lib/agents';
 import { AgentRoast, RoastResult, DimensionKey } from '@/lib/types';
 import { getSessionId } from '@/lib/history';
+import { ScoreRing } from '@/components/ScoreRing';
 
 interface AgentStatus {
   status: 'waiting' | 'analyzing' | 'done';
   result?: AgentRoast;
   score?: number;
 }
+
+const AGENT_LOADING_MESSAGES: Record<DimensionKey, string> = {
+  hook: 'Judging your first 3 seconds of existence...',
+  visual: 'Inspecting every pixel of your questionable life choices...',
+  caption: 'Reading your captions (someone has to)...',
+  audio: 'Listening to your audio on repeat (unfortunately)...',
+  algorithm: 'Consulting the algorithm gods about your fate...',
+  authenticity: 'Running a vibe check on your entire personality...',
+};
 
 export default function AnalyzePage() {
   const router = useRouter();
@@ -23,6 +33,7 @@ export default function AnalyzePage() {
     Object.fromEntries(AGENTS.map(a => [a.key, { status: 'waiting' as const }]))
   );
   const [statusMessage, setStatusMessage] = useState('Connecting to analysis pipeline...');
+  const [activeAgent, setActiveAgent] = useState<DimensionKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const connectedRef = useRef(false);
 
@@ -47,6 +58,7 @@ export default function AnalyzePage() {
 
         if (data.type === 'agent') {
           if (data.status === 'analyzing') {
+            setActiveAgent(data.agent as DimensionKey);
             setAgentStatuses(prev => ({
               ...prev,
               [data.agent]: { status: 'analyzing' },
@@ -119,24 +131,27 @@ export default function AnalyzePage() {
   }, [id, router, searchParams]);
 
   const completedCount = Object.values(agentStatuses).filter(s => s.status === 'done').length;
+  const completedAgents = AGENTS.filter(a => agentStatuses[a.key]?.status === 'done');
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <main className="min-h-screen flex flex-col items-center px-4 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-orange-500/10 via-pink-500/5 to-transparent blur-3xl animate-pulse" />
       </div>
 
-      <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
+      <div className="relative z-10 max-w-4xl w-full pt-12 space-y-8">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          className="text-center"
         >
           <h1 className="text-3xl md:text-4xl font-bold">
             <span className="fire-text">Analyzing</span> your TikTok...
           </h1>
           <p className="text-zinc-500 mt-2 text-sm">
-            {statusMessage}
+            {activeAgent ? AGENT_LOADING_MESSAGES[activeAgent] : statusMessage}
           </p>
           {completedCount > 0 && (
             <p className="text-zinc-600 text-xs mt-1">
@@ -149,7 +164,7 @@ export default function AnalyzePage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm"
+            className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm text-center"
           >
             {error}
             <button
@@ -162,7 +177,7 @@ export default function AnalyzePage() {
         )}
 
         {/* Agent Progress Cards */}
-        <div className="space-y-3 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {AGENTS.map((agent, i) => {
             const status = agentStatuses[agent.key];
             const isActive = status?.status === 'analyzing';
@@ -171,48 +186,79 @@ export default function AnalyzePage() {
             return (
               <motion.div
                 key={agent.key}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-500 ${
+                className={`rounded-xl border transition-all duration-500 overflow-hidden ${
                   isActive
                     ? 'bg-zinc-900/80 border-orange-500/50 card-glow'
                     : isDone
-                      ? 'bg-zinc-900/40 border-green-500/30'
+                      ? 'bg-zinc-900/60 border-zinc-700/50'
                       : 'bg-zinc-900/20 border-zinc-800/30 opacity-50'
                 }`}
               >
-                <span className="text-2xl">{agent.emoji}</span>
-                <div className="flex-1">
-                  <div className="font-semibold text-sm">{agent.name}</div>
-                  <div className="text-xs text-zinc-500">{agent.analyzes}</div>
+                {/* Agent header row */}
+                <div className="flex items-center gap-3 p-4">
+                  <span className="text-2xl">{agent.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm">{agent.name}</div>
+                    <div className="text-xs text-zinc-500 truncate">{agent.analyzes}</div>
+                  </div>
+                  <div className="text-sm flex items-center gap-2 shrink-0">
+                    {isDone ? (
+                      <>
+                        <span className="text-green-400 text-xs">Done</span>
+                        {status.score !== undefined && (
+                          <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${
+                            status.score >= 70 ? 'bg-green-500/20 text-green-400' :
+                            status.score >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {status.score}
+                          </span>
+                        )}
+                      </>
+                    ) : isActive ? (
+                      <span className="text-orange-400 flex items-center gap-2 text-xs">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Analyzing
+                      </span>
+                    ) : (
+                      <span className="text-zinc-600 text-xs">Waiting</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-sm flex items-center gap-2">
-                  {isDone ? (
-                    <>
-                      <span className="text-green-400">Done</span>
-                      {status.score !== undefined && (
-                        <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${
-                          status.score >= 70 ? 'bg-green-500/20 text-green-400' :
-                          status.score >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
-                          {status.score}
-                        </span>
-                      )}
-                    </>
-                  ) : isActive ? (
-                    <span className="text-orange-400 flex items-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Analyzing
-                    </span>
-                  ) : (
-                    <span className="text-zinc-600">Waiting</span>
+
+                {/* Expanded result preview when done */}
+                <AnimatePresence>
+                  {isDone && status.result && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      transition={{ duration: 0.4, ease: 'easeOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 pt-0 border-t border-zinc-800/30">
+                        <p className="text-xs text-zinc-400 leading-relaxed italic mt-3">
+                          &ldquo;{status.result.roastText}&rdquo;
+                        </p>
+                        {status.result.findings.length > 0 && (
+                          <ul className="mt-2 space-y-1">
+                            {status.result.findings.slice(0, 2).map((f, fi) => (
+                              <li key={fi} className="text-xs text-zinc-500 flex items-start gap-1.5">
+                                <span className="text-red-400 mt-0.5">•</span>
+                                {f}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </motion.div>
                   )}
-                </div>
+                </AnimatePresence>
               </motion.div>
             );
           })}

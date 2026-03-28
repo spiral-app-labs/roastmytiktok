@@ -10,6 +10,14 @@ import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalat
 import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
 
+function getLetterGrade(score: number): { grade: string; color: string } {
+  if (score >= 90) return { grade: 'A', color: 'text-green-400' };
+  if (score >= 80) return { grade: 'B', color: 'text-green-400' };
+  if (score >= 70) return { grade: 'C', color: 'text-yellow-400' };
+  if (score >= 60) return { grade: 'D', color: 'text-orange-400' };
+  return { grade: 'F', color: 'text-red-400' };
+}
+
 export default function RoastPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -106,6 +114,8 @@ export default function RoastPage() {
   // Check if metadata has real data
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
 
+  const { grade, color: gradeColor } = getLetterGrade(roast.overallScore);
+
   return (
     <main className="min-h-screen pb-20 relative">
       {/* Background */}
@@ -127,25 +137,27 @@ export default function RoastPage() {
             &larr; Roast another
           </Link>
 
-          {/* Watch Live Roast CTA */}
-          <Link
-            href={`/roast/${id}/live`}
-            className="inline-flex items-center gap-2 fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity mb-4"
-          >
-            <span className="text-lg">&#9654;</span>
-            Watch Live Roast
-          </Link>
-
           <h1 className="text-4xl md:text-5xl font-bold mt-4">
             <span className="fire-text">The Verdict</span>
           </h1>
 
-          {/* Overall Score */}
+          {/* Letter Grade + Score */}
           <div className="flex flex-col items-center mt-8">
-            <ScoreRing score={roast.overallScore} size={120} />
-            <p className="text-zinc-400 text-sm mt-4 max-w-md mx-auto">
-              Overall Score
-            </p>
+            <div className="flex items-center gap-6">
+              {/* Letter Grade */}
+              <div className="text-center">
+                <div className={`text-8xl font-black ${gradeColor}`}>{grade}</div>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-20 bg-zinc-800" />
+
+              {/* Numeric Score */}
+              <div className="text-center">
+                <ScoreRing score={roast.overallScore} size={100} />
+                <p className="text-zinc-500 text-xs mt-2">out of 100</p>
+              </div>
+            </div>
           </div>
 
           {/* Verdict */}
@@ -153,7 +165,7 @@ export default function RoastPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="mt-6 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-6 max-w-2xl mx-auto"
+            className="mt-8 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-6 max-w-2xl mx-auto"
           >
             <p className="text-sm text-zinc-300 leading-relaxed italic">
               &ldquo;{roast.verdict}&rdquo;
@@ -274,14 +286,64 @@ export default function RoastPage() {
               </div>
             );
           })}
+
+          {/* Task 9: Viral Potential Agent — Coming Soon Placeholder */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: roast.agents.length * 0.15 }}
+            className="bg-zinc-900/40 border border-zinc-800/30 rounded-2xl p-6 relative opacity-60"
+          >
+            <div className="absolute -top-2 -right-2 z-10 bg-zinc-700 text-zinc-300 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              Coming Soon
+            </div>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl grayscale">🚀</span>
+                <div>
+                  <h3 className="font-bold text-zinc-500">Viral Potential</h3>
+                  <p className="text-xs text-zinc-600">Predicts your video&apos;s chance of going viral based on current trends</p>
+                </div>
+              </div>
+              <div className="w-14 h-14 rounded-full border-4 border-zinc-800 flex items-center justify-center">
+                <span className="text-xs font-bold text-zinc-600">?</span>
+              </div>
+            </div>
+            <p className="text-sm text-zinc-600 leading-relaxed italic mb-4">
+              &ldquo;This agent is still in training. It&apos;s watching thousands of viral TikToks so it can judge yours.&rdquo;
+            </p>
+            <div className="space-y-2 mb-4">
+              <div className="h-2 bg-zinc-800/50 rounded-full w-3/4" />
+              <div className="h-2 bg-zinc-800/50 rounded-full w-1/2" />
+            </div>
+            <div className="bg-zinc-800/30 rounded-lg p-3 border border-zinc-800/20">
+              <p className="text-xs text-zinc-600">Viral score, trend matching, and FYP probability coming soon.</p>
+            </div>
+          </motion.div>
         </div>
+
+        {/* Watch Live Roast CTA — moved lower */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="text-center mt-10"
+        >
+          <Link
+            href={`/roast/${id}/live`}
+            className="inline-flex items-center gap-2 fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            <span className="text-lg">&#9654;</span>
+            Watch Live Roast
+          </Link>
+        </motion.div>
 
         {/* Bottom CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
-          className="text-center mt-12 space-y-3"
+          className="text-center mt-8 space-y-3"
         >
           <Link
             href="/"

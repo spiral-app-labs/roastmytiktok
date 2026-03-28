@@ -107,25 +107,33 @@ function MarketingHome() {
         <h2 className="text-3xl font-bold text-center mb-4">Pricing</h2>
         <p className="text-zinc-500 text-center mb-8">Pick the plan that matches how serious you are</p>
 
-        {/* Annual toggle */}
-        <div className="flex items-center justify-center gap-4 mb-12">
-          <span className={`text-sm font-medium ${!annual ? 'text-white' : 'text-zinc-500'}`}>Monthly</span>
-          <button
-            onClick={() => setAnnual(!annual)}
-            className={`relative w-12 h-6 rounded-full transition-colors ${annual ? 'bg-orange-500' : 'bg-zinc-700'}`}
-          >
-            <span
-              className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${annual ? 'translate-x-7' : 'translate-x-1'}`}
-            />
-          </button>
-          <span className={`text-sm font-medium flex items-center gap-2 ${annual ? 'text-white' : 'text-zinc-500'}`}>
-            Annual
-            {annual && (
-              <span className="bg-green-500/20 border border-green-500/30 text-green-400 text-xs px-2 py-0.5 rounded-full font-semibold">
-                Save 50%
+        {/* Billing toggle */}
+        <div className="flex items-center justify-center mb-12">
+          <div className="inline-flex items-center bg-zinc-900/80 border border-zinc-800 rounded-full p-1">
+            <button
+              onClick={() => setAnnual(false)}
+              className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
+                !annual
+                  ? 'bg-white text-black shadow-md'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setAnnual(true)}
+              className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${
+                annual
+                  ? 'bg-white text-black shadow-md'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              Annual
+              <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                -50%
               </span>
-            )}
-          </span>
+            </button>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
@@ -133,10 +141,14 @@ function MarketingHome() {
           <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-8 flex flex-col">
             <div className="mb-6">
               <h3 className="text-lg font-bold mb-1">Creator</h3>
-              <div className="flex items-end gap-1 mb-4">
+              <div className="flex items-end gap-1">
                 <span className="text-4xl font-bold">${price(19)}</span>
                 <span className="text-zinc-500 mb-1">/mo</span>
               </div>
+              {annual && (
+                <p className="text-xs text-zinc-500 mt-1">$114/year · billed annually</p>
+              )}
+              <div className="mb-4" />
               <ul className="space-y-2 text-sm text-zinc-400">
                 {[
                   '15 video roasts/month',
@@ -161,14 +173,18 @@ function MarketingHome() {
           {/* Pro */}
           <div className="bg-zinc-900/60 border-2 border-[#f97316] rounded-2xl p-8 flex flex-col relative">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#f97316] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
-              ⭐ Most Popular
+              Most Popular
             </div>
             <div className="mb-6">
               <h3 className="text-lg font-bold mb-1">Pro</h3>
-              <div className="flex items-end gap-1 mb-4">
+              <div className="flex items-end gap-1">
                 <span className="text-4xl font-bold">${price(49)}</span>
                 <span className="text-zinc-500 mb-1">/mo</span>
               </div>
+              {annual && (
+                <p className="text-xs text-zinc-500 mt-1">$294/year · billed annually</p>
+              )}
+              <div className="mb-4" />
               <ul className="space-y-2 text-sm text-zinc-400">
                 {[
                   '100 video roasts/month',
@@ -196,10 +212,14 @@ function MarketingHome() {
           <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-8 flex flex-col">
             <div className="mb-6">
               <h3 className="text-lg font-bold mb-1">Unlimited</h3>
-              <div className="flex items-end gap-1 mb-4">
+              <div className="flex items-end gap-1">
                 <span className="text-4xl font-bold">${price(99)}</span>
                 <span className="text-zinc-500 mb-1">/mo</span>
               </div>
+              {annual && (
+                <p className="text-xs text-zinc-500 mt-1">$594/year · billed annually</p>
+              )}
+              <div className="mb-4" />
               <ul className="space-y-2 text-sm text-zinc-400">
                 {[
                   'Unlimited everything',

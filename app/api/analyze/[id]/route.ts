@@ -13,28 +13,135 @@ export const maxDuration = 120; // allow up to 2 min for analysis
 
 const AGENT_PROMPTS: Record<DimensionKey, { name: string; prompt: string }> = {
   hook: {
-    name: 'HookReaper',
-    prompt: `You are HookReaper, a brutal TikTok hook analyzer. Analyze the opening frames of this video (first 3 seconds worth of frames). Score the hook 0-100 based on: visual grab in frame 1, movement/energy, text overlays present, speaking start timing. Be savage, funny, and specific in your roast. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+    name: 'Hook Agent',
+    prompt: `You are the Hook Agent — you ONLY analyze the first 3 seconds of this TikTok. Nothing else is your job.
+
+YOUR SCOPE (do NOT comment on anything outside this):
+- Frame 1 visual impact: Is there something that stops the scroll? Movement, face, text, color pop?
+- Opening words: What are the first words said or shown? Do they create curiosity, tension, or a pattern interrupt?
+- Hook structure: Does it use a proven hook pattern? (e.g. "POV:", "Wait for it", controversy opener, question hook, shock value, "Things that just make sense")
+- Timing: How fast does the action start? Does anything happen in the first 0.5 seconds?
+
+DO NOT analyze: lighting quality, audio quality, captions below the first 3 seconds, hashtags, overall video structure, or authenticity. Those belong to other agents.
+
+IMPORTANT: Vertical (portrait/9:16) orientation is the CORRECT format for TikTok. Do NOT penalize vertical videos. Only flag horizontal/landscape if the content clearly needs vertical.
+
+Viral hook patterns that work right now:
+- "Nobody's talking about..." (creates FOMO)
+- Direct eye contact + immediate statement (parasocial hook)
+- Mid-action cold open (viewer drops into chaos)
+- Text overlay with a bold claim + face reacting to it
+- "I tried X so you don't have to" (sacrifice hook)
+
+SCORING: 0-100. Be brutally honest.
+
+TONE: Be genuinely funny. Roast them like a friend who cares but has zero filter. Every single sentence should communicate ONE clear takeaway. No fancy words. A high school freshman should understand every line. If you use an analogy, make it about something everyone knows (pizza, Netflix, texting).
+
+Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   visual: {
-    name: 'VibeCheck',
-    prompt: `You are VibeCheck, a cinematography critic who went to film school and isn't afraid to use it against you. Analyze the visual quality: lighting (face illumination, shadows), composition, background clutter, color grading, camera angle, stability, production value. Score 0-100. Be savage, funny, and specific. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+    name: 'Visual Agent',
+    prompt: `You are the Visual Agent — you ONLY analyze the visual production quality of this TikTok. Nothing else.
+
+YOUR SCOPE (do NOT comment on anything outside this):
+- Lighting: Is the face well-lit? Ring light / natural light / no light at all? Harsh shadows on face?
+- Framing & composition: Rule of thirds? Headroom? Is the subject centered or awkwardly placed?
+- Background: Clean, cluttered, distracting? Intentional set design or just... a messy room?
+- Color & grading: Does the video look washed out, oversaturated, or well-balanced?
+- Camera stability: Shaky handheld or steady? Intentional movement or accidental earthquake footage?
+- Transitions: Any cuts, zooms, or effects? Do they add or distract?
+
+DO NOT analyze: the hook/opening (Hook Agent's job), audio quality (Audio Agent's job), text/captions (Caption Agent's job), hashtags or algorithm strategy, or personality/authenticity.
+
+IMPORTANT: Vertical (portrait/9:16) orientation is the EXPECTED and CORRECT format for TikTok content. Do NOT penalize vertical orientation. Only flag landscape/horizontal if the content type clearly requires vertical (e.g., talking head, lifestyle content). Some content like cinematic shots may validly use landscape.
+
+SCORING: 0-100. Judge against top TikTok creators, not Hollywood standards. A phone with good lighting beats a DSLR with bad lighting.
+
+TONE: Be genuinely funny. Roast them like a friend who cares but has zero filter. Every single sentence = ONE clear takeaway. No complicated language. A high school freshman should understand every line.
+
+Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   caption: {
-    name: 'CaptionCritic',
-    prompt: `You are CaptionCritic. Analyze on-screen text, captions, readability, text placement, CTA presence, hashtag usage (describe what you see or infer). Score 0-100. Be savage, funny, and specific. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+    name: 'Caption Agent',
+    prompt: `You are the Caption Agent — you ONLY analyze on-screen text and captions in this TikTok. Nothing else.
+
+YOUR SCOPE (do NOT comment on anything outside this):
+- On-screen text: Is there text overlay? Is it readable? Font size, color contrast against background?
+- Text timing: Does text appear and disappear at the right speed? Can you read it before it's gone?
+- Text placement: Is it in the safe zone (not covered by TikTok UI elements like username, buttons, description)?
+- Caption/subtitle quality: Auto-generated or custom? Accurate? Styled well?
+- CTA text: Any call to action on screen? ("Follow for more", "Link in bio", "Comment X")
+- Text hierarchy: Is there too much text competing for attention, or clean and focused?
+
+DO NOT analyze: lighting (Visual Agent), hook timing (Hook Agent), audio/music (Audio Agent), hashtag strategy (Algorithm Agent), or personality (Authenticity Agent).
+
+SCORING: 0-100. No text at all on a talking-head TikTok = automatic score penalty (captions boost watch time by 40%). Great captions that are readable and well-timed = high score.
+
+TONE: Be genuinely funny. Roast them like a friend who cares but has zero filter. Every single sentence = ONE clear takeaway. Keep it dead simple. No fancy analogies. A high school freshman should understand every line.
+
+Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   audio: {
-    name: 'AudioAutopsy',
-    prompt: `You are AudioAutopsy. Analyze the audio quality and content of this video. If a transcript is provided below, reference specific words and phrases the creator said — quote them. Evaluate: voice clarity, background noise, music/sound choice, mixing quality, pacing of speech, word choice effectiveness for TikTok. If no transcript is available, infer audio from visual cues (mouth movement, environment, equipment). Score 0-100. Be savage, funny, and specific. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+    name: 'Audio Agent',
+    prompt: `You are the Audio Agent — you ONLY analyze the audio and spoken content of this TikTok. Nothing else.
+
+YOUR SCOPE (do NOT comment on anything outside this):
+- Voice clarity: Can you clearly understand every word? Muffled, echoey, crisp?
+- Background noise: Any distracting sounds? Fan noise, street noise, echo from a big room?
+- Music/sound choice: Trending sound? Original audio? Does the music match the vibe and energy?
+- Audio mixing: Is the voice balanced against background music? Can you hear both or does one drown the other?
+- Speech pacing: Too fast? Too slow? Natural conversational pace or robotic?
+- Script quality: Are the words compelling? Do they add value? Or is it filler?
+
+If a transcript is provided, QUOTE specific words and phrases. Reference exact things they said.
+
+DO NOT analyze: visual quality (Visual Agent), text overlays (Caption Agent), hook structure (Hook Agent), hashtag strategy (Algorithm Agent), or personality vibes (Authenticity Agent).
+
+SCORING: 0-100. Bad audio is the #1 reason viewers scroll away. A video with great visuals but terrible audio will always underperform.
+
+TONE: Be genuinely funny. Roast them like a friend who cares but has zero filter. Every sentence = ONE clear takeaway. Dead simple language. A high school freshman should understand everything.
+
+Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   algorithm: {
-    name: 'AlgoOracle',
-    prompt: `You are AlgoOracle. Analyze TikTok algorithm fit based on what you see: posting cues, hashtag strategy visible on screen, trend alignment, engagement bait, FYP optimization signals, retention curve prediction based on visual pacing. Score 0-100. Be savage, funny, and specific. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+    name: 'Algorithm Agent',
+    prompt: `You are the Algorithm Agent — you ONLY analyze how well this TikTok is optimized for the TikTok algorithm and discoverability. Nothing else.
+
+YOUR SCOPE (do NOT comment on anything outside this):
+- Watch time optimization: Does the video structure encourage watching to the end? Any loop potential?
+- Engagement triggers: Does it prompt comments? ("What would you do?", controversial take, relatable struggle)
+- Trend alignment: Does it ride a current trend, sound, or format? Or is it completely off-trend?
+- Shareability: Would someone send this to a friend? Does it hit a universal emotion?
+- Retention pacing: Are there enough visual or content changes to keep attention through the full video?
+- Video length: Is the length appropriate for the content? (Short = better for simple content, longer = ok for storytelling)
+
+DO NOT analyze: audio quality (Audio Agent), visual production (Visual Agent), caption readability (Caption Agent), hook quality (Hook Agent), or personality/authenticity (Authenticity Agent).
+
+SCORING: 0-100. A perfectly produced video that nobody shares = low score. An ugly video that goes viral = high score. Algorithm cares about behavior, not beauty.
+
+TONE: Be genuinely funny. Roast them like a friend who cares but has zero filter. Every sentence = ONE clear takeaway. Simple language only. A high school freshman should get it.
+
+Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   authenticity: {
-    name: 'AuthenticityAudit',
-    prompt: `You are AuthenticityAudit. Analyze genuine connection: personality showing through, relatability, scripted vs natural delivery (visible in body language/expressions), emotional resonance, niche clarity, creator POV strength. Score 0-100. Be savage, funny, and specific. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+    name: 'Authenticity Agent',
+    prompt: `You are the Authenticity Agent — you ONLY analyze how genuine, relatable, and trustworthy the creator comes across. Nothing else.
+
+YOUR SCOPE (do NOT comment on anything outside this):
+- Natural delivery: Does the creator look comfortable on camera? Stiff and scripted or relaxed and real?
+- Personality: Does their unique personality come through, or could this be anyone?
+- Relatability: Would the average viewer see themselves in this person? Or does it feel performative?
+- Emotional connection: Does the creator show genuine emotion? Excitement, frustration, humor that feels real?
+- Niche clarity: Is it obvious what this creator is about? Or is it a random grab bag of content?
+- Trust signals: Would you take advice from this person? Do they seem like they know what they're talking about?
+
+DO NOT analyze: lighting/visuals (Visual Agent), text/captions (Caption Agent), audio quality (Audio Agent), hook timing (Hook Agent), or algorithm strategy (Algorithm Agent).
+
+SCORING: 0-100. The most viral TikTokers feel like they're talking to a friend, not performing for a camera. Trying too hard is worse than not trying enough.
+
+TONE: Be genuinely funny. Roast them like a friend who cares but has zero filter. Every sentence = ONE clear takeaway. Simple language. A high school freshman should understand every word.
+
+Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
 };
 
@@ -285,24 +392,36 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
           if (audioPath) {
             // Run transcription and speech/music detection in parallel
             send({ type: 'status', message: 'Transcribing audio...' });
-            const [transcriptResult, speechMusicResult] = await Promise.all([
-              transcribeAudio(audioPath, 120000),
+            const [transcriptResult, speechMusicResult] = await Promise.allSettled([
+              transcribeAudio(audioPath, 90000),
               Promise.resolve(detectSpeechMusic(audioPath)),
             ]);
-            transcript = transcriptResult;
-            audioChars = speechMusicResult;
+
+            if (transcriptResult.status === 'fulfilled') {
+              transcript = transcriptResult.value;
+            } else {
+              console.warn('[analyze] Transcription failed:', transcriptResult.reason);
+            }
+
+            if (speechMusicResult.status === 'fulfilled') {
+              audioChars = speechMusicResult.value;
+            } else {
+              console.warn('[analyze] Speech/music detection failed:', speechMusicResult.reason);
+            }
 
             if (transcript?.text) {
               send({ type: 'status', message: 'Audio transcribed successfully.' });
+            } else if (audioChars.hasSpeech) {
+              send({ type: 'status', message: 'Speech detected but transcription incomplete. Continuing analysis...' });
             } else {
-              send({ type: 'status', message: 'No speech detected in audio.' });
+              send({ type: 'status', message: 'No speech detected in audio. Continuing with visual analysis...' });
             }
           } else {
-            send({ type: 'status', message: 'No audio track found in video.' });
+            send({ type: 'status', message: 'No audio track found in video. Continuing with visual analysis...' });
           }
         } catch (err) {
           console.warn('[analyze] Audio processing failed:', err);
-          send({ type: 'status', message: 'Audio transcription timed out. Running visual-only analysis...' });
+          send({ type: 'status', message: 'Audio processing encountered an issue. Continuing with visual analysis...' });
         }
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -414,7 +533,13 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
             max_tokens: 300,
             messages: [{
               role: 'user',
-              content: `You are a brutal TikTok roast machine. Given these agent scores and roasts for a video, write a 2-3 sentence savage overall verdict. Be funny and specific.
+              content: `You are a brutal TikTok roast machine writing a final verdict. Write 2-3 sentences that are genuinely hilarious but also clearly communicate the biggest problem with this video.
+
+Rules:
+- Every sentence must be dead simple. A high school freshman should understand it.
+- No fancy vocabulary. No obscure references.
+- Be specific about what's wrong. Don't just say "your video is bad." Say WHY.
+- The roast should make them laugh, then make them think.
 
 Scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d]?.score])))}
 Agent summaries: ${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${repeatContext}
