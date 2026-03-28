@@ -76,6 +76,39 @@ function parseAgentResponse(text: string): { score: number; roastText: string; f
   };
 }
 
+interface ViralPattern {
+  hook_type: string;
+  hook_text_example: string;
+  why_it_works: string;
+  avg_view_multiplier: number;
+}
+
+async function fetchTopViralPatterns(): Promise<ViralPattern[]> {
+  try {
+    const { data } = await supabaseServer
+      .from('rmt_viral_patterns')
+      .select('hook_type, hook_text_example, why_it_works, avg_view_multiplier')
+      .order('avg_view_multiplier', { ascending: false })
+      .limit(5);
+
+    return (data as ViralPattern[]) ?? [];
+  } catch (err) {
+    console.warn('[analyze] Failed to fetch viral patterns:', err);
+    return [];
+  }
+}
+
+function buildPlaybookContext(patterns: ViralPattern[]): string {
+  if (patterns.length === 0) return '';
+
+  const lines = patterns.map(
+    (p) =>
+      `- ${p.hook_type}: "${p.hook_text_example}" (avg ${p.avg_view_multiplier}x views) — works because ${p.why_it_works}`
+  );
+
+  return `\n\nTop performing hook patterns for comparison:\n${lines.join('\n')}\n\nCompare the uploaded video's hook against these proven patterns. Which pattern (if any) does it use? If the hook matches a proven high-performing pattern, note it as a strength. If it matches a weak pattern or no recognizable pattern at all, call it out specifically and suggest which pattern would work better. Score accordingly.`;
+}
+
 async function fetchTrendingContext(): Promise<string> {
   try {
     const { data } = await supabaseServer
@@ -217,9 +250,10 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
       };
 
       try {
-        // Fetch trending context and chronic issues in parallel with frame extraction
+        // Fetch trending context, chronic issues, and viral patterns in parallel with frame extraction
         const trendingContextPromise = fetchTrendingContext();
         const chronicIssuesPromise = fetchChronicIssues(sessionId);
+        const viralPatternsPromise = fetchTopViralPatterns();
 
         // Extract frames
         send({ type: 'status', message: 'Extracting frames...' });
@@ -240,6 +274,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
         const agentResults: Record<string, { score: number; roastText: string; findings: string[]; improvementTip: string }> = {};
         const trendingContext = await trendingContextPromise;
         const chronicIssues = await chronicIssuesPromise;
+        const viralPatterns = await viralPatternsPromise;
+        const playbookContext = buildPlaybookContext(viralPatterns);
 
         if (chronicIssues.length > 0) {
           send({ type: 'status', message: 'Repeat offender detected. Escalating intensity...' });
@@ -261,7 +297,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
             }));
 
             const escalationContext = buildEscalationContext(chronicIssues, dimension);
-            const fullPrompt = prompt + trendingContext + escalationContext;
+            const hookContext = dimension === 'hook' ? playbookContext : '';
+            const fullPrompt = prompt + hookContext + trendingContext + escalationContext;
 
             const response = await anthropic.messages.create({
               model: 'claude-sonnet-4-5-20250514',
