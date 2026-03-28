@@ -11,88 +11,95 @@ export interface TranscriptionResult {
   segments: TranscriptionSegment[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let pipelineInstance: any = null;
+const ASSEMBLYAI_BASE = 'https://api.assemblyai.com/v2';
 
-async function getWhisperPipeline() {
-  if (pipelineInstance) return pipelineInstance;
-
-  // Dynamic import to avoid bundling issues with Next.js
-  const { pipeline } = await import('@xenova/transformers');
-  pipelineInstance = await pipeline('automatic-speech-recognition', 'Xenova/whisper-small', {
-    quantized: true,
-  });
-  return pipelineInstance;
+function getApiKey(): string {
+  const key = process.env.ASSEMBLYAI_API_KEY;
+  if (!key) throw new Error('ASSEMBLYAI_API_KEY is not set');
+  return key;
 }
 
-/**
- * Convert a WAV file (16kHz mono PCM) to a Float32Array of audio samples.
- */
-function wavToFloat32(wavPath: string): Float32Array {
-  const buffer = readFileSync(wavPath);
+function headers(): Record<string, string> {
+  return { authorization: getApiKey(), 'content-type': 'application/json' };
+}
 
-  // WAV header is 44 bytes for standard PCM
-  const headerSize = 44;
-  const dataBuffer = buffer.subarray(headerSize);
+async function uploadAudio(audioPath: string): Promise<string> {
+  const data = readFileSync(audioPath);
+  const res = await fetch(`${ASSEMBLYAI_BASE}/upload`, {
+    method: 'POST',
+    headers: { authorization: getApiKey(), 'content-type': 'application/octet-stream' },
+    body: data,
+  });
+  if (!res.ok) throw new Error(`AssemblyAI upload failed: ${res.status}`);
+  const json = await res.json();
+  return json.upload_url;
+}
 
-  // Convert Int16 PCM samples to Float32 [-1.0, 1.0]
-  const samples = new Float32Array(dataBuffer.length / 2);
-  for (let i = 0; i < samples.length; i++) {
-    const int16 = dataBuffer.readInt16LE(i * 2);
-    samples[i] = int16 / 32768.0;
+async function createTranscript(audioUrl: string): Promise<string> {
+  const res = await fetch(`${ASSEMBLYAI_BASE}/transcript`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ audio_url: audioUrl, speaker_labels: true }),
+  });
+  if (!res.ok) throw new Error(`AssemblyAI transcript create failed: ${res.status}`);
+  const json = await res.json();
+  return json.id;
+}
+
+async function pollTranscript(
+  id: string,
+  timeoutMs: number
+): Promise<TranscriptionResult | null> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const res = await fetch(`${ASSEMBLYAI_BASE}/transcript/${id}`, {
+      headers: headers(),
+    });
+    if (!res.ok) throw new Error(`AssemblyAI poll failed: ${res.status}`);
+    const json = await res.json();
+
+    if (json.status === 'completed') {
+      const segments: TranscriptionSegment[] = (json.words ?? []).map(
+        (w: { start: number; end: number; text: string }) => ({
+          start: w.start / 1000,
+          end: w.end / 1000,
+          text: w.text,
+        })
+      );
+      return { text: json.text ?? '', segments };
+    }
+
+    if (json.status === 'error') {
+      console.warn('[assemblyai-transcribe] Transcript error:', json.error);
+      return null;
+    }
+
+    // Wait 3 seconds before polling again
+    await new Promise((r) => setTimeout(r, 3000));
   }
 
-  return samples;
+  console.warn('[assemblyai-transcribe] Polling timed out');
+  return null;
 }
 
 /**
- * Transcribe audio using local Whisper model via @xenova/transformers.
+ * Transcribe audio using AssemblyAI REST API.
  * Returns transcript text and timestamped segments.
  *
- * @param audioPath Path to a 16kHz mono WAV file
- * @param timeoutMs Maximum time to wait for transcription (default 45s)
+ * @param audioPath Path to an audio file (WAV, MP3, etc.)
+ * @param timeoutMs Maximum time to wait for transcription (default 120s)
  */
 export async function transcribeAudio(
   audioPath: string,
-  timeoutMs: number = 45000
+  timeoutMs: number = 120000
 ): Promise<TranscriptionResult | null> {
   try {
-    const audioData = wavToFloat32(audioPath);
-
-    const transcriber = await Promise.race([
-      getWhisperPipeline(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Whisper model load timeout')), timeoutMs)
-      ),
-    ]);
-
-    const result = await Promise.race([
-      transcriber(audioData, {
-        return_timestamps: true,
-        chunk_length_s: 30,
-        stride_length_s: 5,
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Transcription timeout')), timeoutMs)
-      ),
-    ]);
-
-    const text: string = result.text?.trim() ?? '';
-    const segments: TranscriptionSegment[] = [];
-
-    if (result.chunks && Array.isArray(result.chunks)) {
-      for (const chunk of result.chunks) {
-        segments.push({
-          start: chunk.timestamp?.[0] ?? 0,
-          end: chunk.timestamp?.[1] ?? 0,
-          text: (chunk.text ?? '').trim(),
-        });
-      }
-    }
-
-    return { text, segments };
+    const uploadUrl = await uploadAudio(audioPath);
+    const transcriptId = await createTranscript(uploadUrl);
+    return await pollTranscript(transcriptId, timeoutMs);
   } catch (err) {
-    console.warn('[whisper-transcribe] Transcription failed:', err);
+    console.warn('[assemblyai-transcribe] Transcription failed:', err);
     return null;
   }
 }
