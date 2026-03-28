@@ -282,6 +282,33 @@ export default function RoastPage() {
           })}
         </div>
 
+        {/* Viral Potential — Coming Soon placeholder */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: roast.agents.length * 0.15 }}
+          className="mt-4 relative bg-zinc-900/40 border-2 border-dashed border-zinc-700/50 rounded-2xl p-6 opacity-60"
+        >
+          <div className="absolute -top-2 -right-2 z-10 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-amber-500/30">
+            COMING SOON
+          </div>
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🚀</span>
+              <div>
+                <h3 className="font-bold text-white">Viral Potential</h3>
+                <p className="text-xs text-zinc-500">Predicts your video&apos;s viral probability based on hook patterns, trending audio, and engagement signals</p>
+              </div>
+            </div>
+            <div className="w-14 h-14 rounded-full border-2 border-zinc-700 flex items-center justify-center">
+              <span className="text-zinc-600 text-sm font-bold">?</span>
+            </div>
+          </div>
+          <p className="text-sm text-zinc-500 italic">
+            &ldquo;This agent is still training on viral patterns... stay tuned.&rdquo;
+          </p>
+        </motion.div>
+
         {/* Watch Live Roast CTA — after agent cards */}
         <motion.div
           initial={{ opacity: 0 }}
