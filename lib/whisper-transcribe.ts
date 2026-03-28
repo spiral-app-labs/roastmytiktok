@@ -13,21 +13,21 @@ export interface TranscriptionResult {
 
 const ASSEMBLYAI_BASE = 'https://api.assemblyai.com/v2';
 
-function getApiKey(): string {
+function getApiKey(): string | null {
   const key = process.env.ASSEMBLYAI_API_KEY;
-  if (!key) throw new Error('ASSEMBLYAI_API_KEY is not set');
+  if (!key) return null;
   return key;
 }
 
 function headers(): Record<string, string> {
-  return { authorization: getApiKey(), 'content-type': 'application/json' };
+  return { authorization: getApiKey()!, 'content-type': 'application/json' };
 }
 
 async function uploadAudio(audioPath: string): Promise<string> {
   const data = readFileSync(audioPath);
   const res = await fetch(`${ASSEMBLYAI_BASE}/upload`, {
     method: 'POST',
-    headers: { authorization: getApiKey(), 'content-type': 'application/octet-stream' },
+    headers: { authorization: getApiKey()!, 'content-type': 'application/octet-stream' },
     body: data,
   });
   if (!res.ok) throw new Error(`AssemblyAI upload failed: ${res.status}`);
@@ -95,6 +95,10 @@ export async function transcribeAudio(
   timeoutMs: number = 120000
 ): Promise<TranscriptionResult | null> {
   try {
+    if (!getApiKey()) {
+      console.warn('[assemblyai-transcribe] ASSEMBLYAI_API_KEY not set, skipping transcription');
+      return null;
+    }
     const uploadUrl = await uploadAudio(audioPath);
     const transcriptId = await createTranscript(uploadUrl);
     return await pollTranscript(transcriptId, timeoutMs);
