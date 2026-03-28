@@ -35,6 +35,9 @@ export default function RootLayout({
             <Link href="/pricing" className="text-xs text-zinc-500 hover:text-orange-400 transition-colors">
               Pricing
             </Link>
+            <Link href="/monitoring" className="text-xs text-zinc-500 hover:text-orange-400 transition-colors">
+              📡 Monitoring
+            </Link>
             <Link href="/history" className="text-xs text-zinc-500 hover:text-orange-400 transition-colors">
               📋 History
             </Link>

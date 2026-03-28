@@ -7,6 +7,7 @@ import { RoastResult, DimensionKey } from '@/lib/types';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
+import { addMonitor, getMonitors } from '@/lib/monitoring';
 import { AGENTS } from '@/lib/agents';
 import { useIsPaid } from '@/lib/subscription';
 import Link from 'next/link';
@@ -29,6 +30,7 @@ export default function RoastPage() {
   const [roast, setRoast] = useState<RoastResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [monitored, setMonitored] = useState(false);
 
   useEffect(() => {
     async function loadRoast() {
@@ -325,6 +327,41 @@ export default function RoastPage() {
             <span className="text-lg">&#9654;</span>
             Watch Live Roast
           </Link>
+        </motion.div>
+
+        {/* Monitor This Video */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.3 }}
+          className="text-center mt-6"
+        >
+          <button
+            onClick={() => {
+              const filename = searchParams.get('filename') ?? roast.tiktokUrl ?? `Video ${id.slice(0, 6)}`;
+              const existing = getMonitors().find(m => m.filename === filename);
+              if (!existing) {
+                addMonitor(filename, roast.overallScore);
+              }
+              setMonitored(true);
+            }}
+            disabled={monitored}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              monitored
+                ? 'bg-zinc-800 text-zinc-500 cursor-default'
+                : 'bg-zinc-900 border border-zinc-700 text-white hover:border-orange-500/50 hover:text-orange-400'
+            }`}
+          >
+            <span>{monitored ? '✓' : '📡'}</span>
+            {monitored ? 'Monitoring' : 'Monitor This Video'}
+          </button>
+          {monitored && (
+            <p className="text-xs text-zinc-500 mt-1.5">
+              <Link href="/monitoring" className="text-orange-400 hover:text-orange-300 transition-colors">
+                View monitoring dashboard →
+              </Link>
+            </p>
+          )}
         </motion.div>
 
         {/* Bottom CTA */}
