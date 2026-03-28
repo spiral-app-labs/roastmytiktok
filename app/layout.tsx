@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import GlobalNav from "@/components/GlobalNav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,12 +29,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-[#0a0a0a] text-white">
-        <nav className="flex items-center justify-between px-6 py-3 border-b border-zinc-900">
-          <Link href="/" className="text-sm font-bold fire-text">Roast My TikTok</Link>
-          <Link href="/history" className="text-xs text-zinc-500 hover:text-orange-400 transition-colors">
-            📋 History
-          </Link>
-        </nav>
+        <GlobalNav />
         {children}
       </body>
     </html>
