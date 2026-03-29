@@ -306,7 +306,7 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
         <div className="flex items-center gap-3">
-          <span className="text-xl">🎵</span>
+          <span className="text-xl">🔥</span>
           <div>
             <span className="font-bold bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
               Dashboard
@@ -481,6 +481,24 @@ export default function DashboardPage() {
             </motion.div>
           </div>
         </div>
+
+        {/* ─── Account Analysis CTA ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <Link href="/analyze-account" className="block group">
+            <GlassCard variant="interactive" className="p-6 flex items-center gap-5">
+              <span className="text-3xl shrink-0">📊</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-white group-hover:text-orange-400 transition-colors">Analyze Your Full TikTok Account</h3>
+                <p className="text-sm text-zinc-500 mt-0.5">Connect your TikTok handle and get AI analysis across all your videos — spot patterns, find your weakest areas, and get custom content ideas.</p>
+              </div>
+              <span className="text-zinc-600 group-hover:text-orange-400 transition-colors text-xl shrink-0">→</span>
+            </GlassCard>
+          </Link>
+        </motion.div>
 
         {/* ─── Recent Roast History ─── */}
         {recentRoasts.length > 0 && (

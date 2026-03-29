@@ -123,101 +123,103 @@ export default function RoastPage() {
         <div className="absolute top-1/3 left-0 w-[400px] h-[400px] bg-orange-500/3 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 pt-12">
-        {/* Header */}
+      <div className="relative z-10 max-w-5xl mx-auto px-4 pt-8">
+        {/* Back link */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-6"
         >
           <Link
             href="/"
-            className="text-sm text-zinc-500 hover:text-orange-400 transition-colors mb-6 inline-block"
+            className="text-sm text-zinc-500 hover:text-orange-400 transition-colors inline-block"
           >
             &larr; Roast another
           </Link>
+        </motion.div>
 
-          {/* Overall Score — dramatic reveal */}
+        {/* Score Hero */}
+        <div className="text-center mb-14">
+          {/* Ring with letter grade inside */}
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.2 }}
-            className="flex flex-col items-center mt-4"
+            transition={{ type: 'spring', stiffness: 120, damping: 16, delay: 0.15 }}
+            className="relative inline-block mb-5"
           >
-            <div className="flex items-center gap-8">
-              <ScoreRing score={roast.overallScore} size={110} />
-              <div className="flex flex-col items-start">
-                <motion.span
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-7xl font-black fire-text leading-none"
-                >
-                  {getLetterGrade(roast.overallScore)}
-                </motion.span>
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-zinc-400 text-xl font-semibold mt-1"
-                >
-                  {roast.overallScore}<span className="text-zinc-600 text-sm">/100</span>
-                </motion.span>
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  className={`text-xs font-semibold mt-2 px-2.5 py-1 rounded-full ${
-                    roast.overallScore >= 80 ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                    roast.overallScore >= 60 ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-                    roast.overallScore >= 40 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
-                    'bg-red-500/10 text-red-400 border border-red-500/20'
-                  }`}
-                >
-                  {roast.overallScore >= 80 ? `🔥 Actually decent` :
-                   roast.overallScore >= 60 ? `⚡ Work to do` :
-                   roast.overallScore >= 40 ? `💀 Needs help` :
-                   `🚨 We need to talk`}
-                </motion.span>
-              </div>
-            </div>
+            <ScoreRing score={roast.overallScore} size={180} showGrade={getLetterGrade(roast.overallScore)} />
           </motion.div>
 
-          {/* TL;DR Verdict */}
+          {/* Score number */}
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.4 }}
+            className={`text-3xl sm:text-4xl font-bold mb-2 ${
+              roast.overallScore >= 80 ? 'text-green-400' :
+              roast.overallScore >= 60 ? 'text-yellow-400' :
+              roast.overallScore >= 40 ? 'text-orange-400' :
+              'text-red-400'
+            }`}
+          >
+            {roast.overallScore} <span className="text-zinc-600 text-lg font-medium">/ 100</span>
+          </motion.p>
+
+          {/* Status label */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-8 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-6 max-w-2xl mx-auto"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.8, duration: 0.3 }}
+            className="mb-8"
           >
-            <p className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-3">
-              TL;DR
-            </p>
-            <p className="text-sm text-zinc-300 leading-relaxed">
-              {roast.verdict}
-            </p>
+            <span className={`inline-block text-sm font-bold px-5 py-2 rounded-full ${
+              roast.overallScore >= 80 ? 'bg-green-500/15 text-green-400 border border-green-500/25' :
+              roast.overallScore >= 60 ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/25' :
+              roast.overallScore >= 40 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/25' :
+              'bg-red-500/15 text-red-400 border border-red-500/25'
+            }`}>
+              {roast.overallScore >= 80 ? 'Actually decent' :
+               roast.overallScore >= 60 ? 'Room for improvement' :
+               roast.overallScore >= 40 ? 'Needs serious work' :
+               'We need to talk'}
+            </span>
           </motion.div>
 
-          {/* Metadata (only show if we have real data) */}
+          {/* Verdict */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 0.5 }}
+            className="max-w-2xl mx-auto bg-zinc-900/60 border border-zinc-800/50 rounded-2xl px-6 py-5"
+          >
+            <p className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-2">TL;DR</p>
+            <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">{roast.verdict}</p>
+          </motion.div>
+
+          {/* Metadata */}
           {hasMetadata && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-              className="flex flex-wrap justify-center gap-4 mt-6 text-xs text-zinc-500"
+              transition={{ delay: 1.2 }}
+              className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-5 text-xs text-zinc-600"
             >
               <span>{roast.metadata.views.toLocaleString()} views</span>
-              <span className="text-zinc-700">|</span>
+              <span>&#183;</span>
               <span>{roast.metadata.likes} likes</span>
-              <span className="text-zinc-700">|</span>
+              <span>&#183;</span>
               <span>{roast.metadata.comments} comments</span>
-              <span className="text-zinc-700">|</span>
-              <span>{roast.metadata.duration}s duration</span>
-              <span className="text-zinc-700">|</span>
-              <span>{roast.metadata.hashtags.join(' ')}</span>
+              <span>&#183;</span>
+              <span>{roast.metadata.duration}s</span>
+              {roast.metadata.hashtags.length > 0 && (
+                <>
+                  <span>&#183;</span>
+                  <span>{roast.metadata.hashtags.join(' ')}</span>
+                </>
+              )}
             </motion.div>
           )}
-        </motion.div>
+        </div>
 
         {/* Fixed issues celebration */}
         {fixedIssues.length > 0 && (
@@ -339,22 +341,6 @@ export default function RoastPage() {
           <p className="text-sm text-zinc-500 italic">
             &ldquo;This agent is still training on viral patterns... stay tuned.&rdquo;
           </p>
-        </motion.div>
-
-        {/* Watch Live Roast CTA — after agent cards */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="text-center mt-10"
-        >
-          <Link
-            href={`/roast/${id}/live`}
-            className="inline-flex items-center gap-2 fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity"
-          >
-            <span className="text-lg">&#9654;</span>
-            Watch Live Roast
-          </Link>
         </motion.div>
 
         {/* Bottom CTA */}

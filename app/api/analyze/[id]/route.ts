@@ -275,44 +275,20 @@ ROAST RULES:
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
-  security: {
-    name: 'Security Agent',
-    prompt: `You are Security Agent — you ONLY judge what personal information this creator is accidentally (or carelessly) revealing to the internet. You're the privacy watchdog.
-
-YOUR SCOPE (stay in this lane):
-- Location exposure: Is their location visible in the background? Street signs, landmarks, store names, license plates, school logos?
-- Personal info on screen: Full name visible? Phone number? Email? Screen recordings showing notifications or personal data?
-- Background reveals: What's visible in their room/space? Mail with addresses? Calendars with schedules? Computer screens with private info?
-- Metadata concerns: Are there clues about their routine, workplace, or daily schedule that a bad actor could piece together?
-- Account security signals: Is their TikTok username their real name? Do they reference other social accounts that link to personal info?
-
-NOT YOUR JOB (do NOT comment on these):
-- Video quality or lighting (that's Visual Agent)
-- Audio quality (that's Audio Agent)
-- On-screen text readability (that's Caption Agent)
-- Whether the hook works (that's Hook Agent)
-- Whether they seem genuine (that's Authenticity Agent)
-
-COMMON TIKTOK PRIVACY FAILS to watch for:
-1. The Background Doxx — filming in front of a window that shows your street, or with mail/packages visible that show your address. Stalkers have literally found creators' homes from background clues in videos.
-2. The Screen Recording Leak — recording your screen to show something and accidentally capturing notifications, emails, or personal messages. Always check what else is on screen.
-3. The Routine Reveal — "I go to [specific gym] every morning at 6am" or filming at the same recognizable location repeatedly. You're publishing your schedule to millions of strangers.
-
-This is TikTok — vertical (9:16) is standard. NEVER penalize portrait mode or vertical orientation.
-
-ROAST RULES:
-- Be genuinely funny and savage. Not mean for no reason — funny because you're RIGHT.
-- Every sentence must point out a specific problem or strength you actually see.
-- Write like you're texting a friend. A high school freshman should understand every word.
-- No cybersecurity jargon. Don't say "OPSEC" — say "you basically gave out your home address."
-- If the video is clean and reveals nothing, give credit! Not everyone fails at this.
-- Frame security issues as genuinely important — this is the one dimension where being helpful matters more than being funny.
-
-Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
-  },
 };
 
-const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility', 'security'];
+const TONE_RULES = `
+
+TONE — THIS IS MANDATORY:
+- Write at a 9th grade reading level. Short sentences. Simple words. No SAT vocab.
+- DO NOT use abstract metaphors, poetic language, or Shakespearean phrasing. Say what you mean directly.
+- Limit yourself to ONE analogy per roast max. Make it a funny, concrete analogy a teenager would get (not literary or abstract).
+- Bad: "Your visual tapestry weaves a narrative of neglected potential." Good: "You filmed this in what looks like a storage closet with zero lighting."
+- Bad: "The auditory landscape betrays a fundamental misunderstanding of sonic balance." Good: "I literally cannot hear you over the music."
+- Every sentence should be something you'd actually say out loud to a friend. If it sounds like an essay, rewrite it.
+- Be funny through honesty and specificity, not through fancy word choices.`;
+
+const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility'];
 const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
   hook: 0.5,
   visual: 1.5,
@@ -322,19 +298,17 @@ const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
   authenticity: 12.0,
   conversion: 15.0,
   accessibility: 18.0,
-  security: 21.0,
 };
 
 const DIMENSION_WEIGHTS: Record<DimensionKey, number> = {
-  hook: 0.20,
-  visual: 0.15,
-  caption: 0.08,
-  audio: 0.12,
-  algorithm: 0.12,
+  hook: 0.21,
+  visual: 0.16,
+  caption: 0.09,
+  audio: 0.13,
+  algorithm: 0.13,
   authenticity: 0.10,
   conversion: 0.10,
-  accessibility: 0.07,
-  security: 0.06,
+  accessibility: 0.08,
 };
 
 function parseAgentResponse(text: string): { score: number; roastText: string; findings: string[]; improvementTip: string } {
@@ -636,7 +610,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
               audioContext = `\n\nThe caption/speech mentions: "${words}". Does this align with trending topics?`;
             }
 
-            const fullPrompt = prompt + hookContext + audioContext + trendingContext + escalationContext;
+            const fullPrompt = prompt + TONE_RULES + hookContext + audioContext + trendingContext + escalationContext;
 
             const response = await anthropic.messages.create({
               model: 'claude-sonnet-4-6',
@@ -699,12 +673,12 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
             max_tokens: 300,
             messages: [{
               role: 'user',
-              content: `You are a brutal TikTok roast machine. Given these agent scores and roasts for a video, write a 2-3 sentence savage overall verdict. Be funny and specific.
+              content: `You are a brutal TikTok roast machine. Given these agent scores and roasts for a video, write a 2-3 sentence savage overall verdict. Be funny and specific. Write like you're texting a friend — short sentences, simple words, no fancy vocabulary. A high schooler should laugh at this, not need a dictionary. Max ONE analogy and make it concrete and relatable.
 
 Scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d]?.score])))}
 Agent summaries: ${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${repeatContext}
 
-Write ONLY the verdict text, no JSON, no quotes.`,
+Write ONLY the verdict text, no JSON, no quotes. Keep it simple and punchy.`,
             }],
           });
           verdict = verdictResponse.content[0].type === 'text'

@@ -197,11 +197,6 @@ export function getEscalatingRoast(
       3: `Three roasts flagging the same accessibility gaps. Half the internet scrolls with sound off. You're invisible to them.`,
       4: `Four videos that exclude the same audiences. This isn't hard to fix. It's hard to keep ignoring.`,
     },
-    security: {
-      2: `${baseRoast} We flagged privacy concerns last time too. Your digital footprint is getting bigger, not smaller.`,
-      3: `Three roasts. Three times we've spotted personal info leaking. The internet never forgets, and neither do we.`,
-      4: `Four videos casually leaking personal details. At this point you're a privacy incident waiting to happen.`,
-    },
   };
 
   const clampedLevel = Math.min(occurrences, 4);

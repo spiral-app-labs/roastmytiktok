@@ -64,7 +64,7 @@ function LoginForm() {
           className="flex flex-col items-center mb-8"
         >
           <Link href="/" className="flex items-center gap-2 mb-3">
-            <span className="text-3xl">🎵</span>
+            <span className="text-3xl">🔥</span>
             <span className="text-2xl font-black bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 bg-clip-text text-transparent">
               RoastMyTikTok
             </span>
@@ -176,6 +176,17 @@ function LoginForm() {
                   )}
                 </button>
               </form>
+
+              <p className="text-[11px] text-zinc-600 text-center mt-5 leading-relaxed">
+                By signing in, you agree to our{' '}
+                <Link href="/terms" className="text-zinc-400 hover:text-orange-400 underline underline-offset-2 transition-colors">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" className="text-zinc-400 hover:text-orange-400 underline underline-offset-2 transition-colors">
+                  Privacy Policy
+                </Link>.
+              </p>
             </>
           )}
         </motion.div>

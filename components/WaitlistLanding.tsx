@@ -270,8 +270,8 @@ export default function WaitlistLanding() {
               },
               {
                 step: '03',
-                title: 'Watch the roast live',
-                desc: 'Your video plays while agents drop comments in real time. Then a final verdict. No participation trophies.',
+                title: 'Get your verdict',
+                desc: 'Every agent drops a score, a roast, and a tip. Then a final verdict. No participation trophies.',
               },
             ].map((item) => (
               <div
