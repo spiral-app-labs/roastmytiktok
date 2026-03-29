@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadUI from '@/components/UploadUI';
+import { AccountCTA } from '@/components/AccountCTA';
 import { GlassCard, GradientButton } from '@/components/ui';
 
 // Floating particle for background
@@ -319,5 +320,12 @@ export default function Home() {
     );
   }
 
-  return <UploadUI />;
+  return (
+    <div className="flex flex-col items-stretch">
+      <div className="max-w-3xl mx-auto w-full px-4 pt-6">
+        <AccountCTA />
+      </div>
+      <UploadUI />
+    </div>
+  );
 }
