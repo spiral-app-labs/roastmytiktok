@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
@@ -9,6 +9,7 @@ import { ScoreRing } from '@/components/ScoreRing';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
 import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
+import { ScriptGenerator } from '@/components/ScriptGenerator';
 
 function getLetterGrade(score: number): string {
   if (score >= 90) return 'A+';
@@ -27,6 +28,33 @@ export default function RoastPage() {
   const [roast, setRoast] = useState<RoastResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = useCallback(async () => {
+    const url = `${window.location.origin}/roast/${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+      const el = document.createElement('input');
+      el.value = url;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [id]);
+
+  const handleShareOnX = useCallback((score: number) => {
+    const url = `${window.location.origin}/roast/${id}`;
+    const text = `My TikTok just got roasted by 6 AI agents and scored ${score}/100 🔥`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(twitterUrl, '_blank', 'noopener,noreferrer');
+  }, [id]);
 
   useEffect(() => {
     async function loadRoast() {
@@ -196,7 +224,43 @@ export default function RoastPage() {
             <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">{roast.verdict}</p>
           </motion.div>
 
-          {/* Metadata */}
+          {/* Share buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65 }}
+            className="flex items-center justify-center gap-3 mt-6"
+          >
+            <button
+              onClick={handleCopyLink}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-sm font-semibold hover:border-orange-500/50 hover:text-orange-400 transition-all"
+            >
+              {copied ? (
+                <>
+                  <span>✓</span>
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                  <span>Copy Link</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => handleShareOnX(roast.overallScore)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-zinc-700 text-white text-sm font-semibold hover:border-white/30 hover:bg-zinc-900 transition-all"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.741l7.733-8.835L1.254 2.25H8.08l4.258 5.63L18.245 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              <span>Share on X</span>
+            </button>
+          </motion.div>
+
+          {/* Metadata (only show if we have real data) */}
           {hasMetadata && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -316,6 +380,9 @@ export default function RoastPage() {
           })}
         </div>
 
+        {/* Script Generator */}
+        <ScriptGenerator roast={roast} />
+
         {/* Viral Potential — Coming Soon placeholder */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -348,21 +415,24 @@ export default function RoastPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.3 }}
-          className="text-center mt-8 space-y-3"
+          className="mt-10 rounded-2xl bg-gradient-to-br from-orange-500/10 via-pink-500/5 to-transparent border border-orange-500/20 p-8 text-center space-y-4"
         >
+          <p className="text-zinc-400 text-sm">Think you can do better?</p>
           <Link
             href="/"
-            className="inline-block fire-gradient text-white font-semibold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 fire-gradient text-white font-bold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity text-lg"
           >
-            Roast Another TikTok
+            <span>🔥</span>
+            Roast YOUR TikTok →
           </Link>
+          <p className="text-zinc-600 text-xs">6 AI agents. Brutally honest. Free.</p>
           {history.length > 0 && (
-            <div>
+            <div className="pt-1">
               <Link
                 href="/history"
-                className="text-sm text-zinc-500 hover:text-orange-400 transition-colors"
+                className="text-xs text-zinc-600 hover:text-orange-400 transition-colors"
               >
-                View roast history ({history.length})
+                View your roast history ({history.length})
               </Link>
             </div>
           )}
