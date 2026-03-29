@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-const APP_ROUTE_PREFIXES = ['/dashboard', '/history', '/analyze', '/roast', '/analyze-account', '/account'];
+const APP_ROUTE_PREFIXES = ['/dashboard', '/history', '/analyze', '/roast', '/analyze-account', '/account', '/settings'];
 const MARKETING_ROOT_PATHS = ['/', '/login', '/bypass'];
 
 function isAppRoute(pathname: string) {
@@ -68,7 +68,7 @@ export default function AppNav() {
     { href: '/feed', label: '🔥 Feed' },
     { href: '/analyze-account', label: 'Account Analysis' },
     { href: '/history', label: 'History' },
-    { href: '/pricing', label: 'Settings' },
+    { href: '/settings', label: '⚙️ Settings' },
   ];
 
   const marketingLinks = [
