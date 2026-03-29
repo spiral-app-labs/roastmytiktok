@@ -9,6 +9,7 @@ import { ScoreRing } from '@/components/ScoreRing';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
 import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
+import { ScriptGenerator } from '@/components/ScriptGenerator';
 
 function getLetterGrade(score: number): string {
   if (score >= 90) return 'A+';
@@ -376,6 +377,9 @@ export default function RoastPage() {
             );
           })}
         </div>
+
+        {/* Script Generator */}
+        <ScriptGenerator roast={roast} />
 
         {/* Viral Potential — Coming Soon placeholder */}
         <motion.div
