@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import UploadUI from '@/components/UploadUI';
+import UploadQueueUI from '@/components/UploadQueueUI';
 import { AccountCTA } from '@/components/AccountCTA';
 import { GlassCard, GradientButton } from '@/components/ui';
 
@@ -325,7 +325,7 @@ export default function Home() {
       <div className="max-w-3xl mx-auto w-full px-4 pt-6">
         <AccountCTA />
       </div>
-      <UploadUI />
+      <UploadQueueUI />
     </div>
   );
 }
