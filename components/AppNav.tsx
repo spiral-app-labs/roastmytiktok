@@ -64,8 +64,6 @@ export default function AppNav() {
 
   const appLinks = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/leaderboard', label: '🏆 Leaderboard' },
-    { href: '/feed', label: '🔥 Feed' },
     { href: '/analyze-account', label: 'Account Analysis' },
     { href: '/history', label: 'History' },
     { href: '/settings', label: '⚙️ Settings' },
@@ -74,8 +72,6 @@ export default function AppNav() {
   const marketingLinks = [
     { href: '/#how-it-works', label: 'How it works' },
     { href: '/#agents', label: 'Agents' },
-    { href: '/leaderboard', label: '🏆 Leaderboard' },
-    { href: '/feed', label: '🔥 Feed' },
     { href: '/pricing', label: 'Pricing' },
   ];
 
