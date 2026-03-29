@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AppNav from "@/components/AppNav";
+import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
