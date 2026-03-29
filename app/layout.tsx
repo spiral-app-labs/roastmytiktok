@@ -44,6 +44,17 @@ export default function RootLayout({
           </div>
         </nav>
         {children}
+        <footer className="mt-auto border-t border-zinc-900 px-6 py-4 flex items-center justify-between text-xs text-zinc-500">
+          <span>© {new Date().getFullYear()} Spiral App Labs</span>
+          <div className="flex items-center gap-4">
+            <Link href="/terms" className="hover:text-orange-400 transition-colors">
+              Terms of Service
+            </Link>
+            <Link href="/privacy" className="hover:text-orange-400 transition-colors">
+              Privacy Policy
+            </Link>
+          </div>
+        </footer>
       </body>
     </html>
   );
