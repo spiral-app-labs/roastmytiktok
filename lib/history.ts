@@ -50,6 +50,17 @@ export function getSessionId(): string {
   return id;
 }
 
+/** Retrieve a stored roast result from sessionStorage */
+export function getStoredRoast(id: string): RoastResult | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(`roast_${id}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Load roast history from localStorage (sync fallback) */
 export function getHistory(): HistoryEntry[] {
   if (typeof window === 'undefined') return [];
