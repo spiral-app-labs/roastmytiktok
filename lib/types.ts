@@ -27,6 +27,8 @@ export interface ActionPlanStep {
   whyItMatters: string;
 }
 
+import type { FormatDiagnosis } from './content-formats';
+
 export interface RoastResult {
   id: string;
   tiktokUrl: string;
@@ -52,6 +54,7 @@ export interface RoastResult {
     distributionRisk: string;
     focusNote: string;
   };
+  formatDiagnosis?: FormatDiagnosis;
   agents: AgentRoast[];
   niche?: {
     detected: string;

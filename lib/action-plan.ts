@@ -1,4 +1,5 @@
 import type { CaptionQualityReport } from '@/lib/caption-quality';
+import type { FormatDiagnosis } from '@/lib/content-formats';
 import type { ActionPlanStep, DimensionKey } from '@/lib/types';
 
 type AgentResult = {
@@ -14,6 +15,7 @@ export interface StrategicSummary {
   biggestBlocker: string;
   actionPlan: ActionPlanStep[];
   encouragement: string;
+  formatDiagnosis?: FormatDiagnosis;
 }
 
 export function buildEvidenceLedger(params: {
@@ -111,10 +113,37 @@ export function parseStrategicSummary(
       biggestBlocker: cleanLine(parsed.biggestBlocker) || normalizedPlan[0]?.issue || 'The video still has one obvious bottleneck holding it back.',
       actionPlan: normalizedPlan.filter((step) => step.evidence.length > 0),
       encouragement: cleanLine(parsed.encouragement) || '',
+      formatDiagnosis: normalizeFormatDiagnosis(parsed.formatDiagnosis),
     };
   } catch {
     return null;
   }
+}
+
+function normalizeFormatDiagnosis(value: unknown): FormatDiagnosis | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = value as Partial<FormatDiagnosis>;
+  const primaryFormatId = cleanLine(raw.primaryFormatId);
+  const primaryFormatName = cleanLine(raw.primaryFormatName);
+  if (!primaryFormatId || !primaryFormatName) return undefined;
+
+  const mustHaves = Array.isArray(raw.mustHaves) ? raw.mustHaves.map((item) => cleanLine(item)).filter(Boolean).slice(0, 3) : [];
+  const upgrades = Array.isArray(raw.upgrades) ? raw.upgrades.map((item) => cleanLine(item)).filter(Boolean).slice(0, 3) : [];
+  const confidence = raw.confidence === 'high' || raw.confidence === 'medium' || raw.confidence === 'low' ? raw.confidence : 'medium';
+  const rank = typeof raw.rank === 'number' ? Math.max(1, Math.min(20, Math.round(raw.rank))) : 20;
+
+  return {
+    primaryFormatId,
+    primaryFormatName,
+    rank,
+    confidence,
+    whyThisFormat: cleanLine(raw.whyThisFormat) || 'This format fit is implied by the structure more than the niche.',
+    distributionFit: cleanLine(raw.distributionFit) || 'The packaging needs to match what this format is supposed to deliver faster.',
+    mustHaves,
+    upgrades,
+    ...(cleanLine(raw.runnerUpFormatId) ? { runnerUpFormatId: cleanLine(raw.runnerUpFormatId) } : {}),
+    ...(cleanLine(raw.runnerUpFormatName) ? { runnerUpFormatName: cleanLine(raw.runnerUpFormatName) } : {}),
+  };
 }
 
 function clampScore(value: unknown): number {

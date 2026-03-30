@@ -15,6 +15,8 @@ import { buildAgentNicheContext, NICHE_CONTEXT } from '@/lib/niche-context';
 import { getVideoDuration, analyzeDuration, DurationAnalysis } from '@/lib/video-duration';
 import { buildEvidenceLedger, buildFallbackActionPlan, parseStrategicSummary } from '@/lib/action-plan';
 import { sanitizeActionPlan, sanitizeAgentResult, sanitizeUserFacingText } from '@/lib/analysis-safety';
+import { buildContentFormatPromptSection, CONTENT_FORMATS } from '@/lib/content-formats';
+import type { FormatDiagnosis } from '@/lib/content-formats';
 import type { ActionPlanStep } from '@/lib/types';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
@@ -581,6 +583,8 @@ Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText"
   },
 };
 
+const CONTENT_FORMAT_PLAYBOOK = buildContentFormatPromptSection();
+
 const TONE_RULES = `
 
 TONE — THIS IS MANDATORY:
@@ -709,6 +713,50 @@ function buildHookSummary(hookResult: { score: number; roastText: string; findin
     headline: `${headline} ${firstFinding}`.trim(),
     distributionRisk,
     focusNote,
+  };
+}
+
+function inferFallbackFormatDiagnosis(agentResults: Partial<Record<DimensionKey, { roastText: string; findings: string[] }>>): FormatDiagnosis | undefined {
+  const haystack = Object.values(agentResults)
+    .flatMap((result) => [result?.roastText ?? '', ...(result?.findings ?? [])])
+    .join(' ')
+    .toLowerCase();
+
+  const aliases: Record<string, string[]> = {
+    'educational-tutorial': ['educational tutorial', 'tutorial', 'educational', 'how-to', 'how to'],
+    storytelling: ['storytelling', 'story time', 'storytime'],
+    'pov-skit': ['pov', 'skit'],
+    'duet-stitch': ['duet', 'stitch'],
+    'before-after': ['before/after', 'before after'],
+    'trend-participation': ['trend participation', 'trend'],
+    'talking-head': ['talking head'],
+    'day-in-the-life': ['day-in-the-life', 'day in the life'],
+    'green-screen-commentary': ['green screen'],
+    'reaction-video': ['reaction'],
+    listicle: ['listicle', 'countdown'],
+    'myth-vs-fact': ['myth vs fact', 'myth'],
+    'case-study-breakdown': ['case study'],
+    'screen-record-breakdown': ['screen recording', 'screen-record'],
+    'product-demo': ['product demo', 'demo'],
+    'transformation-journey': ['transformation journey', 'transformation'],
+    'challenge-experiment': ['challenge', 'experiment'],
+    'interview-street': ['interview', 'street'],
+    'vlog-montage': ['vlog montage', 'vlog', 'montage'],
+    'unstructured-rant': ['rant'],
+  };
+
+  const matched = CONTENT_FORMATS.find((format) => aliases[format.id]?.some((alias) => haystack.includes(alias)));
+  if (!matched) return undefined;
+
+  return {
+    primaryFormatId: matched.id,
+    primaryFormatName: matched.name,
+    rank: matched.rank,
+    confidence: 'low',
+    whyThisFormat: `multiple agent notes suggest this is being packaged as a ${matched.name.toLowerCase()}.`,
+    distributionFit: `right now it still is not fully delivering the core promise of a ${matched.name.toLowerCase()}.`,
+    mustHaves: matched.mustHaves.slice(0, 3),
+    upgrades: matched.upgradeIdeas.slice(0, 3),
   };
 }
 
@@ -1111,6 +1159,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         let actionPlan: ActionPlanStep[] = [];
         let biggestBlocker: string = '';
         let encouragement: string = '';
+        let formatDiagnosis: FormatDiagnosis | undefined;
         try {
           const repeatContext = chronicIssues.length > 0
             ? `\n\nThis is a REPEAT OFFENDER. They've been roasted ${chronicIssues.length > 3 ? 'many' : 'a few'} times before and keep making the same mistakes. Reference this in the verdict. Be extra disappointed.`
@@ -1159,11 +1208,26 @@ ${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${r
 
 ${evidenceLedger}
 
+VIRAL CONTENT FORMAT PLAYBOOK (pick the closest fit, not a vague umbrella):
+${CONTENT_FORMAT_PLAYBOOK}
+
 Return ONLY valid JSON (no markdown):
 {
   "verdict": "2-3 sentence overall verdict. Lead with the #1 thing holding this video back and why it hurts performance. Mention one thing that is actually working. Compare to top ${nicheDetection.niche} creators.",
   "viralPotential": <number 0-100>,
   "biggestBlocker": "One sentence naming the single biggest bottleneck.",
+  "formatDiagnosis": {
+    "primaryFormatId": "one id from the playbook above",
+    "primaryFormatName": "matching playbook name",
+    "rank": <number 1-20 from the playbook>,
+    "confidence": "high|medium|low",
+    "whyThisFormat": "1 sentence on why this video fits that format based on its actual structure",
+    "distributionFit": "1 sentence on how well this packaging fits the format's viral mechanics",
+    "mustHaves": ["2-3 format must-haves this video needs to nail"],
+    "upgrades": ["2-3 practical upgrades tailored to this video's format"],
+    "runnerUpFormatId": "optional second-best fit id",
+    "runnerUpFormatName": "optional second-best fit name"
+  },
   "actionPlan": [
     {
       "priority": "P1",
@@ -1182,6 +1246,8 @@ Rules:
 - The verdict, biggestBlocker, and P1 actionPlan item must describe the same core problem.\n- If analysis mode is hook-first, that core problem MUST be the weak opening and you must explicitly deprioritize late-video CTA/caption polishing until the hook is fixed.\n- Do not introduce multiple headline problems. Pick one bottleneck and make the plan fix that first.
 - Give exactly 3 actionPlan items ranked P1 to P3.
 - P1 must be the highest-leverage fix, not just the lowest score.\n- When the hook is weak, say why TikTok likely kills distribution early before the rest of the video can help.\n- Every actionPlan item must cite 1-3 concrete evidence bullets from the ledger. No generic evidence.
+- For formatDiagnosis, you MUST choose a primaryFormatId/name/rank from the playbook exactly as written. Do not invent a new format.
+- Keep mustHaves and upgrades concise, practical, and specific to this video's actual format.
 - Only cite evidence that is explicitly present in the ledger: quotes, timestamps, caption metrics, or agent findings from this video.
 - Every doThis must be specific enough to execute today.\n- If the hook is weak, include a concrete opening rewrite, shot idea, or text-overlay replacement in either P1 doThis or example.\n- Use exact replacement wording when possible.
 - If the transcript gives you a quote, use it.
@@ -1199,12 +1265,15 @@ Rules:
             actionPlan = safePlan.length > 0 ? safePlan : sanitizeActionPlan(fallbackActionPlan);
             nextSteps = actionPlan.map((step) => `${step.priority}: ${step.doThis}`);
             encouragement = sanitizeUserFacingText(parsed.encouragement, 'There is something here, but the first fix needs to land harder.');
+            formatDiagnosis = parsed.formatDiagnosis;
           } else {
             verdict = sanitizeUserFacingText(verdictText, 'Your video exists. That is the nicest thing we can say about it.');
           }
         } catch {
           verdict = 'Your video exists. That is the nicest thing we can say about it.';
         }
+
+        formatDiagnosis = formatDiagnosis ?? inferFallbackFormatDiagnosis(agentResults);
 
         // Build full result
         const result = {
@@ -1219,6 +1288,7 @@ Rules:
           encouragement,
           analysisMode,
           hookSummary,
+          ...(formatDiagnosis ? { formatDiagnosis } : {}),
           agents: DIMENSION_ORDER.map(dim => ({
             agent: dim,
             score: agentResults[dim].score,
@@ -1256,6 +1326,7 @@ Rules:
           encouragement,
           analysisMode,
           hookSummary,
+          ...(formatDiagnosis ? { formatDiagnosis } : {}),
           niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
           ...(durationAnalysis ? {
             duration: {
