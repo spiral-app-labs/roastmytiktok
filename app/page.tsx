@@ -51,10 +51,10 @@ const TESTIMONIALS = [
 ];
 
 const FEATURES = [
-  { icon: '🤖', title: '9 AI Agents', desc: 'Each specialized to destroy a different part of your content' },
-  { icon: '📊', title: 'Scored Out of 100', desc: 'No vague feedback. Hard numbers. Real data.' },
-  { icon: '🔥', title: 'Actionable Fixes', desc: 'Specific improvements you can make tonight' },
-  { icon: '⚡', title: 'Results in 60s', desc: 'Upload, wait, cry, improve. That fast.' },
+  { icon: '🎣', title: 'Hook Rewrite Workshop', desc: 'See why your first beat leaks and get stronger opener options you can actually say.' },
+  { icon: '🎬', title: 'Reshoot Plan', desc: 'Concrete shot, text, and delivery guidance you can film right away.' },
+  { icon: '🧠', title: 'Honest Hold Read', desc: 'Weak, mixed, or strong. No fake watch-time prophecy dressed up as science.' },
+  { icon: '⚡', title: 'Fast Feedback', desc: 'Upload once, leave with a smarter first 3 seconds.' },
 ];
 
 const HOOK_EXAMPLES = [
@@ -195,15 +195,15 @@ export default function Home() {
               {/* Headline */}
               <div className="space-y-3">
                 <h1 className="text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight">
-                  Your TikTok{' '}
+                  stuck at{' '}
                   <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
-                    deserves
+                    200 views
                   </span>
                   <br />
-                  brutal honesty.
+                  on tiktok?
                 </h1>
                 <p className="text-zinc-400 text-lg leading-relaxed max-w-md">
-                  9 specialized AI agents tear apart your content and hand you a blueprint to go viral.
+                  roastmytiktok shows why your opening dies, rewrites the hook, and gives you a reshoot plan you can film today.
                 </p>
               </div>
 
@@ -300,7 +300,7 @@ export default function Home() {
                     <div className="text-4xl">🔥</div>
                     <h2 className="text-2xl font-black text-white">Exclusive Access</h2>
                     <p className="text-zinc-400 text-sm">
-                      This isn&rsquo;t for everyone. Enter your invite code to get roasted.
+                      built for creators whose videos keep stalling before they ever get a fair shot.
                     </p>
                   </div>
 
@@ -348,9 +348,9 @@ export default function Home() {
 
                   <div className="space-y-2">
                     {[
-                      '9 AI agents analyze every frame',
-                      'Score out of 100 with breakdowns',
-                      'Specific fixes you can apply today',
+                      'hook rewrite workshop with better opener options',
+                      'opening reshoot planner with concrete shot + text ideas',
+                      'qualitative hold read that avoids fake precision',
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-2.5 text-xs text-zinc-400">
                         <span className="text-orange-400 font-bold">✓</span>

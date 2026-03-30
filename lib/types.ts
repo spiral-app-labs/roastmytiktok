@@ -33,6 +33,13 @@ export interface RoastResult {
   overallScore: number;
   verdict: string;
   viralPotential?: number;
+  holdAssessment?: {
+    holdBand: 'weak' | 'mixed' | 'strong';
+    riskBand: 'high' | 'medium' | 'low';
+    headline: string;
+    summary: string;
+    reasons: string[];
+  };
   biggestBlocker?: string;
   nextSteps?: string[];
   actionPlan?: ActionPlanStep[];

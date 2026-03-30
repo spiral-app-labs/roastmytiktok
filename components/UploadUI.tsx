@@ -216,13 +216,13 @@ export default function UploadUI() {
             <span className="text-zinc-500 text-sm font-semibold tracking-widest uppercase">RoastMyTikTok</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.05]">
-            Drop your TikTok.{' '}
+            stuck at 200 views?{' '}
             <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
-              Get destroyed.
+              fix the opening first.
             </span>
           </h1>
           <p className="text-zinc-500 text-base max-w-md mx-auto leading-relaxed">
-            9 AI agents analyze every frame, score your content, and hand you a fix list.
+            upload a video and get a hook breakdown, stronger opener rewrites, and a reshoot plan you can film today.
           </p>
         </motion.div>
 
@@ -240,7 +240,7 @@ export default function UploadUI() {
             className="bg-zinc-900/60 border border-zinc-800/60 rounded-2xl p-6 backdrop-blur-sm"
           >
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-white">New Roast</h2>
+              <h2 className="text-lg font-bold text-white">New hook-help roast</h2>
               {/* Agent chips row */}
               <div className="flex -space-x-1">
                 {AGENTS.slice(0, 5).map((a) => (
