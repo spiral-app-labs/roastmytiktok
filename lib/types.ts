@@ -23,6 +23,11 @@ export interface RoastResult {
   overallScore: number;
   verdict: string;
   agents: AgentRoast[];
+  niche?: {
+    detected: string;
+    subNiche: string | null;
+    confidence: 'high' | 'medium' | 'low';
+  };
   audioTranscript?: string;
   audioSegments?: Array<{ start: number; end: number; text: string }>;
   metadata: {

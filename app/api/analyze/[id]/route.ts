@@ -9,6 +9,8 @@ import { existsSync, unlinkSync } from 'fs';
 import { writeFile } from 'fs/promises';
 import { DimensionKey } from '@/lib/types';
 import { fetchTrendingContext as fetchNewTrendingContext, buildAgentTrendingContext, TrendingContext } from '@/lib/trending-context';
+import { detectNiche, NicheDetection } from '@/lib/niche-detect';
+import { buildAgentNicheContext } from '@/lib/niche-context';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 
@@ -701,6 +703,18 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
         const viralPatterns = await viralPatternsPromise;
         const playbookContext = buildPlaybookContext(viralPatterns);
 
+        // Detect niche from available signals
+        const nicheDetection: NicheDetection = detectNiche({
+          caption: (session as { video_url: string; filename?: string }).filename ?? '',
+          hashtags: [],
+          transcript: transcript?.text ?? undefined,
+          audioType: audioChars.hasSpeech && audioChars.hasMusic ? 'both'
+            : audioChars.hasSpeech ? 'speech'
+            : audioChars.hasMusic ? 'music'
+            : 'none',
+        });
+        send({ type: 'status', message: `Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''} [${nicheDetection.confidence} confidence]` });
+
         if (chronicIssues.length > 0) {
           send({ type: 'status', message: 'Repeat offender detected. Escalating intensity...' });
         }
@@ -741,7 +755,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
             }
 
             const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);
-            const fullPrompt = prompt + TONE_RULES + hookContext + audioContext + trendingContext + escalationContext;
+            const nicheContext = buildAgentNicheContext(nicheDetection, dimension);
+            const fullPrompt = prompt + TONE_RULES + hookContext + audioContext + trendingContext + nicheContext + escalationContext;
 
             const response = await anthropic.messages.create({
               model: 'claude-sonnet-4-6',
@@ -806,6 +821,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
               role: 'user',
               content: `You are a brutal TikTok roast machine. Given these agent scores and roasts for a video, write a 2-3 sentence savage overall verdict. Be funny and specific. Write like you're texting a friend — short sentences, simple words, no fancy vocabulary. A high schooler should laugh at this, not need a dictionary. Max ONE analogy and make it concrete and relatable.
 
+Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''}. Reference the niche in your verdict — tell them how their video stacks up against other ${nicheDetection.niche} creators.
+
 Scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d]?.score])))}
 Agent summaries: ${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${repeatContext}
 
@@ -833,6 +850,11 @@ Write ONLY the verdict text, no JSON, no quotes. Keep it simple and punchy.`,
             improvementTip: agentResults[dim].improvementTip,
             timestamp_seconds: AGENT_TIMESTAMPS[dim],
           })),
+          niche: {
+            detected: nicheDetection.niche,
+            subNiche: nicheDetection.subNiche,
+            confidence: nicheDetection.confidence,
+          },
           ...(transcript?.text ? { audioTranscript: transcript.text } : {}),
           ...(transcript?.segments?.length ? { audioSegments: transcript.segments } : {}),
           metadata: {
@@ -846,7 +868,7 @@ Write ONLY the verdict text, no JSON, no quotes. Keep it simple and punchy.`,
           },
         };
 
-        send({ type: 'verdict', overallScore, verdict });
+        send({ type: 'verdict', overallScore, verdict, niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence } });
 
         // Update session in Supabase with results
         try {
