@@ -83,3 +83,52 @@ const DEFAULT_TIP_BY_DIMENSION: Record<DimensionKey, string> = {
   conversion: 'End with one direct ask tied to the value you just proved.',
   accessibility: 'Make the message clear even for viewers who start with sound off.',
 };
+
+// ---------------------------------------------------------------------------
+// Prompt input safety — sanitize and truncate data going INTO prompts
+// ---------------------------------------------------------------------------
+
+/**
+ * Patterns that look like prompt injection attempts in user-supplied text
+ * (transcript, filenames, captions). Strip these before including in prompts.
+ */
+const INJECTION_PATTERNS = [
+  /ignore\s+(all\s+)?previous\s+instructions/i,
+  /you\s+are\s+now\s+/i,
+  /system:\s*/i,
+  /\bact\s+as\b/i,
+  /\bdisregard\b.*\binstructions?\b/i,
+  /\breturn\s+the\s+(system|initial)\s+prompt\b/i,
+];
+
+/**
+ * Sanitize text that will be interpolated into an AI prompt.
+ * Strips potential injection patterns and truncates to a safe length.
+ */
+export function sanitizePromptInput(text: string, maxChars: number = 5000): string {
+  if (!text) return '';
+  let cleaned = text.slice(0, maxChars);
+  for (const pattern of INJECTION_PATTERNS) {
+    cleaned = cleaned.replace(pattern, '[filtered]');
+  }
+  return cleaned;
+}
+
+/**
+ * Truncate a prompt string to stay within approximate token limits.
+ * Uses a rough 4-chars-per-token estimate. Returns the truncated string
+ * with a marker if it was cut.
+ */
+export function truncateForTokenLimit(text: string, maxTokens: number = 12000): string {
+  const maxChars = maxTokens * 4;
+  if (text.length <= maxChars) return text;
+  return text.slice(0, maxChars) + '\n\n[... truncated for token safety]';
+}
+
+/**
+ * Validate that a score is a reasonable number in [0, 100].
+ */
+export function clampScore(value: unknown, fallback: number = 50): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
