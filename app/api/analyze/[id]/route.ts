@@ -13,7 +13,7 @@ import { fetchTrendingContext as fetchNewTrendingContext, buildAgentTrendingCont
 import { detectNiche, NicheDetection } from '@/lib/niche-detect';
 import { buildAgentNicheContext, NICHE_CONTEXT } from '@/lib/niche-context';
 import { getVideoDuration, analyzeDuration, DurationAnalysis } from '@/lib/video-duration';
-import { buildEvidenceLedger, buildFallbackActionPlan, parseStrategicSummary } from '@/lib/action-plan';
+import { buildEvidenceLedger, buildFallbackActionPlan, buildPriorityDiagnosis, parseStrategicSummary } from '@/lib/action-plan';
 import { sanitizeActionPlan, sanitizeAgentResult, sanitizeUserFacingText, sanitizePromptInput, truncateForTokenLimit } from '@/lib/analysis-safety';
 import { logSuccess, logFailure } from '@/lib/analysis-logger';
 import type { ActionPlanStep } from '@/lib/types';
@@ -1160,6 +1160,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           const highestDim = DIMENSION_ORDER.reduce((a, b) =>
             (agentResults[a]?.score ?? 50) > (agentResults[b]?.score ?? 50) ? a : b
           );
+          const priorityDiagnosis = buildPriorityDiagnosis({
+            agentResults,
+            transcriptSegments: transcript?.segments,
+            captionQuality,
+            analysisMode,
+          });
           const evidenceLedger = buildEvidenceLedger({
             agentResults,
             transcriptText: transcript?.text,
@@ -1167,12 +1173,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             captionQuality,
             durationSec: durationAnalysis?.duration.durationSeconds ?? videoDuration?.durationSeconds,
             nicheLabel: nicheDetection.subNiche ? `${nicheDetection.niche} (${nicheDetection.subNiche})` : nicheDetection.niche,
+            analysisMode,
           });
           const fallbackActionPlan = buildFallbackActionPlan({
             agentResults,
             transcriptSegments: transcript?.segments,
             captionQuality,
             priorityDimensions: analysisMode === 'hook-first' ? ['hook', 'visual', 'audio'] : [],
+            analysisMode,
           });
 
           const verdictResponse = await anthropic.messages.create({
@@ -1188,6 +1196,11 @@ ${durationAnalysis ? `Video duration: ${durationAnalysis.duration.durationFormat
 Overall weighted score: ${overallScore}/100\nAnalysis mode: ${analysisMode}\nHook summary: ${hookSummary.headline}\nDistribution risk: ${hookSummary.distributionRisk}\nFocus note: ${hookSummary.focusNote}
 Lowest-scoring area: ${lowestDim} (${agentResults[lowestDim]?.score}/100)
 Highest-scoring area: ${highestDim} (${agentResults[highestDim]?.score}/100)
+Priority diagnosis: ${priorityDiagnosis.primaryDimension} | ${priorityDiagnosis.headline}
+Why this first: ${priorityDiagnosis.because}
+Primary evidence: ${priorityDiagnosis.evidence.join(' || ')}
+Supporting evidence: ${priorityDiagnosis.support.join(' || ')}
+Deprioritize note: ${priorityDiagnosis.deprioritizeNote}
 
 Scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d]?.score])))}
 Agent summaries:
@@ -1215,9 +1228,9 @@ Return ONLY valid JSON (no markdown):
 }
 
 Rules:
-- The verdict, biggestBlocker, and P1 actionPlan item must describe the same core problem.\n- If analysis mode is hook-first, that core problem MUST be the weak opening and you must explicitly deprioritize late-video CTA/caption polishing until the hook is fixed.\n- Do not introduce multiple headline problems. Pick one bottleneck and make the plan fix that first.
+- The verdict, biggestBlocker, and P1 actionPlan item must describe the same core problem.\n- Treat the priority diagnosis as the source of truth for what to fix first, why it comes first, and what should wait.\n- If analysis mode is hook-first, that core problem MUST be the weak opening and you must explicitly deprioritize late-video CTA/caption polishing until the hook is fixed.\n- Do not introduce multiple headline problems. Pick one bottleneck and make the plan fix that first.
 - Give exactly 3 actionPlan items ranked P1 to P3.
-- P1 must be the highest-leverage fix, not just the lowest score.\n- When the hook is weak, say why TikTok likely kills distribution early before the rest of the video can help.\n- Every actionPlan item must cite 1-3 concrete evidence bullets from the ledger. No generic evidence.
+- P1 must be the highest-leverage fix, not just the lowest score.\n- When the hook is weak, say why TikTok likely kills distribution early before the rest of the video can help.\n- P1 evidence must include at least one direct proof bullet and one supporting proof bullet from the priority diagnosis or ledger.\n- Every actionPlan item must cite 1-3 concrete evidence bullets from the ledger. No generic evidence.
 - Only cite evidence that is explicitly present in the ledger: quotes, timestamps, caption metrics, or agent findings from this video.
 - Every doThis must be specific enough to execute today.\n- If the hook is weak, include a concrete opening rewrite, shot idea, or text-overlay replacement in either P1 doThis or example.\n- Use exact replacement wording when possible.
 - If the transcript gives you a quote, use it.
