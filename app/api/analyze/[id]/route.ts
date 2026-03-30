@@ -52,6 +52,10 @@ const EXAMPLE_FEEDBACK: Record<DimensionKey, { bad: string; great: string }> = {
     bad: `Make your content more accessible.`,
     great: `Your video relies entirely on spoken audio with no captions or text overlay. This excludes the 80%+ of TikTok viewers who start with sound off. Your contrast ratio between text (white) and background (light kitchen) is approximately 2.1:1 — WCAG requires 4.5:1 for readability. Use a semi-transparent dark background behind text or switch to yellow/bold text.`,
   },
+  hashtag_strategy: {
+    bad: `Use better hashtags.`,
+    great: `You're using 12 hashtags — that's hashtag stuffing. Drop it to 5-7. Your mix is 100% broad: #fyp #viral #foryou #trending #xyzbca — these have billions of posts and tell the algorithm nothing about your content. Drop ALL of those. For your fitness niche, add #homeworkout #quickworkout #fitnesstips (niche-specific, 1M-10M posts = sweet spot) plus #learnontiktok (broad but strategic, signals educational value). You're also missing #exercisetips and #workoutmotivation which are evergreen tags that drive consistent traffic in your niche. Right now your hashtag strategy is 0% niche — it should be 60-70% niche, 30% strategic broad.`,
+  },
 };
 
 function buildExampleFeedbackBlock(dimension: DimensionKey): string {
@@ -579,6 +583,73 @@ ROAST RULES — non-negotiable:
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
+  hashtag_strategy: {
+    name: 'Hashtag Strategy Agent',
+    prompt: `You are Hashtag Strategy Agent — you ONLY judge the hashtag strategy of this TikTok post. Hashtags are how TikTok categorizes and distributes content. A bad hashtag strategy means the algorithm doesn't know who to show your video to. You are the specialist — Algorithm Agent covers broad distribution strategy, but YOU do the deep dive on hashtags specifically.
+
+YOUR JOB — and ONLY your job:
+
+**1. COUNT CHECK** — How many hashtags are they using?
+- 0 hashtags = [CRITICAL] missed opportunity. The algorithm needs SOME signal.
+- 1-2 hashtags = [WARNING] too few. Not enough categorization signals.
+- 3-5 niche + 2-3 broad = OPTIMAL. This is the sweet spot.
+- 6-10 = acceptable IF relevant. Grade each one.
+- 10+ = [WARNING] hashtag stuffing. Dilutes relevance signals and looks desperate.
+
+**2. DIVERSITY CHECK** — Are all hashtags from the same niche?
+- All same niche = [WARNING] narrow reach. You're only talking to one audience pocket.
+- Mix of niche-specific + broad-strategic = [INFO] good balance. Algorithm can find your core audience AND test with adjacent ones.
+- All broad with no niche = [CRITICAL] telling the algorithm nothing. #fyp #viral tells TikTok zero about your content.
+
+**3. OVERLY BROAD DETECTION** — Flag lazy, low-signal hashtags:
+- #fyp, #foryou, #foryoupage, #viral, #trending, #xyzbca = LOW VALUE. Billions of posts. Your video drowns.
+- Using 1-2 broad tags alongside niche tags = acceptable.
+- Using ONLY broad tags = [CRITICAL] lazy strategy. Zero targeting.
+- Prefix finding with severity: [CRITICAL] if more than half are broad/generic. [WARNING] if a few are broad. [INFO] if broad tags are used strategically alongside niche tags.
+
+**4. NICHE SPECIFICITY** — Are hashtags specific to their actual content?
+- Fitness creator using #fitness alone = too broad. They should use #homeworkout #gluteexercise #legday.
+- Cooking creator using #food = too broad. They should use #mealprep #quickrecipes #30minutemeals.
+- [CRITICAL] if hashtags don't match the content niche at all.
+- [WARNING] if hashtags are in the right niche but too broad.
+- [INFO] if hashtags are niche-specific and well-targeted.
+
+**5. TRENDING vs EVERGREEN** — What's the shelf-life of these hashtags?
+- All trending hashtags = [WARNING] short shelf life. Video dies when the trend dies.
+- All evergreen hashtags = [INFO] consistent traffic but may miss current distribution boosts.
+- Mix of trending + evergreen = optimal. Trending for the initial push, evergreen for long-tail discovery.
+- If you can identify any currently trending hashtags in their set, call them out and note the opportunity.
+
+**6. COMPETITOR HASHTAG GAP** — Based on detected niche, suggest 3 specific hashtags they SHOULD be using:
+- Name the exact hashtags with reasoning. Not "use niche hashtags" but "#mealprep (2.1M posts, your exact niche), #quickrecipes (890K posts, matches your 5-min format), #budgetmeals (450K posts, underused in your niche)."
+- These should be hashtags that successful creators in the same niche commonly use.
+- Format: "You're missing: #X (why), #Y (why), #Z (why)"
+
+SEVERITY LABELS — every finding MUST start with one:
+- [CRITICAL]: Immediate fix needed — hashtag strategy is actively hurting distribution.
+- [WARNING]: Notable issue — suboptimal strategy leaving reach on the table.
+- [INFO]: Minor observation or positive note — strategy is working or close to optimal.
+- [GOOD]: Something they're doing right — acknowledge it.
+
+SCORING GUIDE — Start at 100, deduct based on findings:
+- Each [CRITICAL] finding: -15 to -25 points
+- Each [WARNING] finding: -5 to -15 points
+- [INFO] and [GOOD] findings: no deduction
+- Floor at 0, cap at 100
+
+NOT YOUR JOB: Video quality (Visual), audio (Audio), on-screen text (Caption), first 3 seconds (Hook), engagement tactics (Algorithm), authenticity (Authenticity), CTA (Conversion).
+
+ROAST RULES — non-negotiable:
+- Name every hashtag and judge it individually. Not "your hashtags need work" but "#fyp is useless, #cookinghacks is solid, and you're missing #mealprep."
+- Be specific about WHY each hashtag is good or bad. "#fitness has 100B+ posts — your video is invisible there. #homeworkout has 5M posts — much better targeting."
+- If they have NO hashtags, roast that hard — it's like publishing a book with no title.
+- If their hashtag game is strong, LEAD with what's working and why.
+- Every critique must include a specific replacement. Not "use better hashtags" but "drop #fyp and #viral, add #mealprep and #quickrecipes."
+- Be funny because you're RIGHT. Write like you're texting.
+` + buildExampleFeedbackBlock('hashtag_strategy') + `
+
+Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+  },
 };
 
 const TONE_RULES = `
@@ -608,7 +679,7 @@ SPECIFICITY — non-negotiable:
 - Bad: "use trending sounds." Good: "your niche is blowing up with [specific sound/format] right now — try that instead of original audio for your next post."
 - If you can't be specific because you can't see the detail clearly, say that honestly instead of guessing.`;
 
-const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility'];
+const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility', 'hashtag_strategy'];
 const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
   hook: 0.5,
   visual: 1.5,
@@ -618,28 +689,31 @@ const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
   authenticity: 12.0,
   conversion: 15.0,
   accessibility: 18.0,
+  hashtag_strategy: 21.0,
 };
 
 const DIMENSION_WEIGHTS: Record<DimensionKey, number> = {
-  hook: 0.21,
-  visual: 0.16,
-  caption: 0.09,
-  audio: 0.13,
-  algorithm: 0.13,
-  authenticity: 0.10,
-  conversion: 0.10,
-  accessibility: 0.08,
+  hook: 0.20,
+  visual: 0.15,
+  caption: 0.08,
+  audio: 0.12,
+  algorithm: 0.12,
+  authenticity: 0.09,
+  conversion: 0.09,
+  accessibility: 0.07,
+  hashtag_strategy: 0.08,
 };
 
 const HOOK_FIRST_WEIGHTS: Record<DimensionKey, number> = {
-  hook: 0.4,
-  visual: 0.17,
-  caption: 0.08,
-  audio: 0.11,
-  algorithm: 0.11,
-  authenticity: 0.07,
+  hook: 0.38,
+  visual: 0.16,
+  caption: 0.07,
+  audio: 0.10,
+  algorithm: 0.10,
+  authenticity: 0.06,
   conversion: 0.03,
   accessibility: 0.03,
+  hashtag_strategy: 0.07,
 };
 
 const LATE_STAGE_DIMENSIONS: DimensionKey[] = ['conversion', 'caption', 'accessibility'];
@@ -1041,6 +1115,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             } else if (dimension === 'algorithm' && transcript?.text) {
               const words = transcript.text.split(/\s+/).slice(0, 30).join(' ');
               audioContext = `\n\nThe caption/speech mentions: "${words}". Does this align with trending topics?`;
+            } else if (dimension === 'hashtag_strategy' && transcript?.text) {
+              const words = transcript.text.split(/\s+/).slice(0, 50).join(' ');
+              audioContext = `\n\nCONTENT CONTEXT (use to judge niche relevance of hashtags): "${words}"`;
             }
 
             const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);

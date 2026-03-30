@@ -197,6 +197,11 @@ export function getEscalatingRoast(
       3: `Three roasts flagging the same accessibility gaps. Half the internet scrolls with sound off. You're invisible to them.`,
       4: `Four videos that exclude the same audiences. This isn't hard to fix. It's hard to keep ignoring.`,
     },
+    hashtag_strategy: {
+      2: `${baseRoast} We flagged your hashtag strategy last time too. The algorithm still doesn't know who to show your videos to.`,
+      3: `Three roasts with the same hashtag problems. #fyp isn't a strategy. It's a cry for help.`,
+      4: `Four videos with the same lazy hashtags. At this point your hashtag strategy IS your brand — and it's "I don't care who sees this."`,
+    },
   };
 
   const clampedLevel = Math.min(occurrences, 4);
