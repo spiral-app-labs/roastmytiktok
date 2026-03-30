@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
+import { getFirstGlanceChecks, getHoldAssessment, getHookWorkshop, getReshootPlanner } from '@/lib/hook-help';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
@@ -142,6 +143,11 @@ export default function RoastPage() {
 
   // Check if metadata has real data
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
+  const isHookFirst = roast.analysisMode === 'hook-first' || roast.hookSummary?.strength === 'weak';
+  const hookWorkshop = getHookWorkshop(roast);
+  const reshootPlanner = getReshootPlanner(roast);
+  const holdAssessment = roast.holdAssessment ?? getHoldAssessment(roast);
+  const firstGlanceChecks = getFirstGlanceChecks(roast);
 
   return (
     <main className="min-h-screen pb-20 relative">
@@ -213,6 +219,27 @@ export default function RoastPage() {
             </span>
           </motion.div>
 
+          {roast.hookSummary && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.92, duration: 0.4 }}
+              className={`max-w-3xl mx-auto mb-6 rounded-2xl px-5 py-4 border ${isHookFirst ? 'bg-red-500/10 border-red-500/30' : 'bg-emerald-500/10 border-emerald-500/30'}`}
+            >
+              <div className="flex items-start gap-3 text-left">
+                <div className={`text-2xl ${isHookFirst ? 'text-red-400' : 'text-emerald-400'}`}>{isHookFirst ? '🎣' : '✅'}</div>
+                <div className="space-y-2">
+                  <p className={`text-xs font-bold uppercase tracking-[0.2em] ${isHookFirst ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {isHookFirst ? 'hook-first diagnosis' : 'hook cleared'}
+                  </p>
+                  <p className="text-sm sm:text-base text-zinc-200">{roast.hookSummary.headline}</p>
+                  <p className="text-xs sm:text-sm text-zinc-400">{roast.hookSummary.distributionRisk}</p>
+                  <p className={`text-xs sm:text-sm font-medium ${isHookFirst ? 'text-red-300' : 'text-emerald-300'}`}>{roast.hookSummary.focusNote}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Verdict */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -232,7 +259,43 @@ export default function RoastPage() {
               </div>
             )}
 
-            {roast.nextSteps && roast.nextSteps.length > 0 && (
+            {roast.actionPlan && roast.actionPlan.length > 0 ? (
+              <div className="border-t border-zinc-800/50 pt-3 space-y-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Fix This Next</p>
+                {roast.actionPlan.map((step) => {
+                  const agent = AGENTS.find((item) => item.key === step.dimension);
+                  const evidence = Array.isArray(step.evidence) ? step.evidence : [];
+                  return (
+                    <div key={`${step.priority}-${step.dimension}-${step.issue}`} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-zinc-100">{step.priority} • {step.issue}</p>
+                          <p className="text-xs text-zinc-500">{agent?.emoji} {agent?.name ?? step.dimension} • {step.whyItMatters}</p>
+                        </div>
+                      </div>
+                      {evidence.length > 0 && (
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Evidence</p>
+                          <ul className="space-y-1">
+                            {evidence.map((item, index) => (
+                              <li key={index} className="text-xs text-zinc-400 flex gap-2">
+                                <span className="text-orange-400 shrink-0">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="rounded-lg bg-blue-500/8 border border-blue-500/15 p-2.5">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">Do this</p>
+                        <p className="text-sm text-zinc-200">{step.doThis}</p>
+                        <p className="text-xs text-zinc-400 mt-1">example: {step.example}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : roast.nextSteps && roast.nextSteps.length > 0 ? (
               <div className="border-t border-zinc-800/50 pt-3">
                 <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-2">Next Steps (by impact)</p>
                 <ol className="space-y-1.5">
@@ -244,13 +307,126 @@ export default function RoastPage() {
                   ))}
                 </ol>
               </div>
-            )}
+            ) : null}
 
             {roast.encouragement && (
               <div className="border-t border-zinc-800/50 pt-3">
                 <p className="text-sm text-emerald-400 italic">{roast.encouragement}</p>
               </div>
             )}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.05, duration: 0.45 }}
+            className="mt-6 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]"
+          >
+            <div className="rounded-2xl border border-orange-500/20 bg-zinc-900/60 p-5 text-left">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-orange-400">Hook rewrite workshop</p>
+                  <h3 className="text-lg font-bold text-white mt-1">what to reshoot in the first beat</h3>
+                </div>
+                <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-orange-300">
+                  opener first
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">current opener</p>
+                  <p className="text-sm text-zinc-200">{hookWorkshop.openerLine}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">why it is leaking</p>
+                  <ul className="space-y-1.5">
+                    {hookWorkshop.diagnosis.map((item, index) => (
+                      <li key={index} className="flex gap-2 text-sm text-zinc-300">
+                        <span className="text-red-400">•</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">stronger rewrites</p>
+                  <div className="space-y-2">
+                    {hookWorkshop.rewrites.map((rewrite) => (
+                      <div key={rewrite.label} className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300 mb-1">{rewrite.label}</p>
+                        <p className="text-sm text-white">{rewrite.line}</p>
+                        <p className="text-xs text-zinc-400 mt-1">{rewrite.whyItWorks}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className={`rounded-2xl border p-5 text-left ${holdAssessment.riskBand === 'high' ? 'border-red-500/25 bg-red-500/8' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/25 bg-yellow-500/8' : 'border-emerald-500/25 bg-emerald-500/8'}`}>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Hold-strength read</p>
+                    <h3 className="text-lg font-bold text-white mt-1">{holdAssessment.headline}</h3>
+                  </div>
+                  <div className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-widest ${holdAssessment.riskBand === 'high' ? 'border-red-500/30 text-red-300' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/30 text-yellow-300' : 'border-emerald-500/30 text-emerald-300'}`}>
+                    {holdAssessment.holdBand} hold • {holdAssessment.riskBand} drop-off risk
+                  </div>
+                </div>
+                <p className="text-sm text-zinc-300">{holdAssessment.summary}</p>
+                <ul className="mt-3 space-y-1.5">
+                  {holdAssessment.reasons.map((reason, index) => (
+                    <li key={index} className="flex gap-2 text-sm text-zinc-300">
+                      <span className="text-orange-400">•</span>
+                      <span>{reason}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 text-left">
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">First-glance diagnostic</p>
+                <p className="text-sm text-zinc-500 mt-1">not eye-tracking theater. just an honest frame-one gut check for a cold viewer.</p>
+                <div className="mt-3 space-y-2">
+                  {firstGlanceChecks.map((item) => (
+                    <div key={item.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
+                        <span className={`text-[11px] font-bold uppercase tracking-widest ${item.status === 'working' ? 'text-emerald-300' : 'text-red-300'}`}>
+                          {item.status === 'working' ? 'working' : 'needs work'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-400">{item.note}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.12, duration: 0.45 }}
+            className="mt-4 rounded-2xl border border-blue-500/20 bg-zinc-900/60 p-5 text-left"
+          >
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Opening reshoot planner</p>
+                <h3 className="text-lg font-bold text-white mt-1">film this version next</h3>
+              </div>
+              <span className="text-xs text-zinc-500">built for same-day reshoots</span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {reshootPlanner.map((step) => (
+                <div key={step.label} className="rounded-xl border border-blue-500/15 bg-blue-500/5 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">{step.label}</p>
+                  <p className="text-sm font-semibold text-zinc-100">{step.direction}</p>
+                  <p className="text-xs text-zinc-400 mt-1">{step.detail}</p>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
           {/* Share buttons */}
@@ -411,41 +587,6 @@ export default function RoastPage() {
 
         {/* Script Generator */}
         <ScriptGenerator roast={roast} />
-
-        {/* Viral Potential */}
-        {roast.viralPotential != null && roast.viralPotential > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: roast.agents.length * 0.15 }}
-            className="mt-4 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-6"
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">🚀</span>
-                <div>
-                  <h3 className="font-bold text-white">Viral Potential</h3>
-                  <p className="text-xs text-zinc-500">Predicted viral probability based on hook patterns, engagement signals, and niche fit</p>
-                </div>
-              </div>
-              <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center ${
-                roast.viralPotential >= 60 ? 'border-emerald-500 text-emerald-400' :
-                roast.viralPotential >= 40 ? 'border-yellow-500 text-yellow-400' :
-                roast.viralPotential >= 20 ? 'border-orange-500 text-orange-400' :
-                'border-red-500 text-red-400'
-              }`}>
-                <span className="text-sm font-bold">{roast.viralPotential}</span>
-              </div>
-            </div>
-            <p className="text-sm text-zinc-400">
-              {roast.viralPotential >= 80 ? 'This video is engineered to go viral. Ship it.' :
-               roast.viralPotential >= 60 ? 'Real breakout potential here. Fix the blockers and this could pop off.' :
-               roast.viralPotential >= 40 ? 'Could hit a few thousand views but needs work to break through.' :
-               roast.viralPotential >= 20 ? 'Likely to stall at a few hundred views. Check the next steps above.' :
-               'Dead on arrival in its current form. But the fixes above can change that.'}
-            </p>
-          </motion.div>
-        )}
 
         {/* Bottom CTA */}
         <motion.div
