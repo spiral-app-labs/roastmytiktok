@@ -55,6 +55,11 @@ const accentClasses: Record<DimensionKey, { ring: string; badge: string; card: s
     badge: 'bg-teal-500/10 text-teal-200 border-teal-500/20',
     card: 'border-teal-500/20 bg-teal-500/[0.03]',
   },
+  caption_quality: {
+    ring: 'from-yellow-500/15 via-amber-500/10 to-transparent',
+    badge: 'bg-yellow-500/10 text-yellow-200 border-yellow-500/20',
+    card: 'border-yellow-500/20 bg-yellow-500/[0.03]',
+  },
 };
 
 export function AgentCard({ roast, index, variant = 'secondary', badge, deepLinkId }: AgentCardProps) {

@@ -128,7 +128,7 @@ function normalizePriority(value: unknown, index: number): 'P1' | 'P2' | 'P3' {
 }
 
 function normalizeDimension(value: unknown, fallback: DimensionKey): DimensionKey {
-  const valid = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility'];
+  const valid = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility', 'caption_quality'];
   return typeof value === 'string' && valid.includes(value) ? (value as DimensionKey) : fallback;
 }
 
@@ -156,6 +156,7 @@ const WHY_IT_MATTERS_BY_DIMENSION: Record<DimensionKey, string> = {
   authenticity: 'A more believable delivery increases trust, comments, and rewatches.',
   conversion: 'A sharper CTA turns passive views into follows, clicks, and saves.',
   accessibility: 'Accessible delivery expands retention beyond viewers who can hear everything perfectly.',
+  caption_quality: 'Precise caption timing and readability keep sound-off viewers locked in instead of scrolling.',
 };
 
 export function buildFallbackActionPlan(params: {
@@ -222,7 +223,7 @@ function buildCaptionEvidence(
   dimension: DimensionKey,
   captionQuality?: CaptionQualityReport | null
 ): string[] {
-  if (!captionQuality || (dimension !== 'caption' && dimension !== 'accessibility')) return [];
+  if (!captionQuality || (dimension !== 'caption' && dimension !== 'accessibility' && dimension !== 'caption_quality')) return [];
 
   return [
     `Caption timing grade: ${captionQuality.timingGrade}; first caption ${captionQuality.firstCaptionTimeSec ?? 'unknown'}s vs speech ${captionQuality.speechStartTimeSec ?? 'unknown'}s`,
@@ -243,7 +244,7 @@ function buildFallbackExample(
       : 'Lead with the result, then explain how you got it.';
   }
 
-  if (dimension === 'caption' || dimension === 'accessibility') {
+  if (dimension === 'caption' || dimension === 'accessibility' || dimension === 'caption_quality') {
     return 'Put the first caption on screen immediately, keep it large, and keep it out of the bottom UI zone.';
   }
 

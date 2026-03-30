@@ -30,6 +30,7 @@ export interface EscalationInfo {
 }
 
 const HISTORY_KEY = 'rmt_history';
+const RESULT_SNAPSHOTS_KEY = 'rmt_roast_results';
 const SESSION_KEY = 'rmt_session';
 
 const ESCALATION_LABELS: Record<EscalationLevel, string> = {
@@ -66,11 +67,34 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
   return getHistory();
 }
 
+export function getStoredRoast(id: string): RoastResult | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(RESULT_SNAPSHOTS_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as Record<string, RoastResult>;
+    return data[id] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function getStoredRoasts(): RoastResult[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(RESULT_SNAPSHOTS_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw) as Record<string, RoastResult>;
+    return Object.values(data);
+  } catch {
+    return [];
+  }
+}
+
 /** Save a roast result to history — localStorage + Supabase */
 export function saveToHistory(result: RoastResult, source: 'upload' | 'url', filename?: string): void {
   if (typeof window === 'undefined') return;
   const history = getHistory();
-  const sessionId = getSessionId();
 
   const entry: HistoryEntry = {
     id: result.id,
@@ -94,6 +118,21 @@ export function saveToHistory(result: RoastResult, source: 'upload' | 'url', fil
     history.unshift(entry);
     // Keep last 50 in localStorage
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
+  }
+
+  try {
+    const rawSnapshots = localStorage.getItem(RESULT_SNAPSHOTS_KEY);
+    const snapshots = rawSnapshots ? JSON.parse(rawSnapshots) as Record<string, RoastResult> : {};
+    snapshots[result.id] = result;
+    const orderedEntries = history.slice(0, 25);
+    const nextSnapshots = Object.fromEntries(
+      orderedEntries
+        .map((item) => [item.id, snapshots[item.id]])
+        .filter((entry): entry is [string, RoastResult] => Boolean(entry[1]))
+    );
+    localStorage.setItem(RESULT_SNAPSHOTS_KEY, JSON.stringify(nextSnapshots));
+  } catch {
+    // ignore storage errors
   }
 }
 
@@ -196,6 +235,11 @@ export function getEscalatingRoast(
       2: `${baseRoast} The accessibility issues showed up last time too. That's real viewers you're losing — not a hypothetical.`,
       3: `Three roasts flagging the same accessibility gaps. Half the internet scrolls with sound off. You're invisible to them.`,
       4: `Four videos that exclude the same audiences. This isn't hard to fix. It's hard to keep ignoring.`,
+    },
+    caption_quality: {
+      2: `${baseRoast} We measured your caption timing last time too. The sync is still off and the text is still hard to read.`,
+      3: `Three roasts, three times your captions failed the readability test. Font size, contrast, positioning — pick one and fix it.`,
+      4: `Four videos with unreadable captions. At this point your captions are decorative, not functional.`,
     },
   };
 

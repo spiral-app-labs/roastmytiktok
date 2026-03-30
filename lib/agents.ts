@@ -57,4 +57,11 @@ export const AGENTS: AgentDef[] = [
     oneLiner: 'Not everyone experiences your content the same way',
     analyzes: 'Caption quality for deaf/HoH viewers, color contrast, text readability, audio descriptions, inclusive content',
   },
+  {
+    key: 'caption_quality',
+    emoji: '📐',
+    name: 'Caption Quality Agent',
+    oneLiner: 'Measured your captions with a ruler and they failed',
+    analyzes: 'Caption sync timing, font readability on mobile, contrast ratio, position safety zones, text density and chunking',
+  },
 ];

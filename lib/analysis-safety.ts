@@ -71,6 +71,7 @@ const DEFAULT_ROAST_BY_DIMENSION: Record<DimensionKey, string> = {
   authenticity: 'The delivery still feels a little too flat to build trust fast.',
   conversion: 'The close is not turning attention into action yet.',
   accessibility: 'The video still leaves too much of the audience behind.',
+  caption_quality: 'The captions are not hitting the technical bar for timing, readability, or placement.',
 };
 
 const DEFAULT_TIP_BY_DIMENSION: Record<DimensionKey, string> = {
@@ -82,4 +83,5 @@ const DEFAULT_TIP_BY_DIMENSION: Record<DimensionKey, string> = {
   authenticity: 'Sound more like a person proving one real point, not a script reading.',
   conversion: 'End with one direct ask tied to the value you just proved.',
   accessibility: 'Make the message clear even for viewers who start with sound off.',
+  caption_quality: 'Sync captions to speech, increase font size, fix contrast, and move text out of danger zones.',
 };

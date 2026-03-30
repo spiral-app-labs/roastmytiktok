@@ -52,6 +52,10 @@ const EXAMPLE_FEEDBACK: Record<DimensionKey, { bad: string; great: string }> = {
     bad: `Make your content more accessible.`,
     great: `Your video relies entirely on spoken audio with no captions or text overlay. This excludes the 80%+ of TikTok viewers who start with sound off. Your contrast ratio between text (white) and background (light kitchen) is approximately 2.1:1 — WCAG requires 4.5:1 for readability. Use a semi-transparent dark background behind text or switch to yellow/bold text.`,
   },
+  caption_quality: {
+    bad: `Your captions need work.`,
+    great: `[CRITICAL] Captions appear at 0:04 but speech starts at 0:01 — that's a 3-second gap where sound-off viewers have zero context and scroll. [WARNING] Font size is roughly 14pt equivalent (~12% of frame width) — on a 6-inch phone that's squinting territory. Bump to 24pt+ bold sans-serif. [WARNING] White text on your light beige kitchen background is approximately 1.8:1 contrast — well below WCAG's 4.5:1 minimum. Add a black outline or dark background box. [INFO] Captions sit in the lower-safe zone, which is acceptable but not optimal — upper-third placement gets 15% more read-through. Text density is appropriate at 6-8 words per caption chunk.`,
+  },
 };
 
 function buildExampleFeedbackBlock(dimension: DimensionKey): string {
@@ -579,6 +583,65 @@ ROAST RULES — non-negotiable:
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
+  caption_quality: {
+    name: 'Caption Quality Agent',
+    prompt: `You are Caption Quality Agent — you run a TECHNICAL AUDIT on caption execution. You measure timing precision, font readability, contrast ratios, position safety, and text density. You grade with data, not vibes.
+
+YOUR JOB — and ONLY your job:
+You receive a Caption Quality Audit report with hard measurements. Use that data as your primary evidence. Cross-reference it against what you see in the frames.
+
+1. CAPTION SYNC TIMING — the most critical metric:
+- Compare firstCaptionTimeSec vs speechStartTimeSec from the audit.
+- Grade: ≤0.5s gap = S-tier (perfect sync). 0.5-1.5s = A-tier (slight delay). 1.5-3s = B-tier (noticeable lag). 3s+ or no captions = F-tier.
+- Prefix finding with severity: [CRITICAL] if F-tier, [WARNING] if B-tier, [INFO] if A/S-tier.
+- If captions appear BEFORE speech, note it — feels robotic/unnatural.
+
+2. FONT SIZE & READABILITY — graded for 6-inch phone screens:
+- Use fontSizeAssessment from the audit. Large (30-50% frame width) = great. Medium (20-30%) = acceptable. Small (<15%) = unreadable on mobile.
+- Bold sans-serif (Impact, Montserrat) = readable. Thin/script fonts = death on mobile.
+- [CRITICAL] if small or none. [WARNING] if medium with thin font. [INFO] if large and bold.
+
+3. CONTRAST RATIO — can viewers see the text?
+- Use contrastAssessment from the audit. High contrast (4.5:1+) = good. Medium (2.5-4.5:1) = risky. Low (<2.5:1) = invisible.
+- White/yellow text with black outline = best practice (10:1+). Flat text on busy backgrounds = bad.
+- [CRITICAL] if low. [WARNING] if medium. [INFO] if high.
+
+4. CAPTION POSITIONING — avoid TikTok UI danger zones:
+- Use positionAssessment from the audit. Bottom 20% = danger zone (caption bar, music ticker). Right 15% = danger zone (like/comment/share buttons).
+- Safe zones: upper-third (best), center (good), lower-center above bottom 20%.
+- [CRITICAL] if bottom-danger. [WARNING] if right-ui-risk. [INFO] if safe.
+- Does the caption cover faces or important visual content? If yes, [WARNING].
+
+5. CAPTION DENSITY — text chunking:
+- Too much text at once (3+ lines, 15+ words per chunk) overwhelms mobile viewers.
+- Too little text (1-2 words appearing/disappearing rapidly) feels jittery.
+- Sweet spot: 6-10 words per caption chunk, 1-2 lines max on screen at once.
+- [WARNING] if over-dense or jittery. [INFO] if well-chunked.
+
+GRADING:
+- A (85-100): S-tier sync, large bold text, high contrast, safe positioning, good density.
+- B (65-84): A-tier sync, readable text, decent contrast, mostly safe positioning.
+- C (45-64): B-tier sync, medium text, mixed contrast or minor position issues.
+- D (25-44): Notable sync issues, small text, poor contrast, or danger zone positioning.
+- F (0-24): No captions, severely out of sync, or completely unreadable.
+
+SEVERITY LABELS — every finding MUST start with one:
+- [CRITICAL]: Immediate fix needed — directly kills retention or readability.
+- [WARNING]: Notable issue — hurts performance but not a dealbreaker.
+- [INFO]: Minor observation or positive note — good to know.
+
+NOT YOUR JOB: Caption STRATEGY or content (that's Caption Agent). Audio quality (Audio Agent). Visual composition (Visual Agent). Hook timing (Hook Agent).
+
+ROAST RULES — non-negotiable:
+- Every finding must start with [CRITICAL], [WARNING], or [INFO].
+- Quote specific numbers from the audit: gap in seconds, contrast ratio, font size percentage, position zone.
+- Fixes must be concrete: not "improve contrast" but "your white text on light beige is ~1.8:1 — add a 2px black outline to hit 10:1+."
+- If the audit shows good numbers, LEAD with praise. Good technical execution is rare and deserves credit.
+- Write like you're a QA engineer who also happens to be funny. Direct, specific, data-driven.
+` + buildExampleFeedbackBlock('caption_quality') + `
+
+Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+  },
 };
 
 const TONE_RULES = `
@@ -608,7 +671,7 @@ SPECIFICITY — non-negotiable:
 - Bad: "use trending sounds." Good: "your niche is blowing up with [specific sound/format] right now — try that instead of original audio for your next post."
 - If you can't be specific because you can't see the detail clearly, say that honestly instead of guessing.`;
 
-const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility'];
+const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility', 'caption_quality'];
 const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
   hook: 0.5,
   visual: 1.5,
@@ -618,31 +681,34 @@ const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
   authenticity: 12.0,
   conversion: 15.0,
   accessibility: 18.0,
+  caption_quality: 20.0,
 };
 
 const DIMENSION_WEIGHTS: Record<DimensionKey, number> = {
-  hook: 0.21,
-  visual: 0.16,
-  caption: 0.09,
-  audio: 0.13,
-  algorithm: 0.13,
-  authenticity: 0.10,
-  conversion: 0.10,
-  accessibility: 0.08,
+  hook: 0.20,
+  visual: 0.15,
+  caption: 0.08,
+  audio: 0.12,
+  algorithm: 0.12,
+  authenticity: 0.09,
+  conversion: 0.09,
+  accessibility: 0.07,
+  caption_quality: 0.08,
 };
 
 const HOOK_FIRST_WEIGHTS: Record<DimensionKey, number> = {
-  hook: 0.4,
-  visual: 0.17,
-  caption: 0.08,
-  audio: 0.11,
-  algorithm: 0.11,
-  authenticity: 0.07,
+  hook: 0.38,
+  visual: 0.16,
+  caption: 0.07,
+  audio: 0.10,
+  algorithm: 0.10,
+  authenticity: 0.06,
   conversion: 0.03,
   accessibility: 0.03,
+  caption_quality: 0.07,
 };
 
-const LATE_STAGE_DIMENSIONS: DimensionKey[] = ['conversion', 'caption', 'accessibility'];
+const LATE_STAGE_DIMENSIONS: DimensionKey[] = ['conversion', 'caption', 'accessibility', 'caption_quality'];
 
 function classifyHookStrength(score: number): 'weak' | 'mixed' | 'strong' {
   if (score < 55) return 'weak';
@@ -1045,7 +1111,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
             const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);
             const nicheContext = buildAgentNicheContext(nicheDetection, dimension, videoDuration?.durationSeconds);
-            const captionAuditContext = dimension === 'caption' || dimension === 'accessibility'
+            const captionAuditContext = dimension === 'caption' || dimension === 'accessibility' || dimension === 'caption_quality'
               ? captionQualityContext
               : '';
             const fullPrompt = prompt + TONE_RULES + hookContext + hookPriorityContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext;
