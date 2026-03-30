@@ -14,6 +14,7 @@ import { detectNiche, NicheDetection } from '@/lib/niche-detect';
 import { buildAgentNicheContext, NICHE_CONTEXT } from '@/lib/niche-context';
 import { getVideoDuration, analyzeDuration, DurationAnalysis } from '@/lib/video-duration';
 import { buildEvidenceLedger, buildFallbackActionPlan, parseStrategicSummary } from '@/lib/action-plan';
+import { sanitizeActionPlan, sanitizeAgentResult, sanitizeUserFacingText } from '@/lib/analysis-safety';
 import type { ActionPlanStep } from '@/lib/types';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
@@ -711,7 +712,7 @@ function buildHookSummary(hookResult: { score: number; roastText: string; findin
   };
 }
 
-function parseAgentResponse(text: string): { score: number; roastText: string; findings: string[]; improvementTip: string } {
+function parseAgentResponse(text: string, dimension: DimensionKey): { score: number; roastText: string; findings: string[]; improvementTip: string } {
   // Try to extract JSON from the response (handle markdown code blocks)
   let jsonStr = text;
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -725,12 +726,12 @@ function parseAgentResponse(text: string): { score: number; roastText: string; f
   }
 
   const parsed = JSON.parse(jsonStr);
-  return {
+  return sanitizeAgentResult({
     score: Math.max(0, Math.min(100, Math.round(parsed.score))),
     roastText: parsed.roastText || 'No roast text generated.',
     findings: Array.isArray(parsed.findings) ? parsed.findings : [],
     improvementTip: parsed.improvementTip || 'Try harder next time.',
-  };
+  }, dimension);
 }
 
 interface ViralPattern {
@@ -938,8 +939,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
             if (!hasTranscriptionKey) {
               send({ type: 'status', message: 'Audio transcription unavailable — set OPENAI_API_KEY or ASSEMBLYAI_API_KEY.' });
-            } else if (transcript?.text) {
-              send({ type: 'status', message: 'Audio transcribed successfully.' });
+            } else if (transcript?.text || transcript?.segments?.length) {
+              send({ type: 'status', message: `Audio transcribed successfully${transcript.provider ? ` via ${transcript.provider}` : ''}.` });
             } else {
               send({ type: 'status', message: 'No speech detected in audio.' });
             }
@@ -1006,14 +1007,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           send({ type: 'agent', agent: dimension, status: 'analyzing', name });
 
           try {
-            const imageContent = frames.map(frame => ({
-              type: 'image' as const,
-              source: {
-                type: 'base64' as const,
-                media_type: 'image/jpeg' as const,
-                data: frame.imageBase64,
+            const imageContent = frames.flatMap(frame => ([
+              {
+                type: 'text' as const,
+                text: `${frame.label} (${frame.slot === 'opening' ? 'hook-sensitive sample' : 'later-story sample'})`,
               },
-            }));
+              {
+                type: 'image' as const,
+                source: {
+                  type: 'base64' as const,
+                  media_type: 'image/jpeg' as const,
+                  data: frame.imageBase64,
+                },
+              },
+            ]));
 
             const escalationContext = buildEscalationContext(chronicIssues, dimension);
             const hookContext = dimension === 'hook' ? playbookContext : '';
@@ -1056,7 +1063,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             });
 
             const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
-            const result = parseAgentResponse(responseText);
+            const result = parseAgentResponse(responseText, dimension);
             agentResults[dimension] = result;
 
             send({
@@ -1185,14 +1192,15 @@ Rules:
           const verdictText = verdictResponse.content[0].type === 'text' ? verdictResponse.content[0].text : '';
           const parsed = parseStrategicSummary(verdictText, lowestDim, fallbackActionPlan);
           if (parsed) {
-            verdict = parsed.verdict;
+            const safePlan = sanitizeActionPlan(parsed.actionPlan);
+            verdict = sanitizeUserFacingText(parsed.verdict, 'The opening promise and execution still are not lining up.');
             viralPotential = parsed.viralPotential;
-            biggestBlocker = parsed.biggestBlocker;
-            actionPlan = parsed.actionPlan;
+            biggestBlocker = sanitizeUserFacingText(parsed.biggestBlocker, safePlan[0]?.issue || 'The video still has one obvious bottleneck holding it back.');
+            actionPlan = safePlan.length > 0 ? safePlan : sanitizeActionPlan(fallbackActionPlan);
             nextSteps = actionPlan.map((step) => `${step.priority}: ${step.doThis}`);
-            encouragement = parsed.encouragement;
+            encouragement = sanitizeUserFacingText(parsed.encouragement, 'There is something here, but the first fix needs to land harder.');
           } else {
-            verdict = verdictText || 'Your video exists. That is the nicest thing we can say about it.';
+            verdict = sanitizeUserFacingText(verdictText, 'Your video exists. That is the nicest thing we can say about it.');
           }
         } catch {
           verdict = 'Your video exists. That is the nicest thing we can say about it.';

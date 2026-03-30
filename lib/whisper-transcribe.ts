@@ -9,10 +9,61 @@ export interface TranscriptionSegment {
 export interface TranscriptionResult {
   text: string;
   segments: TranscriptionSegment[];
+  provider?: 'assemblyai' | 'whisper';
+}
+
+function normalizeSegments(
+  segments: Array<{ start: number; end: number; text: string }>
+): TranscriptionSegment[] {
+  return segments
+    .map((segment) => ({
+      start: Number(segment.start.toFixed(2)),
+      end: Number(segment.end.toFixed(2)),
+      text: segment.text.trim(),
+    }))
+    .filter((segment) => segment.text.length > 0);
+}
+
+async function wait(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(
+  input: string,
+  init: RequestInit,
+  attempts: number = 3,
+  baseDelayMs: number = 1200
+): Promise<Response> {
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const response = await fetch(input, init);
+      if (response.ok || (response.status < 500 && response.status !== 429)) {
+        return response;
+      }
+
+      const retryAfter = Number(response.headers.get('retry-after') ?? '0');
+      if (attempt < attempts) {
+        await wait(retryAfter > 0 ? retryAfter * 1000 : baseDelayMs * attempt);
+        continue;
+      }
+
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await wait(baseDelayMs * attempt);
+        continue;
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Network request failed');
 }
 
 // ---------------------------------------------------------------------------
-// OpenAI Whisper API (primary)
+// OpenAI Whisper API
 // ---------------------------------------------------------------------------
 
 async function transcribeWithWhisper(
@@ -34,7 +85,7 @@ async function transcribeWithWhisper(
   form.append('timestamp_granularities[]', 'segment');
 
   console.log('[transcribe] Calling OpenAI Whisper API…');
-  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  const res = await fetchWithRetry('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}` },
     body: form,
@@ -50,30 +101,61 @@ async function transcribeWithWhisper(
 
   const json = await res.json();
   const text: string = json.text ?? '';
-  const segments: TranscriptionSegment[] = (json.segments ?? []).map(
-    (s: { start: number; end: number; text: string }) => ({
-      start: s.start,
-      end: s.end,
-      text: s.text.trim(),
+  const segments = normalizeSegments((json.segments ?? []).map(
+    (segment: { start: number; end: number; text: string }) => ({
+      start: segment.start,
+      end: segment.end,
+      text: segment.text,
     })
-  );
+  ));
 
   console.log(
     `[transcribe] Whisper returned ${text.length} chars, ${segments.length} segments`
   );
-  return { text, segments };
+  return { text, segments, provider: 'whisper' };
 }
 
 // ---------------------------------------------------------------------------
-// AssemblyAI (fallback)
+// AssemblyAI
 // ---------------------------------------------------------------------------
 
 const ASSEMBLYAI_BASE = 'https://api.assemblyai.com/v2';
 
-function assemblyHeaders(): Record<string, string> {
+function assemblyHeaders(contentType: string = 'application/json'): Record<string, string> {
   return {
     authorization: process.env.ASSEMBLYAI_API_KEY!,
-    'content-type': 'application/json',
+    'content-type': contentType,
+  };
+}
+
+function buildAssemblySegments(json: Record<string, unknown>): TranscriptionSegment[] {
+  if (Array.isArray(json.utterances) && json.utterances.length > 0) {
+    return normalizeSegments(json.utterances.map((utterance: { start: number; end: number; text: string }) => ({
+      start: utterance.start / 1000,
+      end: utterance.end / 1000,
+      text: utterance.text,
+    })));
+  }
+
+  if (Array.isArray(json.words) && json.words.length > 0) {
+    return normalizeSegments(json.words.map((word: { start: number; end: number; text: string }) => ({
+      start: word.start / 1000,
+      end: word.end / 1000,
+      text: word.text,
+    })));
+  }
+
+  return [];
+}
+
+export function parseAssemblyTranscript(json: Record<string, unknown>): TranscriptionResult | null {
+  const text = typeof json.text === 'string' ? json.text.trim() : '';
+  const segments = buildAssemblySegments(json);
+  if (!text && segments.length === 0) return null;
+  return {
+    text,
+    segments,
+    provider: 'assemblyai',
   };
 }
 
@@ -89,9 +171,8 @@ async function transcribeWithAssemblyAI(
 
   console.log('[transcribe] Calling AssemblyAI API…');
 
-  // Upload
   const data = readFileSync(audioPath);
-  const uploadRes = await fetch(`${ASSEMBLYAI_BASE}/upload`, {
+  const uploadRes = await fetchWithRetry(`${ASSEMBLYAI_BASE}/upload`, {
     method: 'POST',
     headers: { authorization: apiKey, 'content-type': 'application/octet-stream' },
     body: data,
@@ -105,11 +186,16 @@ async function transcribeWithAssemblyAI(
   }
   const { upload_url } = await uploadRes.json();
 
-  // Create transcript
-  const createRes = await fetch(`${ASSEMBLYAI_BASE}/transcript`, {
+  const createRes = await fetchWithRetry(`${ASSEMBLYAI_BASE}/transcript`, {
     method: 'POST',
     headers: assemblyHeaders(),
-    body: JSON.stringify({ audio_url: upload_url, speaker_labels: true }),
+    body: JSON.stringify({
+      audio_url: upload_url,
+      speaker_labels: true,
+      auto_chapters: false,
+      punctuate: true,
+      format_text: true,
+    }),
   });
   if (!createRes.ok) {
     const body = await createRes.text();
@@ -120,30 +206,30 @@ async function transcribeWithAssemblyAI(
   }
   const { id } = await createRes.json();
 
-  // Poll
   const deadline = Date.now() + timeoutMs;
+  let delayMs = 1500;
+
   while (Date.now() < deadline) {
-    const pollRes = await fetch(`${ASSEMBLYAI_BASE}/transcript/${id}`, {
+    const pollRes = await fetchWithRetry(`${ASSEMBLYAI_BASE}/transcript/${id}`, {
       headers: assemblyHeaders(),
     });
     if (!pollRes.ok) {
-      console.error(`[transcribe] AssemblyAI poll failed ${pollRes.status}`);
+      const body = await pollRes.text();
+      console.error(`[transcribe] AssemblyAI poll failed ${pollRes.status}: ${body.slice(0, 300)}`);
       return null;
     }
     const json = await pollRes.json();
 
     if (json.status === 'completed') {
-      const segments: TranscriptionSegment[] = (json.words ?? []).map(
-        (w: { start: number; end: number; text: string }) => ({
-          start: w.start / 1000,
-          end: w.end / 1000,
-          text: w.text,
-        })
-      );
+      const result = parseAssemblyTranscript(json);
+      if (!result) {
+        console.error('[transcribe] AssemblyAI completed without transcript text or segments');
+        return null;
+      }
       console.log(
-        `[transcribe] AssemblyAI returned ${(json.text ?? '').length} chars, ${segments.length} segments`
+        `[transcribe] AssemblyAI returned ${result.text.length} chars, ${result.segments.length} segments`
       );
-      return { text: json.text ?? '', segments };
+      return result;
     }
 
     if (json.status === 'error') {
@@ -151,7 +237,8 @@ async function transcribeWithAssemblyAI(
       return null;
     }
 
-    await new Promise((r) => setTimeout(r, 3000));
+    await wait(delayMs);
+    delayMs = Math.min(delayMs + 1000, 5000);
   }
 
   console.error('[transcribe] AssemblyAI polling timed out');
@@ -159,20 +246,17 @@ async function transcribeWithAssemblyAI(
 }
 
 // ---------------------------------------------------------------------------
-// Public API — tries Whisper first, then AssemblyAI
+// Public API
 // ---------------------------------------------------------------------------
 
 /**
- * Transcribe audio using OpenAI Whisper (primary) or AssemblyAI (fallback).
- *
- * @param audioPath Path to an audio file (WAV, MP3, etc.)
- * @param timeoutMs Maximum time to wait for AssemblyAI polling (default 120s)
+ * Transcribe audio using AssemblyAI (preferred when available for timed segments)
+ * or OpenAI Whisper as a fallback.
  */
 export async function transcribeAudio(
   audioPath: string,
   timeoutMs: number = 120000
 ): Promise<TranscriptionResult | null> {
-  // Validate input file
   if (!existsSync(audioPath)) {
     console.error(`[transcribe] Audio file not found: ${audioPath}`);
     return null;
@@ -194,31 +278,23 @@ export async function transcribeAudio(
     return null;
   }
 
-  // Try OpenAI Whisper first
-  if (hasOpenAI) {
-    try {
-      const result = await transcribeWithWhisper(audioPath);
-      if (result?.text) return result;
-      console.warn('[transcribe] Whisper returned empty result, trying fallback…');
-    } catch (err) {
-      console.error('[transcribe] Whisper failed:', err);
-    }
-  }
+  const providers = [
+    hasAssemblyAI ? () => transcribeWithAssemblyAI(audioPath, timeoutMs) : null,
+    hasOpenAI ? () => transcribeWithWhisper(audioPath) : null,
+  ].filter(Boolean) as Array<() => Promise<TranscriptionResult | null>>;
 
-  // Fallback to AssemblyAI
-  if (hasAssemblyAI) {
+  for (const runProvider of providers) {
     try {
-      const result = await transcribeWithAssemblyAI(audioPath, timeoutMs);
-      if (result?.text) return result;
-      console.warn('[transcribe] AssemblyAI returned empty result');
+      const result = await runProvider();
+      if (result?.text || result?.segments.length) return result;
     } catch (err) {
-      console.error('[transcribe] AssemblyAI failed:', err);
+      console.error('[transcribe] Provider failed:', err);
     }
   }
 
   console.error(
     '[transcribe] All transcription methods failed. ' +
-      `Providers attempted: ${[hasOpenAI && 'Whisper', hasAssemblyAI && 'AssemblyAI'].filter(Boolean).join(', ')}`
+      `Providers attempted: ${[hasAssemblyAI && 'AssemblyAI', hasOpenAI && 'Whisper'].filter(Boolean).join(', ')}`
   );
   return null;
 }
