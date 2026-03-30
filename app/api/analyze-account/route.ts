@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { supabaseServer } from '@/lib/supabase-server';
+import { buildBenchmarkPromptSection } from '@/lib/engagement-benchmarks';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 
@@ -32,7 +33,7 @@ interface AccountAnalysis {
   overallVerdict: string;
 }
 
-async function fetchVideos(handle: string): Promise<TikTokVideo[]> {
+async function fetchVideos(handle: string): Promise<{ followerCount: number | undefined; videos: TikTokVideo[] }> {
   const cleanHandle = handle.replace(/^@/, '');
 
   const { stdout } = await execFileAsync(
@@ -48,8 +49,11 @@ async function fetchVideos(handle: string): Promise<TikTokVideo[]> {
 
   const data = JSON.parse(stdout);
   const entries = data.entries || [];
+  const followerCount = typeof data.channel_follower_count === 'number'
+    ? data.channel_follower_count
+    : undefined;
 
-  return entries.map((e: Record<string, unknown>) => ({
+  return { followerCount, videos: entries.map((e: Record<string, unknown>) => ({
     id: e.id as string,
     title: (e.title as string) || '',
     description: (e.description as string) || '',
@@ -60,7 +64,7 @@ async function fetchVideos(handle: string): Promise<TikTokVideo[]> {
     timestamp: (e.timestamp as number) || 0,
     track: (e.track as string) || undefined,
     artists: (e.artists as string[]) || undefined,
-  }));
+  })) };
 }
 
 function buildVideoSummary(videos: TikTokVideo[]): string {
@@ -97,8 +101,11 @@ export async function POST(request: NextRequest) {
 
     // Fetch videos via yt-dlp
     let videos: TikTokVideo[];
+    let followerCount: number | undefined;
     try {
-      videos = await fetchVideos(handle);
+      const result = await fetchVideos(handle);
+      videos = result.videos;
+      followerCount = result.followerCount;
     } catch (err) {
       console.error('[analyze-account] yt-dlp error:', err);
       return Response.json(
@@ -122,17 +129,15 @@ export async function POST(request: NextRequest) {
     // Run Claude analysis
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+    const benchmarkSection = buildBenchmarkPromptSection(followerCount, videos);
+
     const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K. You're analyzing @${handle}'s content history with the precision of a data scientist and the bluntness of a best friend. Here are their last ${videos.length} videos with performance data:
 
 ${videoSummary}
 
 ANALYSIS FRAMEWORK — use these benchmarks to evaluate:
 
-**Engagement Rate Benchmarks by Follower Tier:**
-- Under 5K followers: ~4.2% engagement per view is normal (highest tier — small accounts have the most engaged audiences)
-- Under 100K followers: ~7.5% engagement rate expected
-- Over 10M followers: ~2.88% engagement rate (scale dilutes engagement)
-- General healthy range: 3-6% engagement rate
+${benchmarkSection}
 
 **Format Virality Rankings** (compare their formats against this):
 1. Educational/Tutorial — highest save + share potential
