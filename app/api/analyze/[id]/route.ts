@@ -10,7 +10,8 @@ import { writeFile } from 'fs/promises';
 import { DimensionKey } from '@/lib/types';
 import { fetchTrendingContext as fetchNewTrendingContext, buildAgentTrendingContext, TrendingContext } from '@/lib/trending-context';
 import { detectNiche, NicheDetection } from '@/lib/niche-detect';
-import { buildAgentNicheContext } from '@/lib/niche-context';
+import { buildAgentNicheContext, NICHE_CONTEXT } from '@/lib/niche-context';
+import { getVideoDuration, analyzeDuration, DurationAnalysis } from '@/lib/video-duration';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 
@@ -659,6 +660,14 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
           send({ type: 'status', message: 'No frames extracted. Analysis will be limited.' });
         }
 
+        // Extract video duration
+        let durationAnalysis: DurationAnalysis | null = null;
+        const videoDuration = getVideoDuration(videoPath);
+        if (videoDuration) {
+          send({ type: 'status', message: `Video duration: ${videoDuration.durationFormatted}` });
+          // We'll compute the full analysis after niche detection
+        }
+
         // Extract and transcribe audio
         send({ type: 'status', message: 'Extracting audio...' });
         let transcript: TranscriptionResult | null = null;
@@ -715,6 +724,20 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
         });
         send({ type: 'status', message: `Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''} [${nicheDetection.confidence} confidence]` });
 
+        // Compute duration analysis now that we know the niche
+        if (videoDuration) {
+          const nicheInfo = NICHE_CONTEXT[nicheDetection.niche];
+          durationAnalysis = analyzeDuration(videoDuration, nicheInfo.optimalLength);
+          send({
+            type: 'duration',
+            durationSeconds: videoDuration.durationSeconds,
+            durationFormatted: videoDuration.durationFormatted,
+            category: durationAnalysis.category,
+            optimalRange: nicheInfo.optimalLength,
+            deltaSeconds: durationAnalysis.deltaSeconds,
+          });
+        }
+
         if (chronicIssues.length > 0) {
           send({ type: 'status', message: 'Repeat offender detected. Escalating intensity...' });
         }
@@ -755,7 +778,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
             }
 
             const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);
-            const nicheContext = buildAgentNicheContext(nicheDetection, dimension);
+            const nicheContext = buildAgentNicheContext(nicheDetection, dimension, videoDuration?.durationSeconds);
             const fullPrompt = prompt + TONE_RULES + hookContext + audioContext + trendingContext + nicheContext + escalationContext;
 
             const response = await anthropic.messages.create({
@@ -822,6 +845,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
               content: `You are a brutal TikTok roast machine. Given these agent scores and roasts for a video, write a 2-3 sentence savage overall verdict. Be funny and specific. Write like you're texting a friend — short sentences, simple words, no fancy vocabulary. A high schooler should laugh at this, not need a dictionary. Max ONE analogy and make it concrete and relatable.
 
 Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''}. Reference the niche in your verdict — tell them how their video stacks up against other ${nicheDetection.niche} creators.
+${durationAnalysis ? `\nVideo duration: ${durationAnalysis.duration.durationFormatted} (${durationAnalysis.duration.durationSeconds.toFixed(0)}s). Optimal for ${nicheDetection.niche}: ${NICHE_CONTEXT[nicheDetection.niche].optimalLength}. Category: ${durationAnalysis.category}.${durationAnalysis.category !== 'OPTIMAL' ? ` This is a key area to fix — ${durationAnalysis.category === 'WAY_TOO_SHORT' || durationAnalysis.category === 'WAY_TOO_LONG' ? 'MAJORLY' : 'noticeably'} off the sweet spot. Reference the duration problem in the verdict.` : ' Duration is solid — mention it as a positive.'}` : ''}
 
 Scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d]?.score])))}
 Agent summaries: ${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${repeatContext}
@@ -862,13 +886,26 @@ Write ONLY the verdict text, no JSON, no quotes. Keep it simple and punchy.`,
             likes: 0,
             comments: 0,
             shares: 0,
-            duration: 0,
+            duration: videoDuration?.durationSeconds ?? 0,
             hashtags: [],
             description: 'Uploaded video',
           },
         };
 
-        send({ type: 'verdict', overallScore, verdict, niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence } });
+        send({
+          type: 'verdict',
+          overallScore,
+          verdict,
+          niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
+          ...(durationAnalysis ? {
+            duration: {
+              seconds: durationAnalysis.duration.durationSeconds,
+              formatted: durationAnalysis.duration.durationFormatted,
+              category: durationAnalysis.category,
+              optimalRange: NICHE_CONTEXT[nicheDetection.niche].optimalLength,
+            },
+          } : {}),
+        });
 
         // Update session in Supabase with results
         try {
