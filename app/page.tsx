@@ -57,6 +57,29 @@ const FEATURES = [
   { icon: '⚡', title: 'Results in 60s', desc: 'Upload, wait, cry, improve. That fast.' },
 ];
 
+const HOOK_EXAMPLES = [
+  {
+    type: 'Visual + motion',
+    strong: 'Open on the finished result, a fast zoom, or a dramatic before/after in frame 1.',
+    weak: 'Start with a static selfie and a dead stare while you get into position.',
+  },
+  {
+    type: 'Spoken curiosity',
+    strong: '“this mistake is why your videos die at 300 views.”',
+    weak: '“hey guys, so today i wanted to talk about...”',
+  },
+  {
+    type: 'On-screen text',
+    strong: 'Big text in frame 1: “3 things that kill retention instantly”',
+    weak: 'Tiny text appears at 0:03 after the scroll already happened.',
+  },
+  {
+    type: 'Attractiveness / pattern interrupt',
+    strong: 'Unexpected prop, bold expression, outfit switch, or unusual angle that earns a pause.',
+    weak: 'Nothing visually changes until the viewer is already gone.',
+  },
+]
+
 // Particle positions (stable, SSR-safe — generated once)
 const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   id: i,
@@ -213,6 +236,51 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+
+              <GlassCard variant="surface" className="p-5 lg:p-6 border border-orange-500/20 bg-gradient-to-br from-zinc-900/90 to-zinc-950/80">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-orange-400 font-semibold mb-2">hook school</p>
+                    <h3 className="text-white text-xl font-black">the first 2-3 seconds decide whether any later advice matters.</h3>
+                    <p className="text-zinc-400 text-sm mt-2 max-w-xl">
+                      if the opener flops, viewers never stay long enough for your CTA, caption, or payoff to do their job.
+                      strong hooks buy attention. weak hooks kill everything downstream.
+                    </p>
+                  </div>
+                  <div className="hidden sm:grid grid-cols-3 gap-2 min-w-[180px] text-center text-[11px]">
+                    <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
+                      <div className="text-red-400 font-bold">0-1s</div>
+                      <div className="text-zinc-500 mt-1">stop scroll</div>
+                    </div>
+                    <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-2">
+                      <div className="text-yellow-400 font-bold">1-3s</div>
+                      <div className="text-zinc-500 mt-1">earn retention</div>
+                    </div>
+                    <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
+                      <div className="text-emerald-400 font-bold">after</div>
+                      <div className="text-zinc-500 mt-1">then CTA helps</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {HOOK_EXAMPLES.map((example) => (
+                    <div key={example.type} className="rounded-xl border border-zinc-800 bg-black/20 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">{example.type}</p>
+                      <div className="space-y-2 text-sm">
+                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
+                          <span className="text-emerald-400 font-semibold">strong:</span>{' '}
+                          <span className="text-zinc-200">{example.strong}</span>
+                        </div>
+                        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
+                          <span className="text-red-400 font-semibold">weak:</span>{' '}
+                          <span className="text-zinc-300">{example.weak}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
             </motion.div>
 
             {/* Right: Password gate card */}

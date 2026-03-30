@@ -1,16 +1,20 @@
 import { execSync } from 'child_process';
 import { readFileSync, mkdirSync, rmSync, existsSync } from 'fs';
 
+export interface ExtractedFrame {
+  timestampSec: number;
+  imageBase64: string;
+}
+
 /**
  * Extract evenly-spaced frames from a video file using ffmpeg.
- * Returns an array of base64-encoded JPEG strings.
+ * Returns base64-encoded JPEG strings with their timestamps.
  */
-export function extractFrames(videoPath: string, numFrames: number = 8): string[] {
+export function extractFrames(videoPath: string, numFrames: number = 8): ExtractedFrame[] {
   const framesDir = `${videoPath}_frames`;
   mkdirSync(framesDir, { recursive: true });
 
   try {
-    // Get video duration
     const durationStr = execSync(
       `ffprobe -v error -show_entries format=duration -of csv=p=0 "${videoPath}"`,
       { encoding: 'utf-8' }
@@ -22,7 +26,7 @@ export function extractFrames(videoPath: string, numFrames: number = 8): string[
     }
 
     const interval = duration / (numFrames + 1);
-    const frames: string[] = [];
+    const frames: ExtractedFrame[] = [];
 
     for (let i = 1; i <= numFrames; i++) {
       const timestamp = interval * i;
@@ -34,13 +38,15 @@ export function extractFrames(videoPath: string, numFrames: number = 8): string[
 
       if (existsSync(outputPath)) {
         const buffer = readFileSync(outputPath);
-        frames.push(buffer.toString('base64'));
+        frames.push({
+          timestampSec: Number(timestamp.toFixed(2)),
+          imageBase64: buffer.toString('base64'),
+        });
       }
     }
 
     return frames;
   } finally {
-    // Clean up frames directory
     if (existsSync(framesDir)) {
       rmSync(framesDir, { recursive: true, force: true });
     }
