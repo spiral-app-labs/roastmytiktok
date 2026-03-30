@@ -64,12 +64,14 @@ export default function RoastPage() {
         const cached = sessionStorage.getItem(`roast_${id}`);
         if (cached) {
           const parsed = JSON.parse(cached) as RoastResult;
-          setRoast(parsed);
-          setLoading(false);
-          const source = searchParams.get('source') === 'upload' ? 'upload' : 'url';
-          const filename = searchParams.get('filename') ?? undefined;
-          saveToHistory(parsed, source, filename);
-          return;
+          if (parsed.soundLibraryPlan) {
+            setRoast(parsed);
+            setLoading(false);
+            const source = searchParams.get('source') === 'upload' ? 'upload' : 'url';
+            const filename = searchParams.get('filename') ?? undefined;
+            saveToHistory(parsed, source, filename);
+            return;
+          }
         }
       } catch { /* ignore */ }
 
@@ -174,6 +176,7 @@ function RoastContent({
       { id: 'hold-strength', label: 'Watch Strength', emoji: '⏱️' },
       { id: 'first-glance', label: 'First Glance', emoji: '👁️' },
       { id: 'reshoot-planner', label: 'Reshoot Plan', emoji: '🎬' },
+      { id: 'sound-library', label: 'Sound Library', emoji: '🎵' },
       { id: 'agent-cards', label: isHookWeak ? 'Secondary Feedback' : 'Full Analysis', emoji: '🔬' },
     );
     return items;
@@ -717,6 +720,73 @@ function RoastContent({
             ))}
           </div>
         </motion.div>
+
+        {/* Sound library */}
+        {roast.soundLibraryPlan && (
+          <motion.div
+            id="sound-library"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.24, duration: 0.45 }}
+            className="scroll-mt-20 mb-8 rounded-2xl border border-fuchsia-500/20 bg-zinc-900/60 p-5 text-left"
+          >
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-fuchsia-400">TikTok sound library</p>
+                <h3 className="text-lg font-bold text-white mt-1">{roast.soundLibraryPlan.headline}</h3>
+              </div>
+              <span className="text-xs text-zinc-500">built from live trend inventory</span>
+            </div>
+            <p className="text-sm text-zinc-300">{roast.soundLibraryPlan.summary}</p>
+            <p className="text-xs text-fuchsia-200/80 mt-2">{roast.soundLibraryPlan.creatorAngle}</p>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {roast.soundLibraryPlan.recommendations.map((sound) => (
+                <div key={sound.name} className="rounded-xl border border-fuchsia-500/15 bg-fuchsia-500/[0.04] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{sound.name}</p>
+                      <p className="text-[11px] uppercase tracking-widest text-zinc-500 mt-1">{sound.status} · velocity {sound.velocity}/100</p>
+                    </div>
+                    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${sound.fitLabel === 'best bet' ? 'border-emerald-500/30 text-emerald-300' : sound.fitLabel === 'worth testing' ? 'border-yellow-500/30 text-yellow-300' : 'border-zinc-700 text-zinc-400'}`}>
+                      {sound.fitLabel}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-xs text-zinc-300"><span className="text-fuchsia-300 font-semibold">how to use it:</span> {sound.usage}</p>
+
+                  <ul className="mt-3 space-y-1.5">
+                    {sound.whyItFits.map((reason, index) => (
+                      <li key={index} className="flex gap-2 text-xs text-zinc-400">
+                        <span className="text-fuchsia-400">•</span>
+                        <span>{reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-3 rounded-lg border border-zinc-800 bg-black/20 p-2.5">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">search inside tiktok</p>
+                    <p className="text-xs text-white mt-1">{sound.searchQuery}</p>
+                  </div>
+
+                  <p className="mt-3 text-xs text-zinc-500"><span className="text-zinc-400 font-semibold">watch for:</span> {sound.caution}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">practical creator move</p>
+              <ul className="space-y-1.5">
+                {roast.soundLibraryPlan.actionSteps.map((step, index) => (
+                  <li key={index} className="flex gap-2 text-sm text-zinc-300">
+                    <span className="text-fuchsia-400">•</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </motion.div>
+        )}
 
         {/* ========== DOWNSTREAM SEPARATOR — when hook is weak ========== */}
         {isHookWeak && (
