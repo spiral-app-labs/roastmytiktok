@@ -203,6 +203,10 @@ export function buildAgentNicheContext(
     case 'accessibility':
       agentGuidance = `\n\nNICHE ACCESSIBILITY GUIDANCE: In ${detection.niche}, ${['education', 'tech', 'finance'].includes(detection.niche) ? 'captions are absolutely critical — the entire value is in the words' : ['music', 'food', 'pets', 'travel'].includes(detection.niche) ? 'visual storytelling should carry the content even without sound' : 'standard accessibility expectations apply'}.`;
       break;
+
+    case 'caption_quality':
+      agentGuidance = `\n\nNICHE CAPTION QUALITY GUIDANCE: In ${detection.niche}, ${['education', 'tech', 'finance', 'diy'].includes(detection.niche) ? 'caption precision is critical — viewers save educational content to re-read later, so timing, font size, and contrast must be flawless' : ['comedy'].includes(detection.niche) ? 'caption timing is everything — a punchline that appears 0.5s early or late ruins the joke' : 'standard caption quality expectations apply — sync, readability, and safe positioning'}.`;
+      break;
   }
 
   return `\n${base}${agentGuidance}`;
