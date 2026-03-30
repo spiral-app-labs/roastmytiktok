@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
-import { getFirstGlanceChecks, getHoldAssessment, getHookWorkshop, getReshootPlanner } from '@/lib/hook-help';
+import { getFirstGlanceChecks, getHoldAssessment, getHookRewriteWorkflow, getHookWorkshop, getReshootPlanner, getReshootTakes } from '@/lib/hook-help';
+import { getPersonalizedHookPatterns } from '@/lib/viral-hooks';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
 import { DeepDiveNav } from '@/components/DeepDiveNav';
@@ -149,7 +150,10 @@ function RoastContent({
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
   const isHookWeak = roast.analysisMode === 'hook-first' || roast.hookSummary?.strength === 'weak';
   const hookWorkshop = getHookWorkshop(roast);
+  const hookRewriteWorkflow = getHookRewriteWorkflow(roast);
   const reshootPlanner = getReshootPlanner(roast);
+  const reshootTakes = getReshootTakes(roast);
+  const hookPatterns = getPersonalizedHookPatterns(roast, 6);
   const holdAssessment = roast.holdAssessment ?? getHoldAssessment(roast);
   const firstGlanceChecks = getFirstGlanceChecks(roast);
 
@@ -170,6 +174,7 @@ function RoastContent({
     }
     items.push(
       { id: 'hook-workshop', label: 'Hook Breakdown', emoji: '🎣' },
+      { id: 'hook-examples', label: 'Hook Examples', emoji: '📚' },
       { id: 'hold-strength', label: 'Watch Strength', emoji: '⏱️' },
       { id: 'first-glance', label: 'First Glance', emoji: '👁️' },
       { id: 'reshoot-planner', label: 'Reshoot Plan', emoji: '🎬' },
@@ -613,6 +618,68 @@ function RoastContent({
                   ))}
                 </div>
               </div>
+              <div className="rounded-2xl border border-orange-500/15 bg-zinc-950/40 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-orange-300">rewrite workflow</p>
+                    <h4 className="mt-1 text-sm font-semibold text-white">{hookRewriteWorkflow.headline}</h4>
+                  </div>
+                  <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-orange-200">
+                    usable, not magic
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-zinc-400">{hookRewriteWorkflow.summary}</p>
+                <div className="mt-4 space-y-2.5">
+                  {hookRewriteWorkflow.steps.map((step) => (
+                    <div key={step.label} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-orange-300">{step.label}</p>
+                      <p className="mt-1 text-sm font-semibold text-zinc-100">{step.instruction}</p>
+                      <p className="mt-1 text-xs text-zinc-400">{step.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          id="hook-examples"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.13, duration: 0.45 }}
+          className="scroll-mt-20 mb-6"
+        >
+          <div className="rounded-2xl border border-emerald-500/20 bg-zinc-900/60 p-5 text-left">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Top hook examples</p>
+                <h3 className="text-lg font-bold text-white mt-1">steal a proven pattern, not just a note</h3>
+              </div>
+              <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-emerald-300">
+                from the top 50 library
+              </span>
+            </div>
+            <p className="text-sm text-zinc-400">
+              these are matched from our viral hook bank based on your topic and the kind of opener weakness this video has. use one as-is or remix the structure.
+            </p>
+            <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+              {hookPatterns.map((pattern) => (
+                <div key={pattern.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300">{pattern.pattern}</p>
+                      <p className="mt-1 text-xs text-zinc-500">{pattern.angle}</p>
+                    </div>
+                    <span className="rounded-full border border-zinc-700 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                      top fit
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-white">“{pattern.line}”</p>
+                  <p className="mt-2 text-xs text-zinc-400">{pattern.whyItWorks}</p>
+                  <p className="mt-3 text-xs text-emerald-200/90">{pattern.personalizationNote}</p>
+                </div>
+              ))}
             </div>
           </div>
         </motion.div>
@@ -687,6 +754,42 @@ function RoastContent({
                 <p className="text-xs text-zinc-400 mt-1">{step.detail}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-4 rounded-2xl border border-blue-500/15 bg-zinc-950/40 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300">filmable take options</p>
+                <h4 className="mt-1 text-sm font-semibold text-white">pick one and refilm it clean</h4>
+              </div>
+              <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-200">
+                a/b/c test
+              </span>
+            </div>
+            <div className="mt-4 grid gap-3 lg:grid-cols-3">
+              {reshootTakes.map((take) => (
+                <div key={take.label} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300">{take.label}</p>
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">spoken line</p>
+                      <p className="mt-1 text-sm text-white">{take.spokenLine}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">visual</p>
+                      <p className="mt-1 text-xs text-zinc-300">{take.visual}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">text overlay</p>
+                      <p className="mt-1 text-xs text-zinc-200">{take.textOverlay}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">why this take works</p>
+                      <p className="mt-1 text-xs text-zinc-400">{take.whyItWorks}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </motion.div>
 
