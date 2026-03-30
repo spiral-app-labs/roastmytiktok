@@ -632,9 +632,11 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
         try {
           audioPath = extractAudio(videoPath);
           if (audioPath) {
-            const hasTranscriptionKey = !!process.env.ASSEMBLYAI_API_KEY;
+            const hasTranscriptionKey = !!process.env.OPENAI_API_KEY || !!process.env.ASSEMBLYAI_API_KEY;
             if (hasTranscriptionKey) {
               send({ type: 'status', message: 'Transcribing audio...' });
+            } else {
+              console.error('[analyze] No transcription API key set (OPENAI_API_KEY or ASSEMBLYAI_API_KEY)');
             }
             // Run transcription and speech/music detection in parallel
             const [transcriptResult, speechMusicResult] = await Promise.all([
@@ -645,7 +647,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
             audioChars = speechMusicResult;
 
             if (!hasTranscriptionKey) {
-              send({ type: 'status', message: 'Audio transcription unavailable — running visual analysis.' });
+              send({ type: 'status', message: 'Audio transcription unavailable — set OPENAI_API_KEY or ASSEMBLYAI_API_KEY.' });
             } else if (transcript?.text) {
               send({ type: 'status', message: 'Audio transcribed successfully.' });
             } else {
