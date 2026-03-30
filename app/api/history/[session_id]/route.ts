@@ -1,7 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server';
 
-export async function GET(_req: Request, ctx: RouteContext<'/api/history/[session_id]'>) {
-  const { session_id } = await ctx.params;
+export async function GET(_req: Request, { params }: { params: Promise<{ session_id: string }> }) {
+  const { session_id } = await params;
 
   if (!session_id || session_id.length < 5) {
     return Response.json({ error: 'Invalid session ID' }, { status: 400 });
