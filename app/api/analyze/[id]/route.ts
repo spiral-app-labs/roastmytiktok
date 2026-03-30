@@ -15,6 +15,54 @@ import { getVideoDuration, analyzeDuration, DurationAnalysis } from '@/lib/video
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 
+const EXAMPLE_FEEDBACK: Record<DimensionKey, { bad: string; great: string }> = {
+  hook: {
+    bad: `Your hook could be stronger. Try to grab attention faster.`,
+    great: `Your hook uses a question format ("Did you know...?") which ranks Tier 2 in effectiveness. For your fitness niche, a Visual Pattern Interrupt — like demonstrating the exercise in the first frame — would outperform by ~40%. Try opening with the most impressive rep of your set instead of talking about it.`,
+  },
+  visual: {
+    bad: `Lighting could be better.`,
+    great: `Your face is lit from directly above (overhead lighting), creating harsh shadows under your eyes. This is common in kitchen content. Position yourself facing a window or add a ring light at eye level. Your background (white kitchen wall) is clean, which works — but adding one colorful prop behind your left shoulder would give the frame depth.`,
+  },
+  caption: {
+    bad: `Add captions for accessibility.`,
+    great: `Your captions enter at 0:04 but your hook starts at 0:01 — that is 3 seconds of lost engagement for the 80% of viewers watching sound-off. Sync caption entry to the first spoken word. Your font choice (white sans-serif) works but sits too low — move it to upper-third for better readability on mobile where the comment section overlaps.`,
+  },
+  audio: {
+    bad: `Try using a trending sound.`,
+    great: `You are using original audio, which is correct for educational content in your niche. However, your speaking pace is ~180 words/minute — TikTok optimal is 140-160 wpm for retention. Slow down slightly on your key points. Your background music volume is good (barely audible) — this is the right balance for talking-head content.`,
+  },
+  algorithm: {
+    bad: `Post at better times for more views.`,
+    great: `Your video is 47 seconds — for fitness tutorials, the sweet spot is 15-45 seconds. You are 2 seconds over, which slightly hurts completion rate. Your predicted engagement pattern: high likes (visual content), moderate comments (you did not include a question), low saves (no reference-worthy information). Adding a numbered list of exercises would boost save rate by 2-3x.`,
+  },
+  conversion: {
+    bad: `Add a call to action.`,
+    great: `Your CTA is "follow for more" — this is the weakest possible CTA (generic, no specificity). For fitness content: "Follow for daily 5-minute workouts" gives the viewer a reason. Your caption has only hashtags with no engagement hook. Add: "Drop your biggest fitness struggle below 👇" — this is a Tier 1 comment bait pattern (fill-in-the-blank) that typically drives 3-5x more comments.`,
+  },
+  authenticity: {
+    bad: `Be more authentic.`,
+    great: `With 12K followers, you are in the Micro tier where average engagement is 7.5%. Your 4.2% suggests your content reaches people but does not compel them to engage. Your comment section shows mostly emoji reactions (❤️🔥) with few substantive replies — this signals entertainment value but low connection. Try responding to one comment per video with a detailed answer — this builds community and boosts algorithmic trust.`,
+  },
+  accessibility: {
+    bad: `Make your content more accessible.`,
+    great: `Your video relies entirely on spoken audio with no captions or text overlay. This excludes the 80%+ of TikTok viewers who start with sound off. Your contrast ratio between text (white) and background (light kitchen) is approximately 2.1:1 — WCAG requires 4.5:1 for readability. Use a semi-transparent dark background behind text or switch to yellow/bold text.`,
+  },
+};
+
+function buildExampleFeedbackBlock(dimension: DimensionKey): string {
+  const ex = EXAMPLE_FEEDBACK[dimension];
+  return `
+
+EXAMPLE OF GREAT FEEDBACK — Study these examples. Your feedback must match the GREAT example in specificity and actionability.
+
+BAD (generic, unhelpful — NEVER do this):
+"${ex.bad}"
+
+GREAT (specific, actionable, references actual content — THIS is the standard):
+"${ex.great}"`;
+}
+
 const AGENT_PROMPTS: Record<DimensionKey, { name: string; prompt: string }> = {
   hook: {
     name: 'Hook Agent',
@@ -67,6 +115,7 @@ ROAST RULES — non-negotiable:
 - Be funny because you're RIGHT. The roast lands because it's accurate.
 - If the hook is actually good, LEAD with that. Say what tier it hits and why it works. Don't skip the praise just to be savage — good hooks deserve credit.
 - Pair every criticism with the specific fix. "Your hook is weak" = useless. "Your hook is a Tier 3 countdown — swap it for a Tier 1 direct address like '[exact words]' and you'll 2x your retention" = gold.
+` + buildExampleFeedbackBlock('hook') + `
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -107,6 +156,7 @@ ROAST RULES — non-negotiable:
 - Be funny because you're accurate. If the visuals are good, LEAD with what works and why.
 - Every visual critique must include a specific fix: not "improve your lighting" but "your left side is in shadow — face the window or add a $20 ring light camera-left to fill that shadow."
 - Not "clean your background" but "that [specific object] behind you is distracting — move it out of frame or switch to a plain wall."
+` + buildExampleFeedbackBlock('visual') + `
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -146,6 +196,7 @@ ROAST RULES — non-negotiable:
 - If text appears at the wrong time, call out the specific timing mismatch: "Your caption appears at [time] but the spoken word starts at [time] — sync these up."
 - Write like you're texting. Direct, fast, specific.
 - Funny because accurate. If their text game is strong, LEAD with the praise and say which tier.
+` + buildExampleFeedbackBlock('caption') + `
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -193,6 +244,7 @@ ROAST RULES — non-negotiable:
 - If audio is clean and strategy is smart, LEAD with that praise. Good audio is hard and deserves credit.
 - Every audio critique must include a specific fix: not "improve audio quality" but "you've got echo — record in a closet or small room with soft surfaces, or clip a $15 lav mic to your shirt."
 - Not "voice is too quiet" but "your voice is at maybe 40% of the mix — boost it to 80% voice / 20% music in your editor."
+` + buildExampleFeedbackBlock('audio') + `
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -271,6 +323,7 @@ ROAST RULES — non-negotiable:
 - If the algorithm setup is strong, LEAD with what's working and why. Not everything needs to be roasted.
 - Every critique must include a specific fix: not "add comment bait" but "end the video with 'which one would you make first — A or B?' to create camps in the comments."
 - Write like you're texting. Funny because accurate.
+` + buildExampleFeedbackBlock('algorithm') + `
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -325,6 +378,7 @@ ROAST RULES — non-negotiable:
 - Identify their niche (or lack thereof) and tell them exactly what niche the algorithm would categorize them into.
 - Every authenticity critique must be constructive: not "you seem fake" but "you're doing the content-creator voice — try talking like you're explaining this to your best friend. Drop the performance energy by 30%."
 - If the creator has genuine personality but rough production, acknowledge that personality > polish for building an audience.
+` + buildExampleFeedbackBlock('authenticity') + `
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -396,6 +450,7 @@ ROAST RULES — non-negotiable:
 - If they DO have a CTA, acknowledge it before suggesting improvements. "You have a CTA but it's generic — swap 'follow for more' with 'follow for daily [their niche] tips' for 2-3x the conversion."
 - Suggest the EXACT comment bait they should use, tailored to their specific content. Not "add a question" — write the actual question.
 - Be funny because you're RIGHT. Write like you're texting.
+` + buildExampleFeedbackBlock('conversion') + `
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -440,6 +495,7 @@ ROAST RULES — non-negotiable:
 - Every accessibility critique must include a specific, actionable fix: not "add captions" but "open CapCut → Auto Captions → pick a bold style with black outline → export. Takes 2 minutes."
 - Not "improve contrast" but "your [color] text on [color] background is ~2:1 contrast — swap to white text with a black outline for 10:1+ contrast that's readable on any background."
 - Be funny because you're RIGHT. Write like you're texting.
+` + buildExampleFeedbackBlock('accessibility') + `
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
