@@ -21,10 +21,30 @@ export interface HookWorkshop {
   }>;
 }
 
+export interface HookRewriteWorkflowStep {
+  label: string;
+  instruction: string;
+  detail: string;
+}
+
+export interface HookRewriteWorkflow {
+  headline: string;
+  summary: string;
+  steps: HookRewriteWorkflowStep[];
+}
+
 export interface ReshootPlanStep {
   label: string;
   direction: string;
   detail: string;
+}
+
+export interface ReshootTake {
+  label: string;
+  spokenLine: string;
+  visual: string;
+  textOverlay: string;
+  whyItWorks: string;
 }
 
 export interface FirstGlanceCheckItem {
@@ -79,6 +99,44 @@ export function getHookWorkshop(roast: RoastResult): HookWorkshop {
   };
 }
 
+export function getHookRewriteWorkflow(roast: RoastResult): HookRewriteWorkflow {
+  const workshop = getHookWorkshop(roast);
+  const openerLine = workshop.openerLine;
+  const bestRewrite = workshop.rewrites[0]?.line || 'lead with the clearest promise immediately.';
+  const visualFinding = clean(getAgent(roast, 'visual')?.findings?.[0]) || 'frame one does not feel visually urgent yet.';
+  const captionFinding = clean(getAgent(roast, 'caption')?.findings?.[0]) || 'the mute-mode message is still too soft in the opening beat.';
+  const hookFinding = clean(getAgent(roast, 'hook')?.findings?.[0]) || 'the current opener is not giving a cold viewer a reason to stop.';
+
+  const openerNeedsReplacement = openerLine !== 'No spoken opener detected in the first beat.';
+
+  return {
+    headline: 'rewrite the hook in four moves',
+    summary: 'this is not a prediction engine. it is a practical rewrite pass that strips the weak setup and gives you a sharper first beat to test.',
+    steps: [
+      {
+        label: '1. keep the real promise',
+        instruction: 'name the payoff before the explanation',
+        detail: clean(`anchor the rewrite around the clearest outcome or tension in the video. current evidence: ${hookFinding}`),
+      },
+      {
+        label: '2. kill the soft opening',
+        instruction: openerNeedsReplacement ? `cut this line: "${openerLine}"` : 'do not add a greeting or warm-up line',
+        detail: 'anything that sounds like throat-clearing, context-setting, or a polite intro belongs after the viewer is already hooked.',
+      },
+      {
+        label: '3. rebuild the first sentence',
+        instruction: `test this version first: "${bestRewrite}"`,
+        detail: clean(`say it over the strongest visual you have, not over dead air. visual note: ${visualFinding}`),
+      },
+      {
+        label: '4. make frame one carry the same message',
+        instruction: 'match the spoken line with one short on-screen text beat',
+        detail: clean(`do not invent extra claims. the overlay should reinforce the same promise in 4 to 7 words. current note: ${captionFinding}`),
+      },
+    ],
+  };
+}
+
 export function getReshootPlanner(roast: RoastResult): ReshootPlanStep[] {
   const openerLine = getOpeningLine(roast);
   const hookRewrite = getHookWorkshop(roast).rewrites[0]?.line || 'lead with the strongest claim immediately.';
@@ -109,6 +167,31 @@ export function getReshootPlanner(roast: RoastResult): ReshootPlanStep[] {
       detail: 'remove any pause, greeting, or camera-settling beat before the first claim lands. the viewer should understand the promise within the first 1 to 2 seconds.',
     },
   ];
+}
+
+export function getReshootTakes(roast: RoastResult): ReshootTake[] {
+  const workshop = getHookWorkshop(roast);
+  const topic = inferTopic(roast, workshop.openerLine);
+  const visualFinding = clean(getAgent(roast, 'visual')?.findings?.[0]) || 'the current first frame is not stopping the scroll yet.';
+  const captionFinding = clean(getAgent(roast, 'caption')?.findings?.[0]) || 'the first-screen text is not doing enough work yet.';
+
+  return workshop.rewrites.slice(0, 3).map((rewrite, index) => ({
+    label: `take ${String.fromCharCode(65 + index)}`,
+    spokenLine: rewrite.line,
+    visual:
+      index === 0
+        ? `start on your strongest proof or reaction, then push into camera immediately. avoid a neutral wide shot. note: ${visualFinding}`
+        : index === 1
+          ? `open mid-action so the promise lands while something is already happening on screen. note: ${visualFinding}`
+          : `show the result first, then deliver the line as voiceover or direct address over that proof. note: ${visualFinding}`,
+    textOverlay:
+      index === 0
+        ? normalizeLine(`stuck at 200 views? fix your ${topic} opener`)
+        : index === 1
+          ? normalizeLine(`your opener is killing the video`)
+          : normalizeLine(`show this before you explain it`),
+    whyItWorks: clean(`${rewrite.whyItWorks} keep the text short and readable in frame one. caption note: ${captionFinding}`),
+  }));
 }
 
 export function getHoldAssessment(roast: RoastResult): HoldAssessment {

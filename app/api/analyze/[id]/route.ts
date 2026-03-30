@@ -14,7 +14,8 @@ import { detectNiche, NicheDetection } from '@/lib/niche-detect';
 import { buildAgentNicheContext, NICHE_CONTEXT } from '@/lib/niche-context';
 import { getVideoDuration, analyzeDuration, DurationAnalysis } from '@/lib/video-duration';
 import { buildEvidenceLedger, buildFallbackActionPlan, parseStrategicSummary } from '@/lib/action-plan';
-import { sanitizeActionPlan, sanitizeAgentResult, sanitizeUserFacingText } from '@/lib/analysis-safety';
+import { sanitizeActionPlan, sanitizeAgentResult, sanitizeUserFacingText, sanitizePromptInput, truncateForTokenLimit } from '@/lib/analysis-safety';
+import { logSuccess, logFailure } from '@/lib/analysis-logger';
 import type { ActionPlanStep } from '@/lib/types';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
@@ -895,10 +896,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         // Extract frames
         send({ type: 'status', message: 'Extracting frames...' });
         let frames: ExtractedFrame[] = [];
+        const frameStart = Date.now();
         try {
           frames = extractFrames(videoPath, 8);
+          logSuccess('frame-extraction', id, { frameCount: frames.length }, Date.now() - frameStart);
         } catch (err) {
-          console.error('[analyze] Frame extraction failed:', err);
+          logFailure('frame-extraction', id, err);
           send({ type: 'status', message: 'Frame extraction limited, running text-based analysis...' });
         }
 
@@ -923,13 +926,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         try {
           audioPath = extractAudio(videoPath);
           if (audioPath) {
+            logSuccess('audio-extraction', id, { audioPath });
             const hasTranscriptionKey = !!process.env.OPENAI_API_KEY || !!process.env.ASSEMBLYAI_API_KEY;
             if (hasTranscriptionKey) {
               send({ type: 'status', message: 'Transcribing audio...' });
             } else {
-              console.error('[analyze] No transcription API key set (OPENAI_API_KEY or ASSEMBLYAI_API_KEY)');
+              logFailure('transcription', id, 'No transcription API key set');
             }
             // Run transcription and speech/music detection in parallel
+            const transcriptionStart = Date.now();
             const [transcriptResult, speechMusicResult] = await Promise.all([
               transcribeAudio(audioPath, 120000),
               Promise.resolve(detectSpeechMusic(audioPath)),
@@ -937,18 +942,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             transcript = transcriptResult;
             audioChars = speechMusicResult;
 
-            if (!hasTranscriptionKey) {
-              send({ type: 'status', message: 'Audio transcription unavailable — set OPENAI_API_KEY or ASSEMBLYAI_API_KEY.' });
-            } else if (transcript?.text || transcript?.segments?.length) {
+            if (transcript?.text || transcript?.segments?.length) {
+              logSuccess('transcription', id, { provider: transcript.provider, chars: transcript.text.length, segments: transcript.segments.length }, Date.now() - transcriptionStart);
               send({ type: 'status', message: `Audio transcribed successfully${transcript.provider ? ` via ${transcript.provider}` : ''}.` });
+            } else if (!hasTranscriptionKey) {
+              send({ type: 'status', message: 'Audio transcription unavailable — set OPENAI_API_KEY or ASSEMBLYAI_API_KEY.' });
             } else {
+              logSuccess('transcription', id, { result: 'no-speech' }, Date.now() - transcriptionStart);
               send({ type: 'status', message: 'No speech detected in audio.' });
             }
           } else {
+            logSuccess('audio-extraction', id, { result: 'no-audio-track' });
             send({ type: 'status', message: 'No audio track found in video.' });
           }
         } catch (err) {
-          console.warn('[analyze] Audio processing failed:', err);
+          logFailure('audio-extraction', id, err);
           send({ type: 'status', message: 'Audio transcription timed out. Running visual-only analysis...' });
         }
 
@@ -958,10 +966,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (frames.length > 0) {
           try {
             send({ type: 'status', message: 'Auditing caption timing and readability...' });
+            const captionStart = Date.now();
             captionQuality = await analyzeCaptionQuality({ anthropic, frames, transcript });
             captionQualityContext = buildCaptionQualityContext(captionQuality);
+            logSuccess('caption-quality', id, { hasCaptions: captionQuality.hasCaptions, readability: captionQuality.overallReadability }, Date.now() - captionStart);
           } catch (err) {
-            console.warn('[analyze] Caption quality audit failed:', err);
+            logFailure('caption-quality', id, err);
           }
         }
 
@@ -1026,20 +1036,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             const hookContext = dimension === 'hook' ? playbookContext : '';
             const hookPriorityContext = buildHookPriorityContext(dimension, agentResults.hook);
 
-            // Build audio context for relevant agents
+            // Build audio context for relevant agents — sanitize transcript inputs
             let audioContext = '';
             if (dimension === 'audio' && transcript?.text) {
+              const safeTranscript = sanitizePromptInput(transcript.text, 3000);
               const segmentLines = transcript.segments
-                .map(s => `${s.start.toFixed(1)}s-${s.end.toFixed(1)}s: "${s.text}"`)
+                .slice(0, 50)
+                .map(s => `${s.start.toFixed(1)}s-${s.end.toFixed(1)}s: "${sanitizePromptInput(s.text, 500)}"`)
                 .join('\n');
-              audioContext = `\n\nAUDIO TRANSCRIPT:\n${transcript.text}\n\nSPEECH SEGMENTS (with timestamps):\n${segmentLines}\n\nAUDIO STRUCTURE: ${audioChars.hasSpeech ? 'Voice detected' : 'No clear voice'} | ${audioChars.hasMusic ? 'Music/background audio detected' : 'No background music'}\n\nNow analyze the ACTUAL audio content above. Reference specific words/phrases the creator said. Quote them. If the transcript is empty, note that the video appears to have no speech.`;
+              audioContext = `\n\nAUDIO TRANSCRIPT:\n${safeTranscript}\n\nSPEECH SEGMENTS (with timestamps):\n${segmentLines}\n\nAUDIO STRUCTURE: ${audioChars.hasSpeech ? 'Voice detected' : 'No clear voice'} | ${audioChars.hasMusic ? 'Music/background audio detected' : 'No background music'}\n\nNow analyze the ACTUAL audio content above. Reference specific words/phrases the creator said. Quote them. If the transcript is empty, note that the video appears to have no speech.`;
             } else if (dimension === 'audio') {
               audioContext = '\n\nNo audio transcript available — transcription was unavailable or no speech was detected. Analyze based on visual cues only and note that audio analysis was limited.';
             } else if (dimension === 'hook' && transcript?.segments?.length) {
               const firstSegment = transcript.segments[0];
-              audioContext = `\n\nThe creator's first spoken words are: "${firstSegment.text}". Analyze whether this opening line is a strong hook.`;
+              audioContext = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstSegment.text, 500)}". Analyze whether this opening line is a strong hook.`;
             } else if (dimension === 'algorithm' && transcript?.text) {
-              const words = transcript.text.split(/\s+/).slice(0, 30).join(' ');
+              const words = sanitizePromptInput(transcript.text, 500).split(/\s+/).slice(0, 30).join(' ');
               audioContext = `\n\nThe caption/speech mentions: "${words}". Does this align with trending topics?`;
             }
 
@@ -1048,23 +1060,47 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             const captionAuditContext = dimension === 'caption' || dimension === 'accessibility'
               ? captionQualityContext
               : '';
-            const fullPrompt = prompt + TONE_RULES + hookContext + hookPriorityContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext;
+            const fullPrompt = truncateForTokenLimit(
+              prompt + TONE_RULES + hookContext + hookPriorityContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext,
+              12000,
+            );
 
-            const response = await anthropic.messages.create({
-              model: 'claude-sonnet-4-6',
-              max_tokens: 1024,
-              messages: [{
-                role: 'user',
-                content: [
-                  ...imageContent,
-                  { type: 'text' as const, text: fullPrompt },
-                ],
-              }],
-            });
+            // Retry agent call up to 2 times on transient failures
+            const agentStart = Date.now();
+            let agentResponse: Anthropic.Message | null = null;
+            let agentLastError: unknown = null;
+            for (let attempt = 1; attempt <= 2; attempt++) {
+              try {
+                agentResponse = await anthropic.messages.create({
+                  model: 'claude-sonnet-4-6',
+                  max_tokens: 1024,
+                  messages: [{
+                    role: 'user',
+                    content: [
+                      ...imageContent,
+                      { type: 'text' as const, text: fullPrompt },
+                    ],
+                  }],
+                });
+                break;
+              } catch (retryErr) {
+                agentLastError = retryErr;
+                const msg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+                const isRetryable = msg.includes('overloaded') || msg.includes('529') || msg.includes('rate') || msg.includes('timeout');
+                if (!isRetryable || attempt === 2) break;
+                console.warn(`[analyze] Agent ${dimension} attempt ${attempt} failed (retryable): ${msg.slice(0, 200)}`);
+                await new Promise(r => setTimeout(r, 2000 * attempt));
+              }
+            }
 
-            const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+            if (!agentResponse) {
+              throw agentLastError ?? new Error(`Agent ${dimension} returned no response`);
+            }
+
+            const responseText = agentResponse.content[0].type === 'text' ? agentResponse.content[0].text : '';
             const result = parseAgentResponse(responseText, dimension);
             agentResults[dimension] = result;
+            logSuccess('agent', id, { dimension, score: result.score }, Date.now() - agentStart);
 
             send({
               type: 'agent',
@@ -1074,7 +1110,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               result: { agent: dimension, ...result },
             });
           } catch (err) {
-            console.error(`[analyze] Agent ${dimension} failed:`, err);
+            logFailure('agent', id, err, { dimension });
             const fallback = {
               score: 50,
               roastText: `${name} encountered an error analyzing this dimension. Consider yourself lucky.`,
@@ -1202,7 +1238,8 @@ Rules:
           } else {
             verdict = sanitizeUserFacingText(verdictText, 'Your video exists. That is the nicest thing we can say about it.');
           }
-        } catch {
+        } catch (verdictErr) {
+          logFailure('verdict', id, verdictErr);
           verdict = 'Your video exists. That is the nicest thing we can say about it.';
         }
 
@@ -1280,12 +1317,12 @@ Rules:
             result_json: result,
           }).eq('id', id);
         } catch (err) {
-          console.warn('[analyze] Supabase save failed:', err);
+          logFailure('supabase-save', id, err);
         }
 
         send({ type: 'done', id });
       } catch (err) {
-        console.error('[analyze] Stream error:', err);
+        logFailure('agent', id, err, { stage: 'stream-outer' });
         send({ type: 'error', message: 'Analysis failed. Please try again.' });
       } finally {
         // Clean up temp video and audio
