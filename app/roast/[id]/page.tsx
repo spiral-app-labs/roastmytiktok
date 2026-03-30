@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
 import { getFirstGlanceChecks, getHoldAssessment, getHookWorkshop, getReshootPlanner } from '@/lib/hook-help';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
+import { DeepDiveNav } from '@/components/DeepDiveNav';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
 import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
@@ -30,6 +31,7 @@ export default function RoastPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [downstreamOpen, setDownstreamOpen] = useState(false);
 
   const handleCopyLink = useCallback(async () => {
     const url = `${window.location.origin}/roast/${id}`;
@@ -38,7 +40,6 @@ export default function RoastPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
       const el = document.createElement('input');
       el.value = url;
       document.body.appendChild(el);
@@ -59,15 +60,12 @@ export default function RoastPage() {
 
   useEffect(() => {
     async function loadRoast() {
-      // Try sessionStorage first (set by analyze page)
       try {
         const cached = sessionStorage.getItem(`roast_${id}`);
         if (cached) {
           const parsed = JSON.parse(cached) as RoastResult;
           setRoast(parsed);
           setLoading(false);
-
-          // Save to history
           const source = searchParams.get('source') === 'upload' ? 'upload' : 'url';
           const filename = searchParams.get('filename') ?? undefined;
           saveToHistory(parsed, source, filename);
@@ -75,13 +73,11 @@ export default function RoastPage() {
         }
       } catch { /* ignore */ }
 
-      // Fallback: fetch from API (Supabase)
       try {
         const res = await fetch(`/api/roast/${id}`);
         if (res.ok) {
           const data = await res.json();
           setRoast(data);
-
           const source = searchParams.get('source') === 'upload' ? 'upload' : 'url';
           const filename = searchParams.get('filename') ?? undefined;
           saveToHistory(data, source, filename);
@@ -91,10 +87,8 @@ export default function RoastPage() {
       } catch {
         setError('Failed to load roast results.');
       }
-
       setLoading(false);
     }
-
     loadRoast();
   }, [id, searchParams]);
 
@@ -123,7 +117,21 @@ export default function RoastPage() {
     );
   }
 
-  // Detect chronic issues and fixed issues for escalation UI
+  return <RoastContent roast={roast} copied={copied} downstreamOpen={downstreamOpen} setDownstreamOpen={setDownstreamOpen} handleCopyLink={handleCopyLink} handleShareOnX={handleShareOnX} />;
+}
+
+/* ---- Extracted so hooks are unconditional in the outer component ---- */
+
+function RoastContent({
+  roast, copied, downstreamOpen, setDownstreamOpen, handleCopyLink, handleShareOnX,
+}: {
+  roast: RoastResult;
+  copied: boolean;
+  downstreamOpen: boolean;
+  setDownstreamOpen: (v: boolean) => void;
+  handleCopyLink: () => void;
+  handleShareOnX: (score: number) => void;
+}) {
   const history = getHistory();
   const findings = Object.fromEntries(
     roast.agents.map(a => [a.agent, a.findings.slice(0, 2)])
@@ -131,23 +139,85 @@ export default function RoastPage() {
   const chronicIssues = getChronicIssues(history);
   const fixedIssues = getFixedIssues(findings, history);
 
-  // Build a map of chronic dimensions for quick lookup
   const chronicByDimension: Record<string, ChronicIssue[]> = {};
   for (const issue of chronicIssues) {
     if (!chronicByDimension[issue.dimension]) chronicByDimension[issue.dimension] = [];
     chronicByDimension[issue.dimension].push(issue);
   }
-
-  // Build set of fixed dimensions
   const fixedDimensions = new Set(fixedIssues.map(f => f.dimension));
 
-  // Check if metadata has real data
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
-  const isHookFirst = roast.analysisMode === 'hook-first' || roast.hookSummary?.strength === 'weak';
+  const isHookWeak = roast.analysisMode === 'hook-first' || roast.hookSummary?.strength === 'weak';
   const hookWorkshop = getHookWorkshop(roast);
   const reshootPlanner = getReshootPlanner(roast);
   const holdAssessment = roast.holdAssessment ?? getHoldAssessment(roast);
   const firstGlanceChecks = getFirstGlanceChecks(roast);
+
+  const hookAgent = roast.agents.find(a => a.agent === 'hook');
+  const hookScore = hookAgent?.score ?? roast.hookSummary?.score ?? 50;
+  const weakHookPenalty = Math.max(0, 70 - hookScore);
+  const downstreamImpactSummary = isHookWeak
+    ? `until the opener improves, the rest of this feedback is support work, not the main event.`
+    : `the hook is good enough that the supporting levers below can actually move performance.`;
+
+  // Deep-dive navigation items
+  const navItems = useMemo(() => {
+    const items = [
+      { id: 'score-hero', label: 'Score', emoji: '🎯' },
+    ];
+    if (isHookWeak) {
+      items.push({ id: 'hook-gate', label: 'Hook Alert', emoji: '🚨' });
+    }
+    items.push(
+      { id: 'hook-workshop', label: 'Hook Breakdown', emoji: '🎣' },
+      { id: 'hold-strength', label: 'Watch Strength', emoji: '⏱️' },
+      { id: 'first-glance', label: 'First Glance', emoji: '👁️' },
+      { id: 'reshoot-planner', label: 'Reshoot Plan', emoji: '🎬' },
+      { id: 'agent-cards', label: isHookWeak ? 'Secondary Feedback' : 'Full Analysis', emoji: '🔬' },
+    );
+    return items;
+  }, [isHookWeak]);
+
+  const deepDiveCards = [
+    {
+      id: 'hook-workshop',
+      eyebrow: isHookWeak ? 'start here' : 'best next move',
+      title: 'hook breakdown',
+      summary: isHookWeak
+        ? 'see exactly why the opener misses and steal stronger rewrites.'
+        : 'tighten the opener without rewriting the whole video.',
+      emoji: '🎣',
+      accent: isHookWeak ? 'border-red-500/30 bg-red-500/[0.08] text-red-100' : 'border-orange-500/20 bg-orange-500/[0.05] text-orange-100',
+    },
+    {
+      id: 'hold-strength',
+      eyebrow: 'estimated watch time',
+      title: 'watch strength read',
+      summary: 'understand how likely the opening beats are to hold attention.',
+      emoji: '⏱️',
+      accent: 'border-yellow-500/20 bg-yellow-500/[0.05] text-yellow-100',
+    },
+    {
+      id: 'first-glance',
+      eyebrow: 'eyeball test',
+      title: 'first-glance attention',
+      summary: 'gut-check frame one clarity, mute-mode readability, and scroll-stop signal.',
+      emoji: '👁️',
+      accent: 'border-cyan-500/20 bg-cyan-500/[0.05] text-cyan-100',
+    },
+    {
+      id: 'reshoot-planner',
+      eyebrow: 'make it teachable',
+      title: 'reshoot planner',
+      summary: 'turn the diagnosis into a cleaner next take you can film today.',
+      emoji: '🎬',
+      accent: 'border-blue-500/20 bg-blue-500/[0.05] text-blue-100',
+    },
+  ];
+
+  // Split agents: hook card is shown separately when hook is weak
+  const hookAgentRoast = roast.agents.find(a => a.agent === 'hook');
+  const otherAgents = roast.agents.filter(a => a.agent !== 'hook');
 
   return (
     <main className="min-h-screen pb-20 relative">
@@ -164,17 +234,23 @@ export default function RoastPage() {
           animate={{ opacity: 1 }}
           className="mb-6"
         >
-          <Link
-            href="/"
-            className="text-sm text-zinc-500 hover:text-orange-400 transition-colors inline-block"
-          >
+          <Link href="/" className="text-sm text-zinc-500 hover:text-orange-400 transition-colors inline-block">
             &larr; Roast another
           </Link>
         </motion.div>
 
-        {/* Score Hero */}
-        <div className="text-center mb-14">
-          {/* Ring with letter grade inside */}
+        {/* Deep-dive navigation */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-8"
+        >
+          <DeepDiveNav items={navItems} hookGate={isHookWeak} />
+        </motion.div>
+
+        {/* ========== SCORE HERO ========== */}
+        <div id="score-hero" className="text-center mb-10 scroll-mt-20">
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -184,7 +260,6 @@ export default function RoastPage() {
             <ScoreRing score={roast.overallScore} size={180} showGrade={getLetterGrade(roast.overallScore)} />
           </motion.div>
 
-          {/* Score number */}
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -199,12 +274,11 @@ export default function RoastPage() {
             {roast.overallScore} <span className="text-zinc-600 text-lg font-medium">/ 100</span>
           </motion.p>
 
-          {/* Status label */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.8, duration: 0.3 }}
-            className="mb-8"
+            className="mb-6"
           >
             <span className={`inline-block text-sm font-bold px-5 py-2 rounded-full ${
               roast.overallScore >= 80 ? 'bg-green-500/15 text-green-400 border border-green-500/25' :
@@ -219,28 +293,7 @@ export default function RoastPage() {
             </span>
           </motion.div>
 
-          {roast.hookSummary && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.92, duration: 0.4 }}
-              className={`max-w-3xl mx-auto mb-6 rounded-2xl px-5 py-4 border ${isHookFirst ? 'bg-red-500/10 border-red-500/30' : 'bg-emerald-500/10 border-emerald-500/30'}`}
-            >
-              <div className="flex items-start gap-3 text-left">
-                <div className={`text-2xl ${isHookFirst ? 'text-red-400' : 'text-emerald-400'}`}>{isHookFirst ? '🎣' : '✅'}</div>
-                <div className="space-y-2">
-                  <p className={`text-xs font-bold uppercase tracking-[0.2em] ${isHookFirst ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {isHookFirst ? 'hook-first diagnosis' : 'hook cleared'}
-                  </p>
-                  <p className="text-sm sm:text-base text-zinc-200">{roast.hookSummary.headline}</p>
-                  <p className="text-xs sm:text-sm text-zinc-400">{roast.hookSummary.distributionRisk}</p>
-                  <p className={`text-xs sm:text-sm font-medium ${isHookFirst ? 'text-red-300' : 'text-emerald-300'}`}>{roast.hookSummary.focusNote}</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Verdict */}
+          {/* Verdict card */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -317,115 +370,56 @@ export default function RoastPage() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 14 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.05, duration: 0.45 }}
-            className="mt-6 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]"
+            transition={{ delay: 1.02, duration: 0.45 }}
+            className="mx-auto mt-6 max-w-4xl text-left"
           >
-            <div className="rounded-2xl border border-orange-500/20 bg-zinc-900/60 p-5 text-left">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-orange-400">Hook rewrite workshop</p>
-                  <h3 className="text-lg font-bold text-white mt-1">what to reshoot in the first beat</h3>
+            <div className={`rounded-3xl border p-5 sm:p-6 ${isHookWeak ? 'border-red-500/30 bg-gradient-to-br from-red-500/[0.11] via-zinc-950/80 to-zinc-950' : 'border-zinc-800/80 bg-zinc-900/70'}`}>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl">
+                  <p className={`text-[11px] font-bold uppercase tracking-[0.25em] ${isHookWeak ? 'text-red-300' : 'text-zinc-400'}`}>
+                    {isHookWeak ? 'ball over the net' : 'where to go deeper'}
+                  </p>
+                  <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
+                    {isHookWeak ? 'the hook is the assignment. everything else is supporting analysis.' : 'your next layer of feedback is organized by what actually changes performance.'}
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                    {isHookWeak
+                      ? `your hook score is ${hookScore}/100, which puts you ${weakHookPenalty} points below the bar where the rest of the video starts to matter. ${downstreamImpactSummary}`
+                      : downstreamImpactSummary}
+                  </p>
                 </div>
-                <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-orange-300">
-                  opener first
-                </span>
-              </div>
-              <div className="space-y-3">
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">current opener</p>
-                  <p className="text-sm text-zinc-200">{hookWorkshop.openerLine}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">why it is leaking</p>
-                  <ul className="space-y-1.5">
-                    {hookWorkshop.diagnosis.map((item, index) => (
-                      <li key={index} className="flex gap-2 text-sm text-zinc-300">
-                        <span className="text-red-400">•</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">stronger rewrites</p>
-                  <div className="space-y-2">
-                    {hookWorkshop.rewrites.map((rewrite) => (
-                      <div key={rewrite.label} className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3">
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300 mb-1">{rewrite.label}</p>
-                        <p className="text-sm text-white">{rewrite.line}</p>
-                        <p className="text-xs text-zinc-400 mt-1">{rewrite.whyItWorks}</p>
-                      </div>
-                    ))}
+                {isHookWeak && (
+                  <div className="rounded-2xl border border-red-500/25 bg-black/20 px-4 py-3 lg:max-w-xs">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-300">why later notes are demoted</p>
+                    <p className="mt-1 text-sm text-zinc-300">if people bounce in the first second, better captions and stronger strategy still lose because nobody sticks around long enough to see them.</p>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className={`rounded-2xl border p-5 text-left ${holdAssessment.riskBand === 'high' ? 'border-red-500/25 bg-red-500/8' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/25 bg-yellow-500/8' : 'border-emerald-500/25 bg-emerald-500/8'}`}>
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Hold-strength read</p>
-                    <h3 className="text-lg font-bold text-white mt-1">{holdAssessment.headline}</h3>
-                  </div>
-                  <div className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-widest ${holdAssessment.riskBand === 'high' ? 'border-red-500/30 text-red-300' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/30 text-yellow-300' : 'border-emerald-500/30 text-emerald-300'}`}>
-                    {holdAssessment.holdBand} hold • {holdAssessment.riskBand} drop-off risk
-                  </div>
-                </div>
-                <p className="text-sm text-zinc-300">{holdAssessment.summary}</p>
-                <ul className="mt-3 space-y-1.5">
-                  {holdAssessment.reasons.map((reason, index) => (
-                    <li key={index} className="flex gap-2 text-sm text-zinc-300">
-                      <span className="text-orange-400">•</span>
-                      <span>{reason}</span>
-                    </li>
-                  ))}
-                </ul>
+                )}
               </div>
 
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 text-left">
-                <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">First-glance diagnostic</p>
-                <p className="text-sm text-zinc-500 mt-1">not eye-tracking theater. just an honest frame-one gut check for a cold viewer.</p>
-                <div className="mt-3 space-y-2">
-                  {firstGlanceChecks.map((item) => (
-                    <div key={item.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
-                      <div className="flex items-center justify-between gap-3 mb-1">
-                        <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
-                        <span className={`text-[11px] font-bold uppercase tracking-widest ${item.status === 'working' ? 'text-emerald-300' : 'text-red-300'}`}>
-                          {item.status === 'working' ? 'working' : 'needs work'}
-                        </span>
+              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {deepDiveCards.map((card) => (
+                  <a
+                    key={card.id}
+                    href={`#${card.id}`}
+                    className={`group rounded-2xl border p-4 transition-all hover:-translate-y-0.5 hover:border-white/20 ${card.accent}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400">{card.eyebrow}</p>
+                        <h3 className="mt-1 text-sm font-semibold uppercase tracking-[0.08em] text-white">{card.title}</h3>
                       </div>
-                      <p className="text-xs text-zinc-400">{item.note}</p>
+                      <span className="text-xl">{card.emoji}</span>
                     </div>
-                  ))}
-                </div>
+                    <p className="mt-3 text-sm leading-relaxed text-zinc-300">{card.summary}</p>
+                    <div className="mt-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-400 group-hover:text-white">
+                      <span>open</span>
+                      <span aria-hidden="true">→</span>
+                    </div>
+                  </a>
+                ))}
               </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.12, duration: 0.45 }}
-            className="mt-4 rounded-2xl border border-blue-500/20 bg-zinc-900/60 p-5 text-left"
-          >
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Opening reshoot planner</p>
-                <h3 className="text-lg font-bold text-white mt-1">film this version next</h3>
-              </div>
-              <span className="text-xs text-zinc-500">built for same-day reshoots</span>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {reshootPlanner.map((step) => (
-                <div key={step.label} className="rounded-xl border border-blue-500/15 bg-blue-500/5 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">{step.label}</p>
-                  <p className="text-sm font-semibold text-zinc-100">{step.direction}</p>
-                  <p className="text-xs text-zinc-400 mt-1">{step.detail}</p>
-                </div>
-              ))}
             </div>
           </motion.div>
 
@@ -465,7 +459,7 @@ export default function RoastPage() {
             </button>
           </motion.div>
 
-          {/* Metadata (only show if we have real data) */}
+          {/* Metadata */}
           {hasMetadata && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -490,103 +484,372 @@ export default function RoastPage() {
           )}
         </div>
 
-        {/* Fixed issues celebration */}
-        {fixedIssues.length > 0 && (
+        {/* ========== HOOK GATE — only when hook is weak ========== */}
+        {isHookWeak && (
           <motion.div
+            id="hook-gate"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="mb-6 bg-green-500/5 border border-green-500/20 rounded-2xl p-5"
+            transition={{ delay: 1.05, duration: 0.5 }}
+            className="scroll-mt-20 mb-10"
           >
-            <p className="text-green-400 font-semibold mb-2">Progress Detected</p>
-            {fixedIssues.map((f, i) => (
-              <p key={i} className="text-sm text-zinc-400">
-                You finally fixed <span className="text-green-400 font-medium">{f.dimension}</span>: {f.finding.slice(0, 60)}. We&apos;re proud. Genuinely.
-              </p>
-            ))}
-          </motion.div>
-        )}
+            {/* Big red hook-gate banner */}
+            <div className="relative overflow-hidden rounded-3xl border-2 border-red-500/40 bg-gradient-to-br from-red-500/15 via-red-900/10 to-zinc-950 p-6 sm:p-8">
+              {/* Pulsing background glow */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-red-500/10 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-500/8 rounded-full blur-3xl" />
+              </div>
 
-        {/* CHRONIC ISSUES section */}
-        {chronicIssues.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
-            className="mb-6 bg-red-500/5 border border-red-500/20 rounded-2xl p-5"
-          >
-            <p className="text-red-400 font-bold text-lg mb-1">CHRONIC ISSUES</p>
-            <p className="text-sm text-zinc-400 mb-3">These problems keep appearing across your roasts. We&apos;re keeping count.</p>
-            <div className="space-y-3">
-              {chronicIssues.slice(0, 5).map((c, i) => {
-                const agent = AGENTS.find(a => a.key === c.dimension);
-                const { level, label } = getEscalationLevel(c.occurrences);
-                const levelColors = [
-                  '',
-                  'border-yellow-500/30 bg-yellow-500/5',
-                  'border-orange-500/30 bg-orange-500/5',
-                  'border-red-500/30 bg-red-500/10',
-                ];
-                return (
-                  <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${levelColors[level] || levelColors[1]}`}>
-                    <span className="text-xl shrink-0">{agent?.emoji ?? '\u26a0\ufe0f'}</span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-semibold text-zinc-200">{agent?.name ?? c.dimension}</span>
-                        <span className="text-xs font-bold text-red-400">{c.occurrences}x</span>
-                        {level >= 2 && (
-                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-bold">
-                            LVL {level}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-zinc-400">{c.finding.slice(0, 80)}</p>
-                      <p className="text-xs text-red-400 mt-1 italic font-medium">{label}</p>
+              <div className="relative z-10">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-6">
+                  <div className="shrink-0">
+                    <ScoreRing score={hookScore} size={90} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-red-400 text-2xl">🚨</span>
+                      <h2 className="text-xl sm:text-2xl font-black text-white">Your hook isn&apos;t getting the ball over the net</h2>
+                    </div>
+                    <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
+                      Nothing else matters until this is fixed. Strategy, visuals, captions, audio — they&apos;re all downstream of getting someone to stop scrolling. Right now, that&apos;s not happening.
+                    </p>
+                  </div>
+                </div>
+
+                {roast.hookSummary && (
+                  <div className="grid gap-3 sm:grid-cols-3 mb-4">
+                    <div className="rounded-xl border border-red-500/25 bg-red-500/8 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-red-400 mb-1.5">The problem</p>
+                      <p className="text-sm text-zinc-200">{roast.hookSummary.headline}</p>
+                    </div>
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-red-400/80 mb-1.5">Distribution risk</p>
+                      <p className="text-sm text-zinc-300">{roast.hookSummary.distributionRisk}</p>
+                    </div>
+                    <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-orange-400 mb-1.5">Focus here</p>
+                      <p className="text-sm text-zinc-200 font-medium">{roast.hookSummary.focusNote}</p>
                     </div>
                   </div>
-                );
-              })}
+                )}
+
+                {/* Inline hook agent card when hook is weak */}
+                {hookAgentRoast && (
+                  <div className="mt-4">
+                    <AgentCard roast={hookAgentRoast} index={0} variant="primary" />
+                  </div>
+                )}
+              </div>
             </div>
-            <Link href="/history" className="mt-3 inline-block text-xs text-orange-400 hover:text-orange-300 transition-colors">
-              View full history &rarr;
-            </Link>
           </motion.div>
         )}
 
-        {/* Agent Roast Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {roast.agents.map((agentRoast, i) => {
-            const dimChronic = chronicByDimension[agentRoast.agent];
-            const isFixed = fixedDimensions.has(agentRoast.agent);
-            const maxOccurrences = dimChronic ? Math.max(...dimChronic.map(c => c.occurrences)) : 0;
-
-            // Escalate roast text if chronic
-            const escalatedRoast = maxOccurrences >= 2
-              ? { ...agentRoast, roastText: getEscalatingRoast(agentRoast.roastText, agentRoast.agent, maxOccurrences) }
-              : agentRoast;
-
-            return (
-              <div key={agentRoast.agent} className="relative">
-                {/* FIXED badge */}
-                {isFixed && (
-                  <div className="absolute -top-2 -right-2 z-10 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-green-500/30">
-                    FIXED
-                  </div>
-                )}
-                {/* Chronic badge */}
-                {maxOccurrences >= 2 && !isFixed && (
-                  <div className="absolute -top-2 -right-2 z-10 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-red-500/30">
-                    {maxOccurrences}x REPEAT
-                  </div>
-                )}
-                <AgentCard roast={escalatedRoast} index={i} />
+        {/* Hook summary for non-weak hooks */}
+        {!isHookWeak && roast.hookSummary && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.92, duration: 0.4 }}
+            className="max-w-3xl mx-auto mb-8 rounded-2xl px-5 py-4 border bg-emerald-500/10 border-emerald-500/30"
+          >
+            <div className="flex items-start gap-3 text-left">
+              <div className="text-2xl text-emerald-400">✅</div>
+              <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">hook cleared</p>
+                <p className="text-sm sm:text-base text-zinc-200">{roast.hookSummary.headline}</p>
+                <p className="text-xs sm:text-sm text-zinc-400">{roast.hookSummary.distributionRisk}</p>
+                <p className="text-xs sm:text-sm font-medium text-emerald-300">{roast.hookSummary.focusNote}</p>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          </motion.div>
+        )}
 
-        {/* Script Generator */}
-        <ScriptGenerator roast={roast} />
+        {/* ========== DEEP-DIVE SECTIONS ========== */}
+
+        {/* Hook workshop */}
+        <motion.div
+          id="hook-workshop"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.1, duration: 0.45 }}
+          className="scroll-mt-20 mb-6"
+        >
+          <div className={`rounded-2xl border p-5 text-left ${isHookWeak ? 'border-orange-500/30 bg-orange-500/[0.06]' : 'border-orange-500/20 bg-zinc-900/60'}`}>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-orange-400">Hook rewrite workshop</p>
+                <h3 className="text-lg font-bold text-white mt-1">what to reshoot in the first beat</h3>
+              </div>
+              <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-orange-300">
+                opener first
+              </span>
+            </div>
+            <div className="space-y-3">
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">current opener</p>
+                <p className="text-sm text-zinc-200">{hookWorkshop.openerLine}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">why it is leaking</p>
+                <ul className="space-y-1.5">
+                  {hookWorkshop.diagnosis.map((item, index) => (
+                    <li key={index} className="flex gap-2 text-sm text-zinc-300">
+                      <span className="text-red-400">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">stronger rewrites</p>
+                <div className="space-y-2">
+                  {hookWorkshop.rewrites.map((rewrite) => (
+                    <div key={rewrite.label} className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300 mb-1">{rewrite.label}</p>
+                      <p className="text-sm text-white">{rewrite.line}</p>
+                      <p className="text-xs text-zinc-400 mt-1">{rewrite.whyItWorks}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Hold-strength + First-glance side by side */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.15, duration: 0.45 }}
+          className="grid gap-4 lg:grid-cols-2 mb-6"
+        >
+          <div id="hold-strength" className={`scroll-mt-20 rounded-2xl border p-5 text-left ${holdAssessment.riskBand === 'high' ? 'border-red-500/25 bg-red-500/8' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/25 bg-yellow-500/8' : 'border-emerald-500/25 bg-emerald-500/8'}`}>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Hold-strength read</p>
+                <h3 className="text-lg font-bold text-white mt-1">{holdAssessment.headline}</h3>
+              </div>
+              <div className={`rounded-full border px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest shrink-0 ${holdAssessment.riskBand === 'high' ? 'border-red-500/30 text-red-300' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/30 text-yellow-300' : 'border-emerald-500/30 text-emerald-300'}`}>
+                {holdAssessment.holdBand} hold
+              </div>
+            </div>
+            <p className="text-sm text-zinc-300">{holdAssessment.summary}</p>
+            <ul className="mt-3 space-y-1.5">
+              {holdAssessment.reasons.map((reason, index) => (
+                <li key={index} className="flex gap-2 text-sm text-zinc-300">
+                  <span className="text-orange-400">•</span>
+                  <span>{reason}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div id="first-glance" className="scroll-mt-20 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 text-left">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">First-glance diagnostic</p>
+            <p className="text-sm text-zinc-500 mt-1">an honest frame-one gut check for a cold viewer.</p>
+            <div className="mt-3 space-y-2">
+              {firstGlanceChecks.map((item) => (
+                <div key={item.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
+                    <span className={`text-[11px] font-bold uppercase tracking-widest ${item.status === 'working' ? 'text-emerald-300' : 'text-red-300'}`}>
+                      {item.status === 'working' ? 'working' : 'needs work'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">{item.note}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Reshoot planner */}
+        <motion.div
+          id="reshoot-planner"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2, duration: 0.45 }}
+          className="scroll-mt-20 mb-8 rounded-2xl border border-blue-500/20 bg-zinc-900/60 p-5 text-left"
+        >
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Opening reshoot planner</p>
+              <h3 className="text-lg font-bold text-white mt-1">film this version next</h3>
+            </div>
+            <span className="text-xs text-zinc-500">built for same-day reshoots</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {reshootPlanner.map((step) => (
+              <div key={step.label} className="rounded-xl border border-blue-500/15 bg-blue-500/5 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">{step.label}</p>
+                <p className="text-sm font-semibold text-zinc-100">{step.direction}</p>
+                <p className="text-xs text-zinc-400 mt-1">{step.detail}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ========== DOWNSTREAM SEPARATOR — when hook is weak ========== */}
+        {isHookWeak && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.3 }}
+            className="mb-8"
+          >
+            <div className="relative flex items-center gap-4 py-4">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-700/60 to-transparent" />
+              <button
+                onClick={() => setDownstreamOpen(!downstreamOpen)}
+                className="group flex items-center gap-2.5 px-5 py-3 rounded-2xl border border-zinc-700/60 bg-zinc-900/80 hover:border-zinc-600 transition-all"
+              >
+                <span className="text-zinc-500 text-sm">🏐</span>
+                <span className="text-sm font-semibold text-zinc-400 group-hover:text-zinc-300 transition-colors">
+                  {downstreamOpen ? 'Hide' : 'Show'} secondary feedback
+                </span>
+                <span className="text-xs text-zinc-600 hidden sm:inline">
+                  — strategy, packaging, and placement stay benched until the hook lands
+                </span>
+                <motion.span
+                  animate={{ rotate: downstreamOpen ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-zinc-500"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </motion.span>
+              </button>
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-700/60 to-transparent" />
+            </div>
+          </motion.div>
+        )}
+
+        {/* ========== AGENT CARDS + DOWNSTREAM CONTENT ========== */}
+        <AnimatePresence>
+          {(!isHookWeak || downstreamOpen) && (
+            <motion.div
+              id="agent-cards"
+              initial={isHookWeak ? { opacity: 0, height: 0 } : { opacity: 1 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+              className={`scroll-mt-20 overflow-hidden ${isHookWeak ? 'opacity-75' : ''}`}
+            >
+              {/* Dimmed overlay hint when hook is weak */}
+              {isHookWeak && (
+                <>
+                  <div className="mb-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-600">secondary feedback</p>
+                    <p className="mt-1 text-sm text-zinc-500">use this after you fix the opener. it sharpens the video, but it will not rescue a weak first second.</p>
+                  </div>
+                  <div className="mb-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3 flex items-center gap-3">
+                    <span className="text-zinc-600 text-lg">🔇</span>
+                    <p className="text-sm text-zinc-500">
+                      These scores matter less until the hook is fixed. Improving these won&apos;t help if viewers never make it past the first second.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* Fixed issues celebration */}
+              {fixedIssues.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mb-6 bg-green-500/5 border border-green-500/20 rounded-2xl p-5"
+                >
+                  <p className="text-green-400 font-semibold mb-2">Progress Detected</p>
+                  {fixedIssues.map((f, i) => (
+                    <p key={i} className="text-sm text-zinc-400">
+                      You finally fixed <span className="text-green-400 font-medium">{f.dimension}</span>: {f.finding.slice(0, 60)}. We&apos;re proud. Genuinely.
+                    </p>
+                  ))}
+                </motion.div>
+              )}
+
+              {/* Chronic issues */}
+              {chronicIssues.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="mb-6 bg-red-500/5 border border-red-500/20 rounded-2xl p-5"
+                >
+                  <p className="text-red-400 font-bold text-lg mb-1">CHRONIC ISSUES</p>
+                  <p className="text-sm text-zinc-400 mb-3">These problems keep appearing across your roasts. We&apos;re keeping count.</p>
+                  <div className="space-y-3">
+                    {chronicIssues.slice(0, 5).map((c, i) => {
+                      const agent = AGENTS.find(a => a.key === c.dimension);
+                      const { level, label } = getEscalationLevel(c.occurrences);
+                      const levelColors = [
+                        '',
+                        'border-yellow-500/30 bg-yellow-500/5',
+                        'border-orange-500/30 bg-orange-500/5',
+                        'border-red-500/30 bg-red-500/10',
+                      ];
+                      return (
+                        <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${levelColors[level] || levelColors[1]}`}>
+                          <span className="text-xl shrink-0">{agent?.emoji ?? '\u26a0\ufe0f'}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-semibold text-zinc-200">{agent?.name ?? c.dimension}</span>
+                              <span className="text-xs font-bold text-red-400">{c.occurrences}x</span>
+                              {level >= 2 && (
+                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-bold">
+                                  LVL {level}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-zinc-400">{c.finding.slice(0, 80)}</p>
+                            <p className="text-xs text-red-400 mt-1 italic font-medium">{label}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Link href="/history" className="mt-3 inline-block text-xs text-orange-400 hover:text-orange-300 transition-colors">
+                    View full history &rarr;
+                  </Link>
+                </motion.div>
+              )}
+
+              {/* Agent cards grid */}
+              <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${isHookWeak ? '[&>*]:opacity-80 [&>*]:saturate-[0.7]' : ''}`}>
+                {/* When hook is weak, hook card was shown above in the gate — show others here */}
+                {(isHookWeak ? otherAgents : roast.agents).map((agentRoast, i) => {
+                  const dimChronic = chronicByDimension[agentRoast.agent];
+                  const isFixed = fixedDimensions.has(agentRoast.agent);
+                  const maxOccurrences = dimChronic ? Math.max(...dimChronic.map(c => c.occurrences)) : 0;
+                  const escalatedRoast = maxOccurrences >= 2
+                    ? { ...agentRoast, roastText: getEscalatingRoast(agentRoast.roastText, agentRoast.agent, maxOccurrences) }
+                    : agentRoast;
+
+                  return (
+                    <div key={agentRoast.agent} className="relative">
+                      {isFixed && (
+                        <div className="absolute -top-2 -right-2 z-10 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-green-500/30">
+                          FIXED
+                        </div>
+                      )}
+                      {maxOccurrences >= 2 && !isFixed && (
+                        <div className="absolute -top-2 -right-2 z-10 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-red-500/30">
+                          {maxOccurrences}x REPEAT
+                        </div>
+                      )}
+                      <AgentCard roast={escalatedRoast} index={i} />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Script Generator */}
+              <ScriptGenerator roast={roast} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Bottom CTA */}
         <motion.div
