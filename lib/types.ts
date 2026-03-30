@@ -17,6 +17,16 @@ export interface AgentRoast {
   timestamp_seconds?: number;
 }
 
+export interface ActionPlanStep {
+  priority: 'P1' | 'P2' | 'P3';
+  dimension: DimensionKey;
+  issue: string;
+  evidence: string[];
+  doThis: string;
+  example: string;
+  whyItMatters: string;
+}
+
 export interface RoastResult {
   id: string;
   tiktokUrl: string;
@@ -25,7 +35,16 @@ export interface RoastResult {
   viralPotential?: number;
   biggestBlocker?: string;
   nextSteps?: string[];
+  actionPlan?: ActionPlanStep[];
   encouragement?: string;
+  analysisMode?: 'hook-first' | 'balanced';
+  hookSummary?: {
+    score: number;
+    strength: 'weak' | 'mixed' | 'strong';
+    headline: string;
+    distributionRisk: string;
+    focusNote: string;
+  };
   agents: AgentRoast[];
   niche?: {
     detected: string;

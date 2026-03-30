@@ -20,6 +20,8 @@ function getLetterGrade(score: number): string {
   return 'F';
 }
 
+const LATE_STAGE_DIMENSIONS: DimensionKey[] = ['conversion', 'caption', 'accessibility'];
+
 export default function RoastPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -142,6 +144,16 @@ export default function RoastPage() {
 
   // Check if metadata has real data
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
+  const isHookFirst = roast.analysisMode === 'hook-first' || roast.hookSummary?.strength === 'weak';
+  const orderedAgents = [...roast.agents].sort((a, b) => {
+    if (a.agent === 'hook') return -1;
+    if (b.agent === 'hook') return 1;
+    if (!isHookFirst) return 0;
+    const aLate = LATE_STAGE_DIMENSIONS.includes(a.agent);
+    const bLate = LATE_STAGE_DIMENSIONS.includes(b.agent);
+    if (aLate !== bLate) return aLate ? 1 : -1;
+    return 0;
+  });
 
   return (
     <main className="min-h-screen pb-20 relative">
@@ -213,6 +225,27 @@ export default function RoastPage() {
             </span>
           </motion.div>
 
+          {roast.hookSummary && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.92, duration: 0.4 }}
+              className={`max-w-3xl mx-auto mb-6 rounded-2xl px-5 py-4 border ${isHookFirst ? 'bg-red-500/10 border-red-500/30' : 'bg-emerald-500/10 border-emerald-500/30'}`}
+            >
+              <div className="flex items-start gap-3 text-left">
+                <div className={`text-2xl ${isHookFirst ? 'text-red-400' : 'text-emerald-400'}`}>{isHookFirst ? '🎣' : '✅'}</div>
+                <div className="space-y-2">
+                  <p className={`text-xs font-bold uppercase tracking-[0.2em] ${isHookFirst ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {isHookFirst ? 'hook-first diagnosis' : 'hook cleared'}
+                  </p>
+                  <p className="text-sm sm:text-base text-zinc-200">{roast.hookSummary.headline}</p>
+                  <p className="text-xs sm:text-sm text-zinc-400">{roast.hookSummary.distributionRisk}</p>
+                  <p className={`text-xs sm:text-sm font-medium ${isHookFirst ? 'text-red-300' : 'text-emerald-300'}`}>{roast.hookSummary.focusNote}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Verdict */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -232,7 +265,43 @@ export default function RoastPage() {
               </div>
             )}
 
-            {roast.nextSteps && roast.nextSteps.length > 0 && (
+            {roast.actionPlan && roast.actionPlan.length > 0 ? (
+              <div className="border-t border-zinc-800/50 pt-3 space-y-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Fix This Next</p>
+                {roast.actionPlan.map((step) => {
+                  const agent = AGENTS.find((item) => item.key === step.dimension);
+                  const evidence = Array.isArray(step.evidence) ? step.evidence : [];
+                  return (
+                    <div key={`${step.priority}-${step.dimension}-${step.issue}`} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-zinc-100">{step.priority} • {step.issue}</p>
+                          <p className="text-xs text-zinc-500">{agent?.emoji} {agent?.name ?? step.dimension} • {step.whyItMatters}</p>
+                        </div>
+                      </div>
+                      {evidence.length > 0 && (
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Evidence</p>
+                          <ul className="space-y-1">
+                            {evidence.map((item, index) => (
+                              <li key={index} className="text-xs text-zinc-400 flex gap-2">
+                                <span className="text-orange-400 shrink-0">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="rounded-lg bg-blue-500/8 border border-blue-500/15 p-2.5">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">Do this</p>
+                        <p className="text-sm text-zinc-200">{step.doThis}</p>
+                        <p className="text-xs text-zinc-400 mt-1">example: {step.example}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : roast.nextSteps && roast.nextSteps.length > 0 ? (
               <div className="border-t border-zinc-800/50 pt-3">
                 <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-2">Next Steps (by impact)</p>
                 <ol className="space-y-1.5">
@@ -244,7 +313,7 @@ export default function RoastPage() {
                   ))}
                 </ol>
               </div>
-            )}
+            ) : null}
 
             {roast.encouragement && (
               <div className="border-t border-zinc-800/50 pt-3">
@@ -287,6 +356,15 @@ export default function RoastPage() {
               </svg>
               <span>Share on X</span>
             </button>
+            {history.length >= 2 && (
+              <Link
+                href="/compare"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm font-semibold hover:border-orange-500/40 hover:bg-orange-500/15 transition-all"
+              >
+                <span>⚔️</span>
+                <span>Compare videos</span>
+              </Link>
+            )}
           </motion.div>
 
           {/* Metadata (only show if we have real data) */}
@@ -379,7 +457,7 @@ export default function RoastPage() {
 
         {/* Agent Roast Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {roast.agents.map((agentRoast, i) => {
+          {orderedAgents.map((agentRoast, i) => {
             const dimChronic = chronicByDimension[agentRoast.agent];
             const isFixed = fixedDimensions.has(agentRoast.agent);
             const maxOccurrences = dimChronic ? Math.max(...dimChronic.map(c => c.occurrences)) : 0;
@@ -417,7 +495,7 @@ export default function RoastPage() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: roast.agents.length * 0.15 }}
+            transition={{ duration: 0.5, delay: orderedAgents.length * 0.15 }}
             className="mt-4 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-6"
           >
             <div className="flex items-start justify-between mb-2">
