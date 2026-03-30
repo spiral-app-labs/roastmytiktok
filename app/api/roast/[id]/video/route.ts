@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 
-export async function GET(_req: NextRequest, ctx: RouteContext<'/api/roast/[id]/video'>) {
-  const { id } = await ctx.params;
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   const { data: session, error } = await supabaseServer
     .from('rmt_roast_sessions')

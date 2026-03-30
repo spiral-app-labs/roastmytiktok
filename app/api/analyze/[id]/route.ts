@@ -625,8 +625,8 @@ function buildEscalationContext(chronicIssues: ChronicIssueForPrompt[], dimensio
   return context;
 }
 
-export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]'>) {
-  const { id } = await ctx.params;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   // Extract session_id from query params
   const sessionId = req.nextUrl.searchParams.get('session_id') ?? 'server';
