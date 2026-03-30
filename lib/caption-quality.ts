@@ -104,6 +104,12 @@ function parseJsonBlock(raw: string): CaptionQualityReport | null {
   }
 }
 
+/** Maximum number of retry attempts for the Claude API call. */
+const MAX_RETRIES = 2;
+
+/** Delay between retries in ms (doubles each attempt). */
+const RETRY_BASE_DELAY_MS = 1500;
+
 export async function analyzeCaptionQuality(params: {
   anthropic: Anthropic;
   frames: ExtractedFrame[];
@@ -121,13 +127,45 @@ export async function analyzeCaptionQuality(params: {
     };
   }
 
+  // Limit frames sent to avoid token overflow (max 6 for caption audit)
+  const cappedFrames = frames.slice(0, 6);
+
   const transcriptContext = transcript?.segments?.length
     ? transcript.segments
         .slice(0, 20)
         .map(segment => `${segment.start.toFixed(2)}-${segment.end.toFixed(2)}s: ${segment.text}`)
         .join('\n')
-    : transcript?.text || 'No transcript available.';
+    : transcript?.text?.slice(0, 2000) || 'No transcript available.';
 
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await callCaptionAnalysis(anthropic, cappedFrames, transcriptContext, speechStartTimeSec);
+    } catch (err) {
+      lastError = err;
+      const message = err instanceof Error ? err.message : String(err);
+      const isRetryable = message.includes('overloaded') || message.includes('529') || message.includes('rate') || message.includes('timeout');
+      console.warn(`[caption-quality] Attempt ${attempt}/${MAX_RETRIES} failed${isRetryable ? ' (retryable)' : ''}: ${message.slice(0, 200)}`);
+      if (!isRetryable || attempt === MAX_RETRIES) break;
+      await new Promise(r => setTimeout(r, RETRY_BASE_DELAY_MS * attempt));
+    }
+  }
+
+  console.error('[caption-quality] All attempts failed:', lastError);
+  return {
+    ...EMPTY_REPORT,
+    speechStartTimeSec,
+    summary: 'Caption quality analysis failed after retries.',
+    notableIssues: ['Caption quality analysis unavailable due to API error.'],
+  };
+}
+
+async function callCaptionAnalysis(
+  anthropic: Anthropic,
+  frames: ExtractedFrame[],
+  transcriptContext: string,
+  speechStartTimeSec: number | null,
+): Promise<CaptionQualityReport> {
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 900,
