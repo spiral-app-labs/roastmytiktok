@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { fetchTrendingContext, buildScriptTrendingContext } from '@/lib/trending-context';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -51,6 +52,9 @@ export async function POST(request: NextRequest) {
     const userContext = userPrompt
       ? `\n\nCreator's specific request: ${userPrompt}`
       : '';
+
+    const trendingCtx = await fetchTrendingContext();
+    const trendingSection = buildScriptTrendingContext(trendingCtx);
 
     const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K followers. You've just received a brutal AI roast of a TikTok video that scored ${roastScore}/100. Your job: create a replacement script that fixes every weakness and is engineered for maximum algorithmic push.
 
@@ -107,6 +111,8 @@ USE THIS RESEARCH TO BUILD THE SCRIPT:
 
 **Length — match to content type:**
 - Comedy: 7-20s | Tutorial: 30-60s | Storytelling: 60-180s | Fitness: 15-45s
+
+${trendingSection}
 
 Respond with ONLY valid JSON in this exact structure (no markdown, no explanation):
 {
