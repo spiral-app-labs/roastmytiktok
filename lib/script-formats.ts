@@ -18,6 +18,18 @@ export interface FormatDefinition {
   promptSection: string;
   /** Niches where this format tends to perform best */
   bestForNiches: string[];
+  /** Recommended content type for CTA selection */
+  contentType: 'tutorial' | 'funny' | 'controversial' | 'series';
+  /** What the opening shot should feel like */
+  openingShot: string;
+  /** How the format should create a mid-video pattern interrupt */
+  retentionMove: string;
+  /** The visual proof / payoff the format needs */
+  payoffStyle: string;
+  /** Caption pattern that usually performs for this format */
+  captionFormula: string;
+  /** Extra filming notes to keep output practical */
+  shootNotes: string[];
 }
 
 const FORMAT_PREFERENCE_KEY = 'rmt_script_format_preference';
@@ -85,8 +97,14 @@ export const SCRIPT_FORMATS: FormatDefinition[] = [
       'Caption + Hashtags',
       'Audio Suggestion',
     ],
-    promptSection: '', // No extra constraints — uses the default prompt
+    promptSection: '',
     bestForNiches: [],
+    contentType: 'tutorial',
+    openingShot: 'Auto-detect the strongest opener from the roast and niche.',
+    retentionMove: 'Add a decisive mid-video re-hook based on the weakest part of the original video.',
+    payoffStyle: 'Land on the clearest proof, punchline, or reveal for the topic.',
+    captionFormula: 'Turn the strongest opinion or open loop into a comment-driving caption.',
+    shootNotes: ['Pick the format that gives the creator the clearest outcome, not the safest structure.'],
   },
   {
     id: 'talking-head',
@@ -110,6 +128,15 @@ Structure the script for a single person speaking directly into the camera:
 - Keep it punchy: ideal length 15-45 seconds
 - On-screen text should reinforce key phrases from dialogue, not duplicate it entirely`,
     bestForNiches: ['lifestyle', 'opinion', 'advice', 'hot take', 'beauty', 'fashion'],
+    contentType: 'controversial',
+    openingShot: 'Start chest-up, close to camera, immediate eye contact, no preamble.',
+    retentionMove: 'Shift energy halfway through: lean closer, lower voice, or change framing on the key truth.',
+    payoffStyle: 'End on the sharpest line or contrarian payoff, then ask for a take.',
+    captionFormula: 'Hot take + binary question. Example: “is this actually true or are we all pretending?”',
+    shootNotes: [
+      'Keep every line under one breath so it sounds spoken, not written.',
+      'Use one camera move or punch-in to avoid flat monologue energy.',
+    ],
   },
   {
     id: 'tutorial',
@@ -117,12 +144,12 @@ Structure the script for a single person speaking directly into the camera:
     emoji: '📋',
     description: 'Step-by-step structure with numbered steps and clear transformation',
     templatePreview: [
-      'Promise Hook (0-3s) — "How to X in Y"',
+      'Promise Hook (0-3s) — “How to X in Y”',
       'Step 1 — specific action',
       'Step 2 — specific action',
       'Step 3 — specific action',
       'Result / Proof (last 3s)',
-      'CTA — "Save this for later"',
+      'CTA — “Save this for later”',
     ],
     promptSection: `**FORMAT: TUTORIAL / HOW-TO**
 Structure the script as a step-by-step tutorial:
@@ -134,6 +161,15 @@ Structure the script as a step-by-step tutorial:
 - Keep each step under 10 seconds
 - Ideal total length: 30-60 seconds`,
     bestForNiches: ['tech', 'cooking', 'diy', 'beauty', 'fitness', 'education', 'hack', 'tip'],
+    contentType: 'tutorial',
+    openingShot: 'Open on the end result or strongest promise before explaining anything.',
+    retentionMove: 'Use the classic “this is the part most people mess up” pivot before the most valuable step.',
+    payoffStyle: 'Show the finished outcome, measurable win, or before/after proof.',
+    captionFormula: 'Outcome promise + save hook. Example: “3 fixes that made this work way faster. which one are you stealing?”',
+    shootNotes: [
+      'Every step should be filmable in a single shot or quick cut.',
+      'On-screen text needs to function like a mini checklist for sound-off viewers.',
+    ],
   },
   {
     id: 'pov',
@@ -141,7 +177,7 @@ Structure the script as a step-by-step tutorial:
     emoji: '👁️',
     description: 'First-person perspective — scenario setup with emotional hook',
     templatePreview: [
-      'POV Setup (0-3s) — "POV: you..."',
+      'POV Setup (0-3s) — “POV: you...”',
       'Scenario Build (3-10s) — escalate the situation',
       'Emotional Peak / Twist',
       'Resolution or Punchline',
@@ -157,6 +193,15 @@ Structure the script as a first-person POV scenario:
 - The viewer IS the character — write from their perspective
 - Ideal length: 7-30 seconds`,
     bestForNiches: ['comedy', 'relatable', 'acting', 'skit', 'dating', 'work life', 'school'],
+    contentType: 'funny',
+    openingShot: 'Open mid-situation so the viewer feels like they got dropped into a scene.',
+    retentionMove: 'Escalate the situation with a new facial reaction, reveal, or text beat that raises tension.',
+    payoffStyle: 'Resolve with a punchline, painfully relatable moment, or loopable ending.',
+    captionFormula: 'Relatable scenario + tag/share bait. Example: “who is this in your life because i know you have one”',
+    shootNotes: [
+      'Keep dialogue sparse and let expressions/body language do the work.',
+      'Use on-screen text to carry setup so the first frame makes instant sense.',
+    ],
   },
   {
     id: 'stitch-duet',
@@ -179,6 +224,15 @@ Structure the script as a response/reaction to another video:
 - Comment bait is critical here — stitch/duet thrives on debate
 - Ideal length: 15-60 seconds`,
     bestForNiches: ['commentary', 'reaction', 'expert', 'opinion', 'education', 'debunk'],
+    contentType: 'controversial',
+    openingShot: 'Reference the original fast, then pivot the attention to your reaction or expertise.',
+    retentionMove: 'Use “what they left out” or “here’s why that breaks” as the re-hook.',
+    payoffStyle: 'Land on the strongest correction, nuance, or verdict.',
+    captionFormula: 'Claim + debate opener. Example: “they’re not completely wrong, but this is the part people keep missing.”',
+    shootNotes: [
+      'Keep the original clip mention brutally short so your value starts immediately.',
+      'Give the viewer one memorable sentence they can argue with or quote back.',
+    ],
   },
   {
     id: 'storytelling',
@@ -191,7 +245,7 @@ Structure the script as a response/reaction to another video:
       'Rising Action — build tension',
       'Climax / Twist',
       'Resolution + Reflection',
-      'CTA — "Follow for Part 2"',
+      'CTA — “Follow for Part 2”',
     ],
     promptSection: `**FORMAT: STORYTELLING (Narrative Arc)**
 Structure the script with a classic story arc:
@@ -205,6 +259,15 @@ Structure the script with a classic story arc:
 - Ideal length: 60-180 seconds
 - On-screen text should highlight key dramatic moments`,
     bestForNiches: ['storytime', 'drama', 'dating', 'relationship', 'travel', 'life experience', 'rant'],
+    contentType: 'series',
+    openingShot: 'Open on the wildest moment first, then rewind.',
+    retentionMove: 'Pause the story right before the line or event that changes everything.',
+    payoffStyle: 'Deliver the twist cleanly, then leave a residue of “wait, what happened after that?”',
+    captionFormula: 'Drama teaser + curiosity gap. Example: “the ending still annoys me. would you have handled it differently?”',
+    shootNotes: [
+      'Every scene should raise the stakes. If a beat does not escalate, cut it.',
+      'Use on-screen text only for turning points, not full transcript captions.',
+    ],
   },
   {
     id: 'before-after',
@@ -212,11 +275,11 @@ Structure the script with a classic story arc:
     emoji: '🔄',
     description: 'Transformation reveal — stakes, process, result',
     templatePreview: [
-      'Stakes Hook (0-3s) — show the "before" problem',
+      'Stakes Hook (0-3s) — show the “before” problem',
       'Process (3-20s) — show the transformation steps',
       'Build-up — tease the reveal',
-      'Reveal (last 5s) — dramatic "after"',
-      'CTA — "Save this" or "Follow for more"',
+      'Reveal (last 5s) — dramatic “after”',
+      'CTA — “Save this” or “Follow for more”',
     ],
     promptSection: `**FORMAT: BEFORE / AFTER (Transformation)**
 Structure the script around a dramatic transformation:
@@ -229,9 +292,38 @@ Structure the script around a dramatic transformation:
 - CTA: "Save this" for tutorials, "Follow for more transformations" for series
 - Ideal length: 15-45 seconds`,
     bestForNiches: ['fitness', 'skincare', 'home improvement', 'cooking', 'art', 'fashion', 'glow up', 'weight loss'],
+    contentType: 'tutorial',
+    openingShot: 'Start with the ugliest, weakest, or most painful before-state frame.',
+    retentionMove: 'Tease the reveal right before the best process beat or final switch.',
+    payoffStyle: 'Hold on the after-state long enough for the difference to register instantly.',
+    captionFormula: 'Transformation claim + save/follow bait. Example: “same room, 1 weekend, way better result. want the exact steps?”',
+    shootNotes: [
+      'Maximize contrast between before and after with framing, lighting, and labels.',
+      'Choose 2-3 process beats only. More steps usually kills momentum.',
+    ],
   },
 ];
 
 export function getFormatById(id: ScriptFormat): FormatDefinition {
   return SCRIPT_FORMATS.find((f) => f.id === id) || SCRIPT_FORMATS[0];
+}
+
+export function resolveScriptFormat(input: ScriptFormat | undefined, niche?: string, duration?: number): FormatDefinition {
+  if (!input || input === 'generic') {
+    return getFormatById(suggestFormat(niche, duration));
+  }
+
+  return getFormatById(input);
+}
+
+export function buildFormatExecutionBrief(format: FormatDefinition): string {
+  return [
+    `Selected format: ${format.emoji} ${format.label}`,
+    `Best-fit niches: ${format.bestForNiches.join(', ') || 'broad / auto'}`,
+    `Opening shot: ${format.openingShot}`,
+    `Retention move: ${format.retentionMove}`,
+    `Payoff style: ${format.payoffStyle}`,
+    `Caption formula: ${format.captionFormula}`,
+    `Filming notes: ${format.shootNotes.join(' | ')}`,
+  ].join('\n');
 }
