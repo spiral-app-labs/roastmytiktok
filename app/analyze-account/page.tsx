@@ -220,29 +220,77 @@ function generatePlaybook(entries: HistoryEntry[]): PlaybookItem[] {
   return items.slice(0, 5);
 }
 
-// ─── Loading Skeletons ───────────────────────────────────────────────────────
+// ─── Phased Loading State ────────────────────────────────────────────────────
+
+const LOADING_PHASES = [
+  { label: 'Loading your roast history', icon: '📂' },
+  { label: 'Crunching engagement data', icon: '📊' },
+  { label: 'Comparing against benchmarks', icon: '🎯' },
+  { label: 'Generating insights', icon: '🧠' },
+];
 
 function AnalysisLoadingState() {
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPhase(prev => (prev < LOADING_PHASES.length - 1 ? prev + 1 : prev));
+    }, 600);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Stats skeleton */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Phase indicator */}
+      <GlassCard className="p-6">
+        <div className="space-y-4">
+          {LOADING_PHASES.map((p, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0.4 }}
+              animate={{ opacity: i <= phase ? 1 : 0.3 }}
+              className="flex items-center gap-3"
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 transition-all duration-300 ${
+                i < phase
+                  ? 'bg-green-500/20 border border-green-500/30'
+                  : i === phase
+                    ? 'bg-orange-500/20 border border-orange-500/30 animate-pulse'
+                    : 'bg-zinc-800/60 border border-zinc-800/40'
+              }`}>
+                {i < phase ? (
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <span>{p.icon}</span>
+                )}
+              </div>
+              <span className={`text-sm font-medium transition-colors duration-300 ${
+                i < phase ? 'text-green-400' : i === phase ? 'text-zinc-200' : 'text-zinc-600'
+              }`}>
+                {p.label}
+                {i === phase && <span className="ml-1 text-zinc-500">...</span>}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+        {/* Progress bar */}
+        <div className="mt-5 h-1.5 rounded-full bg-zinc-800/60 overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-orange-500 to-pink-500"
+            initial={{ width: '0%' }}
+            animate={{ width: `${((phase + 1) / LOADING_PHASES.length) * 100}%` }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          />
+        </div>
+      </GlassCard>
+
+      {/* Skeleton grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="rounded-2xl bg-zinc-900/60 border border-zinc-800/50 p-5">
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-8 w-16 rounded-lg bg-zinc-800/80 animate-pulse" />
-              <div className="h-3 w-20 rounded bg-zinc-800/60 animate-pulse" />
-            </div>
-          </div>
-        ))}
-      </div>
-      {/* Tab skeleton */}
-      <div className="h-12 rounded-2xl bg-zinc-900/40 border border-zinc-800/30 animate-pulse" />
-      {/* Grid skeleton */}
-      <div className="grid grid-cols-2 gap-4">
-        {[1, 2, 3, 4].map(i => (
           <div key={i} className="rounded-2xl bg-zinc-900/60 border border-zinc-800/50 overflow-hidden">
-            <div className="aspect-[9/16] max-h-[180px] bg-zinc-800/40 animate-pulse" />
+            <div className="aspect-[16/9] bg-zinc-800/40 animate-pulse" />
             <div className="p-4 space-y-2">
               <div className="h-4 w-3/4 rounded bg-zinc-800/60 animate-pulse" />
               <div className="h-3 w-1/2 rounded bg-zinc-800/40 animate-pulse" />
@@ -256,11 +304,22 @@ function AnalysisLoadingState() {
 
 // ─── Components ──────────────────────────────────────────────────────────────
 
-function VideoGridCard({ entry, index }: { entry: HistoryEntry; index: number }) {
+function VideoGridCard({ entry, index, avgScore }: { entry: HistoryEntry; index: number; avgScore: number }) {
   const { grade, color } = getLetterGrade(entry.overallScore);
+  const delta = entry.overallScore - avgScore;
+  const isOutlierHigh = delta >= 15;
+  const isOutlierLow = delta <= -15;
+
   const topDimension = useMemo(() => {
     const entries = Object.entries(entry.agentScores) as [DimensionKey, number][];
     entries.sort((a, b) => b[1] - a[1]);
+    const agent = AGENTS.find(a => a.key === entries[0]?.[0]);
+    return agent ? { emoji: agent.emoji, name: agent.name.replace(' Agent', ''), score: entries[0][1] } : null;
+  }, [entry.agentScores]);
+
+  const weakestDimension = useMemo(() => {
+    const entries = Object.entries(entry.agentScores) as [DimensionKey, number][];
+    entries.sort((a, b) => a[1] - b[1]);
     const agent = AGENTS.find(a => a.key === entries[0]?.[0]);
     return agent ? { emoji: agent.emoji, name: agent.name.replace(' Agent', ''), score: entries[0][1] } : null;
   }, [entry.agentScores]);
@@ -271,10 +330,10 @@ function VideoGridCard({ entry, index }: { entry: HistoryEntry; index: number })
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: 0.04 + index * 0.05, duration: 0.4, ease: 'easeOut' }}
     >
-      <Link href={`/roast/${entry.id}`} className="block group">
+      <Link href={`/roast/${entry.id}`} className="block group h-full">
         <GlassCard
           variant="interactive"
-          className="overflow-hidden hover:border-orange-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/5"
+          className="overflow-hidden hover:border-orange-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/5 h-full flex flex-col"
         >
           {/* Thumbnail area */}
           <div className={`relative aspect-[16/9] bg-gradient-to-br ${scoreGradient(entry.overallScore)} overflow-hidden`}>
@@ -290,13 +349,23 @@ function VideoGridCard({ entry, index }: { entry: HistoryEntry; index: number })
               </div>
             </div>
             {/* Grade badge */}
-            <div className={`absolute top-3 right-3 px-2 py-0.5 rounded-lg text-xs font-black ${color} ${scoreBg(entry.overallScore)} border backdrop-blur-sm`}>
+            <div className={`absolute top-2.5 right-2.5 px-2 py-0.5 rounded-lg text-xs font-black ${color} ${scoreBg(entry.overallScore)} border backdrop-blur-sm`}>
               {grade}
             </div>
             {/* Source badge */}
-            <div className="absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[10px] font-medium text-zinc-300 bg-black/40 backdrop-blur-sm border border-white/10">
+            <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-medium text-zinc-300 bg-black/40 backdrop-blur-sm border border-white/10">
               {entry.source === 'upload' ? '📎 Upload' : '🔗 URL'}
             </div>
+            {/* Outlier badge */}
+            {(isOutlierHigh || isOutlierLow) && (
+              <div className={`absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-bold backdrop-blur-sm border ${
+                isOutlierHigh
+                  ? 'text-green-300 bg-green-500/20 border-green-500/30'
+                  : 'text-red-300 bg-red-500/20 border-red-500/30'
+              }`}>
+                {isOutlierHigh ? '▲ Standout' : '▼ Below avg'}
+              </div>
+            )}
             {/* Hover overlay */}
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <span className="text-sm font-semibold text-white/90">View Roast →</span>
@@ -304,18 +373,35 @@ function VideoGridCard({ entry, index }: { entry: HistoryEntry; index: number })
           </div>
 
           {/* Info */}
-          <div className="p-4">
-            <h3 className="text-[13px] font-semibold text-zinc-200 leading-snug line-clamp-2 mb-2 group-hover:text-white transition-colors">
+          <div className="p-4 flex-1 flex flex-col">
+            <h3 className="text-[13px] font-semibold text-zinc-200 leading-snug line-clamp-2 mb-2.5 group-hover:text-white transition-colors">
               {truncateTitle(entry)}
             </h3>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-zinc-500">{getRelativeDate(entry.date)}</span>
+
+            {/* Dimension highlights */}
+            <div className="flex items-center gap-3 mb-2.5">
               {topDimension && (
-                <span className="text-[11px] text-zinc-500 flex items-center gap-1">
+                <span className="text-[11px] flex items-center gap-1 text-zinc-500">
                   <span>{topDimension.emoji}</span>
                   <span className={scoreColor(topDimension.score)}>{topDimension.score}</span>
+                  <span className="text-zinc-600">best</span>
                 </span>
               )}
+              {weakestDimension && (
+                <span className="text-[11px] flex items-center gap-1 text-zinc-500">
+                  <span>{weakestDimension.emoji}</span>
+                  <span className={scoreColor(weakestDimension.score)}>{weakestDimension.score}</span>
+                  <span className="text-zinc-600">weakest</span>
+                </span>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between mt-auto pt-2.5 border-t border-white/5">
+              <span className="text-[11px] text-zinc-500">{getRelativeDate(entry.date)}</span>
+              <span className={`text-[11px] font-bold ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
+                {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '±0'} vs avg
+              </span>
             </div>
           </div>
         </GlassCard>
@@ -458,6 +544,103 @@ function DimensionBreakdown({ entries }: { entries: HistoryEntry[] }) {
   );
 }
 
+function BenchmarkBars({ entries }: { entries: HistoryEntry[] }) {
+  const avgScore = getAvgScore(entries);
+  const tier = getUserTier(avgScore);
+  const nextTier = getNextTier(avgScore);
+  const nextBenchmarks = nextTier ? TIER_BENCHMARKS[nextTier] : TIER_BENCHMARKS[tier];
+  const targetLabel = nextTier ?? tier;
+
+  const dimData = useMemo(() => {
+    const totals: Partial<Record<DimensionKey, number[]>> = {};
+    for (const e of entries) {
+      for (const [dim, score] of Object.entries(e.agentScores)) {
+        const k = dim as DimensionKey;
+        if (!totals[k]) totals[k] = [];
+        totals[k]!.push(score);
+      }
+    }
+    return AGENTS.map(agent => {
+      const userAvg = totals[agent.key]
+        ? Math.round(totals[agent.key]!.reduce((a, b) => a + b, 0) / totals[agent.key]!.length)
+        : 0;
+      const benchmark = nextBenchmarks[agent.key];
+      const pct = benchmark > 0 ? Math.round((userAvg / benchmark) * 100) : 0;
+      return { agent, userAvg, benchmark, pct };
+    }).sort((a, b) => b.pct - a.pct);
+  }, [entries, nextBenchmarks]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15, duration: 0.4 }}
+    >
+      <GlassCard className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-bold text-zinc-200">Benchmark Progress</h3>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Your scores vs. {targetLabel} tier target</p>
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 bg-zinc-800/60 px-2.5 py-1 rounded-lg border border-zinc-700/40">
+            <span className="w-2 h-2 rounded-full bg-orange-500" />
+            You
+            <span className="mx-1 text-zinc-700">|</span>
+            <span className="w-2 h-2 rounded-full bg-zinc-600 border border-zinc-500/50" />
+            Target
+          </div>
+        </div>
+        <div className="space-y-3">
+          {dimData.map(({ agent, userAvg, benchmark, pct }, i) => (
+            <motion.div
+              key={agent.key}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 + i * 0.04 }}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">{agent.emoji}</span>
+                  <span className="text-xs font-medium text-zinc-400">{agent.name.replace(' Agent', '')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-bold ${scoreColor(userAvg)}`}>{userAvg}</span>
+                  <span className="text-[10px] text-zinc-600">/</span>
+                  <span className="text-[10px] text-zinc-500">{benchmark}</span>
+                  <span className={`text-[10px] font-bold ml-1 px-1.5 py-0.5 rounded ${
+                    pct >= 100 ? 'text-green-400 bg-green-500/10' : pct >= 80 ? 'text-yellow-400 bg-yellow-500/10' : 'text-red-400 bg-red-500/10'
+                  }`}>
+                    {pct}%
+                  </span>
+                </div>
+              </div>
+              <div className="relative h-2 rounded-full bg-zinc-800/60 overflow-hidden">
+                {/* Benchmark marker */}
+                <div
+                  className="absolute top-0 bottom-0 w-px bg-zinc-500/60 z-10"
+                  style={{ left: `${Math.min(benchmark, 100)}%` }}
+                />
+                <motion.div
+                  className={`h-full rounded-full ${
+                    pct >= 100
+                      ? 'bg-gradient-to-r from-green-500 to-green-400'
+                      : pct >= 80
+                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-400'
+                        : 'bg-gradient-to-r from-orange-500 to-orange-400'
+                  }`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(userAvg, 100)}%` }}
+                  transition={{ delay: 0.15 + i * 0.04, duration: 0.6, ease: 'easeOut' }}
+                />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </GlassCard>
+    </motion.div>
+  );
+}
+
 function BenchmarkChart({ entries }: { entries: HistoryEntry[] }) {
   const avgScore = getAvgScore(entries);
   const tier = getUserTier(avgScore);
@@ -496,7 +679,7 @@ function BenchmarkChart({ entries }: { entries: HistoryEntry[] }) {
       <GlassCard className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-bold text-zinc-200">Benchmark Comparison</h3>
+            <h3 className="text-sm font-bold text-zinc-200">Radar Overview</h3>
             <p className="text-xs text-zinc-500 mt-0.5">Your scores vs. tier averages</p>
           </div>
           <div className="flex items-center gap-3 text-[11px]">
@@ -615,7 +798,7 @@ export default function AnalyzeAccountPage() {
         <div className="absolute bottom-0 right-0 w-[400px] h-[300px] rounded-full bg-gradient-to-tl from-pink-500/5 to-transparent blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-3xl mx-auto">
+      <div className="relative z-10 max-w-4xl mx-auto">
         <PageHeader
           title={
             <span>
@@ -643,7 +826,7 @@ export default function AnalyzeAccountPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="grid grid-cols-4 gap-3 mb-8"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8"
             >
               {[
                 { label: 'Videos', value: String(totalRoasts), color: 'text-white' },
@@ -711,9 +894,15 @@ export default function AnalyzeAccountPage() {
                 {/* ─── Library tab ─── */}
                 {activeTab === 'library' && (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Benchmark progress bars */}
+                    {history.length >= 2 && (
+                      <BenchmarkBars entries={history} />
+                    )}
+
+                    {/* Responsive video grid: 1-col mobile, 2-col tablet, 3-col desktop */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {history.map((entry, i) => (
-                        <VideoGridCard key={entry.id} entry={entry} index={i} />
+                        <VideoGridCard key={entry.id} entry={entry} index={i} avgScore={avgScore} />
                       ))}
                     </div>
                   </div>
