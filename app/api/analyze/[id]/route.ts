@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { extractFrames } from '@/lib/frame-extractor';
+import { extractFrames, type ExtractedFrame } from '@/lib/frame-extractor';
+import { analyzeCaptionQuality, buildCaptionQualityContext } from '@/lib/caption-quality';
 import { extractAudio, cleanupAudio } from '@/lib/audio-extractor';
 import { transcribeAudio, TranscriptionResult } from '@/lib/whisper-transcribe';
 import { detectSpeechMusic, AudioCharacteristics } from '@/lib/speech-music-detect';
@@ -794,7 +795,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         // Extract frames
         send({ type: 'status', message: 'Extracting frames...' });
-        let frames: string[] = [];
+        let frames: ExtractedFrame[] = [];
         try {
           frames = extractFrames(videoPath, 8);
         } catch (err) {
@@ -853,6 +854,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+        let captionQualityContext = '';
+        if (frames.length > 0) {
+          try {
+            send({ type: 'status', message: 'Auditing caption timing and readability...' });
+            const captionQuality = await analyzeCaptionQuality({ anthropic, frames, transcript });
+            captionQualityContext = buildCaptionQualityContext(captionQuality);
+          } catch (err) {
+            console.warn('[analyze] Caption quality audit failed:', err);
+          }
+        }
+
         const agentResults: Record<string, { score: number; roastText: string; findings: string[]; improvementTip: string }> = {};
         const trendingCtx = await trendingContextPromise;
         const chronicIssues = await chronicIssuesPromise;
@@ -895,12 +907,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           send({ type: 'agent', agent: dimension, status: 'analyzing', name });
 
           try {
-            const imageContent = frames.map(data => ({
+            const imageContent = frames.map(frame => ({
               type: 'image' as const,
               source: {
                 type: 'base64' as const,
                 media_type: 'image/jpeg' as const,
-                data,
+                data: frame.imageBase64,
               },
             }));
 
@@ -926,7 +938,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
             const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);
             const nicheContext = buildAgentNicheContext(nicheDetection, dimension, videoDuration?.durationSeconds);
-            const fullPrompt = prompt + TONE_RULES + hookContext + audioContext + trendingContext + nicheContext + escalationContext;
+            const captionAuditContext = dimension === 'caption' || dimension === 'accessibility'
+              ? captionQualityContext
+              : '';
+            const fullPrompt = prompt + TONE_RULES + hookContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext;
 
             const response = await anthropic.messages.create({
               model: 'claude-sonnet-4-6',
