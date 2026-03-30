@@ -11,6 +11,7 @@ import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalat
 import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
 import { ScriptGenerator } from '@/components/ScriptGenerator';
+import { getContentFormat } from '@/lib/content-formats';
 
 function getLetterGrade(score: number): string {
   if (score >= 90) return 'A+';
@@ -148,6 +149,7 @@ export default function RoastPage() {
   const reshootPlanner = getReshootPlanner(roast);
   const holdAssessment = roast.holdAssessment ?? getHoldAssessment(roast);
   const firstGlanceChecks = getFirstGlanceChecks(roast);
+  const primaryFormat = roast.formatDiagnosis ? getContentFormat(roast.formatDiagnosis.primaryFormatId) : undefined;
 
   return (
     <main className="min-h-screen pb-20 relative">
@@ -235,6 +237,61 @@ export default function RoastPage() {
                   <p className="text-sm sm:text-base text-zinc-200">{roast.hookSummary.headline}</p>
                   <p className="text-xs sm:text-sm text-zinc-400">{roast.hookSummary.distributionRisk}</p>
                   <p className={`text-xs sm:text-sm font-medium ${isHookFirst ? 'text-red-300' : 'text-emerald-300'}`}>{roast.hookSummary.focusNote}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {roast.formatDiagnosis && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.97, duration: 0.4 }}
+              className="max-w-4xl mx-auto mb-6 rounded-2xl border border-violet-500/20 bg-violet-500/8 px-5 py-5 text-left"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="space-y-2 max-w-2xl">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-300">format diagnosis</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-bold text-white">you are making a {roast.formatDiagnosis.primaryFormatName.toLowerCase()}</h3>
+                    <span className="rounded-full border border-violet-400/20 bg-zinc-950/40 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-violet-200">rank #{roast.formatDiagnosis.rank} / 20</span>
+                    <span className="rounded-full border border-zinc-700 bg-zinc-950/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-zinc-300">{roast.formatDiagnosis.confidence} confidence</span>
+                  </div>
+                  <p className="text-sm text-zinc-200">{roast.formatDiagnosis.whyThisFormat}</p>
+                  <p className="text-sm text-violet-100/90">{roast.formatDiagnosis.distributionFit}</p>
+                  {roast.formatDiagnosis.runnerUpFormatName && (
+                    <p className="text-xs text-zinc-400">runner-up fit: {roast.formatDiagnosis.runnerUpFormatName}</p>
+                  )}
+                </div>
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3 min-w-[220px]">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">playbook baseline</p>
+                  <p className="text-sm font-semibold text-white">{primaryFormat?.summary ?? 'format-aware guidance loaded'}</p>
+                  {primaryFormat?.bestFor && <p className="text-xs text-zinc-400 mt-1">best for: {primaryFormat.bestFor}</p>}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">must-haves for this format</p>
+                  <ul className="space-y-2">
+                    {roast.formatDiagnosis.mustHaves.map((item, index) => (
+                      <li key={index} className="flex gap-2 text-sm text-zinc-200">
+                        <span className="text-violet-300">•</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">how to make this format hit harder</p>
+                  <ul className="space-y-2">
+                    {roast.formatDiagnosis.upgrades.map((item, index) => (
+                      <li key={index} className="flex gap-2 text-sm text-zinc-200">
+                        <span className="text-orange-300">•</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </motion.div>
