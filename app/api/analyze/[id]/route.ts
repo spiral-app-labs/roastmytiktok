@@ -8,6 +8,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { existsSync, unlinkSync } from 'fs';
 import { writeFile } from 'fs/promises';
 import { DimensionKey } from '@/lib/types';
+import { fetchTrendingContext as fetchNewTrendingContext, buildAgentTrendingContext, TrendingContext } from '@/lib/trending-context';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 
@@ -516,31 +517,8 @@ function buildPlaybookContext(patterns: ViralPattern[]): string {
   return `\n\nTop performing hook patterns for comparison:\n${lines.join('\n')}\n\nCompare the uploaded video's hook against these proven patterns. Which pattern (if any) does it use? If the hook matches a proven high-performing pattern, note it as a strength. If it matches a weak pattern or no recognizable pattern at all, call it out specifically and suggest which pattern would work better. Score accordingly.`;
 }
 
-async function fetchTrendingContext(): Promise<string> {
-  try {
-    const { data } = await supabaseServer
-      .from('tmt_trending_content')
-      .select('hook_text, view_count, duration_sec, audio_title')
-      .gte('fetched_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-      .order('fetched_at', { ascending: false })
-      .limit(10);
-
-    if (!data || data.length === 0) return '';
-
-    const examples = data
-      .filter((r: { hook_text: string | null }) => r.hook_text)
-      .slice(0, 5)
-      .map((r: { hook_text: string; view_count: number | null; duration_sec: number | null; audio_title: string | null }) =>
-        `- Hook: "${r.hook_text}" | Views: ${r.view_count?.toLocaleString() ?? 'N/A'} | Duration: ${r.duration_sec ?? 'N/A'}s | Audio: "${r.audio_title ?? 'N/A'}"`)
-      .join('\n');
-
-    if (!examples) return '';
-
-    return `\n\nCurrently trending TikTok content (last 24h):\n${examples}\n\nUse this trending context to make your roast more relevant — compare their content to what's actually working right now.`;
-  } catch (err) {
-    console.warn('[analyze] Failed to fetch trending context:', err);
-    return '';
-  }
+async function fetchStructuredTrendingContext(): Promise<TrendingContext> {
+  return fetchNewTrendingContext();
 }
 
 interface ChronicIssueForPrompt {
@@ -660,7 +638,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
 
       try {
         // Fetch trending context, chronic issues, and viral patterns in parallel with frame extraction
-        const trendingContextPromise = fetchTrendingContext();
+        const trendingContextPromise = fetchStructuredTrendingContext();
         const chronicIssuesPromise = fetchChronicIssues(sessionId);
         const viralPatternsPromise = fetchTopViralPatterns();
 
@@ -718,7 +696,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         const agentResults: Record<string, { score: number; roastText: string; findings: string[]; improvementTip: string }> = {};
-        const trendingContext = await trendingContextPromise;
+        const trendingCtx = await trendingContextPromise;
         const chronicIssues = await chronicIssuesPromise;
         const viralPatterns = await viralPatternsPromise;
         const playbookContext = buildPlaybookContext(viralPatterns);
@@ -762,6 +740,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
               audioContext = `\n\nThe caption/speech mentions: "${words}". Does this align with trending topics?`;
             }
 
+            const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);
             const fullPrompt = prompt + TONE_RULES + hookContext + audioContext + trendingContext + escalationContext;
 
             const response = await anthropic.messages.create({
