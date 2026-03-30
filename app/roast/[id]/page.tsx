@@ -218,10 +218,39 @@ export default function RoastPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1, duration: 0.5 }}
-            className="max-w-2xl mx-auto bg-zinc-900/60 border border-zinc-800/50 rounded-2xl px-6 py-5"
+            className="max-w-2xl mx-auto bg-zinc-900/60 border border-zinc-800/50 rounded-2xl px-6 py-5 space-y-4"
           >
-            <p className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-2">TL;DR</p>
-            <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">{roast.verdict}</p>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-2">TL;DR</p>
+              <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">{roast.verdict}</p>
+            </div>
+
+            {roast.biggestBlocker && (
+              <div className="border-t border-zinc-800/50 pt-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-red-400 mb-1">Biggest Blocker</p>
+                <p className="text-sm text-zinc-300">{roast.biggestBlocker}</p>
+              </div>
+            )}
+
+            {roast.nextSteps && roast.nextSteps.length > 0 && (
+              <div className="border-t border-zinc-800/50 pt-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-2">Next Steps (by impact)</p>
+                <ol className="space-y-1.5">
+                  {roast.nextSteps.map((step, i) => (
+                    <li key={i} className="text-sm text-zinc-300 flex gap-2">
+                      <span className="text-blue-400 font-bold shrink-0">{i + 1}.</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {roast.encouragement && (
+              <div className="border-t border-zinc-800/50 pt-3">
+                <p className="text-sm text-emerald-400 italic">{roast.encouragement}</p>
+              </div>
+            )}
           </motion.div>
 
           {/* Share buttons */}
@@ -383,32 +412,40 @@ export default function RoastPage() {
         {/* Script Generator */}
         <ScriptGenerator roast={roast} />
 
-        {/* Viral Potential — Coming Soon placeholder */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: roast.agents.length * 0.15 }}
-          className="mt-4 relative bg-zinc-900/40 border-2 border-dashed border-zinc-700/50 rounded-2xl p-6 opacity-60"
-        >
-          <div className="absolute -top-2 -right-2 z-10 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-amber-500/30">
-            COMING SOON
-          </div>
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">🚀</span>
-              <div>
-                <h3 className="font-bold text-white">Viral Potential</h3>
-                <p className="text-xs text-zinc-500">Predicts your video&apos;s viral probability based on hook patterns, trending audio, and engagement signals</p>
+        {/* Viral Potential */}
+        {roast.viralPotential != null && roast.viralPotential > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: roast.agents.length * 0.15 }}
+            className="mt-4 bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-6"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🚀</span>
+                <div>
+                  <h3 className="font-bold text-white">Viral Potential</h3>
+                  <p className="text-xs text-zinc-500">Predicted viral probability based on hook patterns, engagement signals, and niche fit</p>
+                </div>
+              </div>
+              <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center ${
+                roast.viralPotential >= 60 ? 'border-emerald-500 text-emerald-400' :
+                roast.viralPotential >= 40 ? 'border-yellow-500 text-yellow-400' :
+                roast.viralPotential >= 20 ? 'border-orange-500 text-orange-400' :
+                'border-red-500 text-red-400'
+              }`}>
+                <span className="text-sm font-bold">{roast.viralPotential}</span>
               </div>
             </div>
-            <div className="w-14 h-14 rounded-full border-2 border-zinc-700 flex items-center justify-center">
-              <span className="text-zinc-600 text-sm font-bold">?</span>
-            </div>
-          </div>
-          <p className="text-sm text-zinc-500 italic">
-            &ldquo;This agent is still training on viral patterns... stay tuned.&rdquo;
-          </p>
-        </motion.div>
+            <p className="text-sm text-zinc-400">
+              {roast.viralPotential >= 80 ? 'This video is engineered to go viral. Ship it.' :
+               roast.viralPotential >= 60 ? 'Real breakout potential here. Fix the blockers and this could pop off.' :
+               roast.viralPotential >= 40 ? 'Could hit a few thousand views but needs work to break through.' :
+               roast.viralPotential >= 20 ? 'Likely to stall at a few hundred views. Check the next steps above.' :
+               'Dead on arrival in its current form. But the fixes above can change that.'}
+            </p>
+          </motion.div>
+        )}
 
         {/* Bottom CTA */}
         <motion.div
