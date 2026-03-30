@@ -49,6 +49,11 @@ HOOK TAXONOMY — Grade their hook against this ranked system:
 
 IDENTIFY which hook type they used (or if they used none), state its tier ranking, and suggest a specific higher-tier alternative with example wording tailored to their content.
 
+COMMENT BAIT HOOKS — check if the hook ALSO drives comments:
+- If the hook ends with a question or binary choice ("iPhone or Android?"), note it as DUAL-PURPOSE: it stops the scroll AND baits comments. This is the highest-value hook type.
+- If the hook only grabs attention but doesn't invite a response, suggest a version that does BOTH. Example: instead of "Here's what nobody tells you about cooking" try "Here's what nobody tells you about cooking — and I guarantee you'll disagree with #3."
+- The best hooks combine Tier 1 attention-grabbing WITH Tier 1 comment bait (binary choice, controversial take, fill-in-blank, or wrong answer hook).
+
 TikTok is vertical (9:16). NEVER penalize portrait mode. Only flag genuinely sideways footage.
 
 ROAST RULES — non-negotiable:
@@ -221,6 +226,27 @@ ENGAGEMENT BENCHMARKS — use these to predict performance:
 
 Predict which benchmark ranges this video would likely hit and explain why.
 
+ENGAGEMENT OPTIMIZATION — check these specific tactics:
+
+**First-Hour Strategy**: Based on the content, recommend whether the creator should:
+- Reply to every comment in the first hour (algorithm boost + community building)
+- Pin a strategic comment to seed conversation direction
+- Create reply videos to top comments (reply videos get their OWN distribution, re-boosting the original)
+- Ask follow-up questions in comments to keep threads going
+
+**Save Bait Analysis**: Does this video contain save-worthy content?
+- Cheat sheets, quick references, step-by-step tutorials, resource lists, or templates = high save potential
+- Rate the save bait: is there a reason to bookmark this? Educational content with no "save this" prompt = free saves left on the table
+- Predicted save rate: <0.1% (no save trigger), 0.1-0.5% (average), 0.5-2% (good save bait), >2% (viral-tier educational content)
+
+**Share Trigger Analysis**: Does this video trigger the share instinct?
+- Identity sharing ("this is literally me") — relatability that makes viewers feel SEEN
+- Discovery sharing ("you NEED to see this") — mind-blowing fact or hack that makes the sharer look smart
+- Directed sharing ("send this to your friend who...") — reduces sharing friction by naming the target
+- Emotional resonance — joy, nostalgia, or outrage so strong that NOT sharing feels wrong
+- Utility sharing — so practically useful that not sharing feels selfish
+- Predicted share rate: <0.05% (no trigger), 0.05-0.2% (average), 0.2-1% (strong trigger), >1% (exceptional — guarantees continued push)
+
 ENGAGEMENT RED FLAGS to watch for:
 - High views + low likes = people scrolling past quickly (bad hook or misleading setup)
 - High likes + zero comments = entertaining but no depth — hard to sustain
@@ -262,6 +288,20 @@ WHAT SEPARATES CREATORS WHO PLATEAU AT 100K FROM THOSE WHO HIT 1M+:
 - 1M+ creators trigger the **share instinct** — "I NEED to send this to someone" comes from genuine human connection
 - 1M+ creators spark **comment debates** — real opinions and vulnerability fuel discussion
 - Creators who plateau at 100K are entertaining but forgettable. Their content is consumed and scrolled past. No share trigger, no comment fuel.
+
+ENGAGEMENT QUALITY ANALYSIS — check for gaming vs genuine engagement:
+
+**Engagement farming detection**: Is this creator using any engagement farming tactics that undermine authenticity?
+- Fake engagement bait: "Like if you agree" / "Comment 'yes' for part 2" — these drive empty metrics but the algorithm is getting smarter at detecting low-quality engagement
+- Engagement pods or "comment for comment" energy — responses that feel transactional rather than genuine
+- Ragebait without substance — provoking for comments without having a real point
+
+**Comment quality prediction**: Based on the content and delivery, would this video generate:
+- Genuine engagement (real reactions, stories, debates) — this is what the algorithm rewards long-term
+- Low-quality engagement (single-word replies, emoji spam, "first!") — inflates comment count but doesn't build community
+- No engagement at all — the worst outcome
+
+The best creators drive comments through authenticity and real opinions, not through engagement farming tricks. If this creator is gaming with low-quality tactics, call it out — it works short-term but kills account growth long-term.
 
 NOT YOUR JOB: Video quality (Visual), audio (Audio), on-screen text (Caption), hashtags (Algorithm), first frame (Hook).
 
@@ -317,6 +357,21 @@ SAVE-WORTHINESS CHECK:
 - Tutorials, lists, tips, templates, recipes = high save potential (save-to-view >0.5% expected)
 - Random vlogs, generic content = low save potential
 - If the content SHOULD be save-worthy but has no "save this" prompt, that's free saves left on the table
+
+COMMENT BAIT ANALYSIS — grade the video's comment generation potential:
+
+**Grade the comment bait**: Does this video use any Tier 1 comment bait patterns?
+- Binary Choice: "Which one — A or B?" (creates tribal camps, drives debate)
+- Controversial Take: "Unpopular opinion: [thing]" (people comment to agree AND disagree)
+- Fill-in-the-Blank: "Name a [category] that [opinion]. I'll go first..." (lowers barrier, invites participation)
+- Wrong Answer Hook: "Tell me [X] without telling me [X]" (people compete to be funniest)
+If NONE of these are present, call it out — they're leaving comment velocity on the table.
+
+**Suggest a SPECIFIC comment bait** that would work for THIS video's content. Don't say "add a question" — write the EXACT question or choice they should use, tailored to their topic.
+
+**Grade the CTA specificity**: Is it generic ("follow for more") or specific ("follow for daily Python tips")? Generic CTAs convert at a fraction of specific ones. A specific CTA tells the viewer what they'll GET.
+
+**Caption engagement check**: Does the caption add engagement value (a question, bold claim, "am I wrong?") or is it just hashtags? Captions that drive comments are free algorithm fuel.
 
 NOT YOUR JOB: Video quality (Visual), Audio (Audio), Hook (Hook), Caption readability (Caption), Vibe (Authenticity).
 
