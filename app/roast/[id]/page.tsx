@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
-import { getFirstGlanceChecks, getHoldAssessment, getHookWorkshop, getReshootPlanner } from '@/lib/hook-help';
+import { getFirstGlanceChecks, getHoldAssessment, getHookTypeLenses, getHookWorkshop, getReshootPlanner } from '@/lib/hook-help';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
 import { DeepDiveNav } from '@/components/DeepDiveNav';
@@ -149,6 +149,7 @@ function RoastContent({
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
   const isHookWeak = roast.analysisMode === 'hook-first' || roast.hookSummary?.strength === 'weak';
   const hookWorkshop = getHookWorkshop(roast);
+  const hookTypeLenses = getHookTypeLenses(roast);
   const reshootPlanner = getReshootPlanner(roast);
   const holdAssessment = roast.holdAssessment ?? getHoldAssessment(roast);
   const firstGlanceChecks = getFirstGlanceChecks(roast);
@@ -612,6 +613,33 @@ function RoastContent({
                     </div>
                   ))}
                 </div>
+              </div>
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">hook anatomy</p>
+                    <p className="text-xs text-zinc-400 mt-1">great hooks usually stack multiple levers: visual, spoken, text, motion, curiosity, and pure attractiveness.</p>
+                  </div>
+                  <span className="rounded-full border border-zinc-700 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+                    teachable layer
+                  </span>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {hookTypeLenses.map((lens) => (
+                    <div key={lens.key} className="rounded-xl border border-zinc-800 bg-black/20 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-zinc-100">{lens.label}</p>
+                        <span className={`text-[11px] font-bold uppercase tracking-widest ${lens.status === 'working' ? 'text-emerald-300' : 'text-red-300'}`}>
+                          {lens.score}/100 · {lens.status === 'working' ? 'working' : 'needs work'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-zinc-500">{lens.whatItMeans}</p>
+                      <p className="mt-2 text-xs text-zinc-300">{lens.note}</p>
+                      <p className="mt-2 text-xs text-orange-200"><span className="text-orange-400">upgrade:</span> {lens.fix}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-zinc-400">if these opening levers are weak, CTA, caption, and distribution advice become secondary because viewers never stay long enough to feel the payoff.</p>
               </div>
             </div>
           </div>
