@@ -111,6 +111,10 @@ export default function AnalyzePage() {
     const agentResults: AgentRoast[] = [];
     let overallScore = 0;
     let verdict = '';
+    let viralPotential = 0;
+    let biggestBlocker = '';
+    let nextSteps: string[] = [];
+    let encouragement = '';
 
     const sessionId = getSessionId();
     const eventSource = new EventSource(`/api/analyze/${id}?session_id=${encodeURIComponent(sessionId)}`);
@@ -142,6 +146,10 @@ export default function AnalyzePage() {
         if (data.type === 'verdict') {
           overallScore = data.overallScore;
           verdict = data.verdict;
+          viralPotential = data.viralPotential ?? 0;
+          biggestBlocker = data.biggestBlocker ?? '';
+          nextSteps = data.nextSteps ?? [];
+          encouragement = data.encouragement ?? '';
         }
 
         if (data.type === 'done') {
@@ -152,6 +160,10 @@ export default function AnalyzePage() {
             tiktokUrl: '',
             overallScore,
             verdict,
+            viralPotential,
+            biggestBlocker,
+            nextSteps,
+            encouragement,
             agents: agentResults,
             metadata: {
               views: 0,

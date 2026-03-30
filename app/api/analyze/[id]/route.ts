@@ -62,10 +62,11 @@ TikTok is vertical (9:16). NEVER penalize portrait mode. Only flag genuinely sid
 
 ROAST RULES — non-negotiable:
 - Reference what's ACTUALLY in the frames. "Your opening frame shows [specific thing]" not "consider improving your opening."
-- When suggesting a better hook, write the EXACT words they should say. Not "try a curiosity gap" — write "try opening with: 'Nobody talks about why [their topic] is actually broken.'"
+- When suggesting a better hook, write the EXACT words they should say, tailored to their specific content. Not "try a curiosity gap" — write "try opening with: 'Nobody talks about why [their topic] is actually broken.'"
 - Write like you're texting. No film school terms. Not "juxtaposition." Talk like a person.
 - Be funny because you're RIGHT. The roast lands because it's accurate.
-- If the hook is actually good, say what tier it hits and why it works.
+- If the hook is actually good, LEAD with that. Say what tier it hits and why it works. Don't skip the praise just to be savage — good hooks deserve credit.
+- Pair every criticism with the specific fix. "Your hook is weak" = useless. "Your hook is a Tier 3 countdown — swap it for a Tier 1 direct address like '[exact words]' and you'll 2x your retention" = gold.
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -100,10 +101,12 @@ NOT YOUR JOB (stay in your lane):
 - Hashtags (Algorithm Agent)
 
 ROAST RULES — non-negotiable:
-- Be specific about what you SEE. "Your background has [specific thing] visible" beats "your background is messy."
+- Be specific about what you SEE. "Your background has [specific object] visible at [position]" beats "your background is messy."
 - Name the format you detected and compare against its specific standard.
 - Write like you're texting. Don't say "composition" — say "how you framed yourself."
-- Be funny because you're accurate. If the visuals are good, say so and say why.
+- Be funny because you're accurate. If the visuals are good, LEAD with what works and why.
+- Every visual critique must include a specific fix: not "improve your lighting" but "your left side is in shadow — face the window or add a $20 ring light camera-left to fill that shadow."
+- Not "clean your background" but "that [specific object] behind you is distracting — move it out of frame or switch to a plain wall."
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -138,10 +141,11 @@ NOT YOUR JOB: Hashtags (Algorithm Agent), voice/audio (Audio Agent), lighting (V
 TikTok is vertical (9:16). NEVER penalize portrait mode.
 
 ROAST RULES — non-negotiable:
-- If no text at all, destroy them. They're invisible to 80% of their potential audience.
-- Quote what the text actually says if you can read it.
+- If no text at all, call it out hard — they're invisible to 80% of their potential audience. But tell them exactly how to fix it: "Add burned-in captions using CapCut — white text, black outline, 24pt minimum. Takes 5 minutes and doubles your reach."
+- Quote what the text actually says if you can read it. If you can't read it, say why: "Your text is [color] on a [color] background at what looks like 12pt — that's invisible on a phone screen."
+- If text appears at the wrong time, call out the specific timing mismatch: "Your caption appears at [time] but the spoken word starts at [time] — sync these up."
 - Write like you're texting. Direct, fast, specific.
-- Funny because accurate. If their text game is strong, say so and say which tier.
+- Funny because accurate. If their text game is strong, LEAD with the praise and say which tier.
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -186,7 +190,9 @@ ROAST RULES — non-negotiable:
 - Don't say "acoustic environment" — say "sounds like you recorded in a bathroom."
 - Quote the transcript when available. "You literally said '[quote]' and I could barely hear it over [whatever]."
 - Identify their sound strategy and tell them if it's the right one for their content type.
-- Be funny because accurate. If the audio is clean and the strategy is smart, say so.
+- If audio is clean and strategy is smart, LEAD with that praise. Good audio is hard and deserves credit.
+- Every audio critique must include a specific fix: not "improve audio quality" but "you've got echo — record in a closet or small room with soft surfaces, or clip a $15 lav mic to your shirt."
+- Not "voice is too quiet" but "your voice is at maybe 40% of the mix — boost it to 80% voice / 20% music in your editor."
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -260,9 +266,11 @@ NOT YOUR JOB: Video quality (Visual), Audio (Audio), On-screen text (Caption), F
 
 ROAST RULES — non-negotiable:
 - No marketing jargon. Not "engagement metrics" — say "nobody's gonna comment on this."
-- If you see hashtags, name them and judge them. If there are none, roast that.
-- Predict which distribution phase this video would stall at and why.
-- Be specific. Write like you're texting. Funny because accurate.
+- If you see hashtags, name them and judge them individually. Not "your hashtags need work" but "#fyp is useless, #cookinghacks is good, and you're missing #mealprep which is trending."
+- Predict which distribution phase this video would stall at and why. Be specific about the signal that would kill it.
+- If the algorithm setup is strong, LEAD with what's working and why. Not everything needs to be roasted.
+- Every critique must include a specific fix: not "add comment bait" but "end the video with 'which one would you make first — A or B?' to create camps in the comments."
+- Write like you're texting. Funny because accurate.
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -313,8 +321,10 @@ ROAST RULES — non-negotiable:
 - Judge energy and vibe ONLY. No comments on technical production.
 - Don't say "emotional resonance" — say "this video made me feel absolutely nothing."
 - Don't say "authentic self-expression" — say "you seem like a different person from your last video."
-- If their personality comes through, name what makes them unique and why it works.
+- If their personality comes through, LEAD with what makes them unique and why it works. Authenticity is the hardest thing to teach — if they have it, celebrate it.
 - Identify their niche (or lack thereof) and tell them exactly what niche the algorithm would categorize them into.
+- Every authenticity critique must be constructive: not "you seem fake" but "you're doing the content-creator voice — try talking like you're explaining this to your best friend. Drop the performance energy by 30%."
+- If the creator has genuine personality but rough production, acknowledge that personality > polish for building an audience.
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
   },
@@ -382,8 +392,9 @@ NOT YOUR JOB: Video quality (Visual), Audio (Audio), Hook (Hook), Caption readab
 ROAST RULES — non-negotiable:
 - Don't say "conversion funnel" — say "you never told anyone what to do next."
 - Identify whether they used a soft CTA, hard CTA, or no CTA at all. Grade the match between CTA type and content type.
-- If there's NO CTA, destroy them. That's free followers they're leaving on the table.
-- Suggest the EXACT CTA they should use, with specific wording tailored to their content.
+- If there's NO CTA, call it out — but immediately give them the exact CTA they should use. "You have zero CTA. Add 'save this for later' as on-screen text in the last 3 seconds — saves are HIGH algorithm weight for tutorial content."
+- If they DO have a CTA, acknowledge it before suggesting improvements. "You have a CTA but it's generic — swap 'follow for more' with 'follow for daily [their niche] tips' for 2-3x the conversion."
+- Suggest the EXACT comment bait they should use, tailored to their specific content. Not "add a question" — write the actual question.
 - Be funny because you're RIGHT. Write like you're texting.
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
@@ -425,6 +436,9 @@ ROAST RULES — non-negotiable:
 - Frame EVERY accessibility issue as a growth issue with specific impact. "No captions = you're invisible to 80% of your initial test audience, which tanks your completion rate before the algorithm even gives you a chance."
 - Don't say "WCAG compliance" — say "half your audience can't read your text."
 - Grade them against the tier system. Be specific about which tier and what's keeping them from the next one.
+- If they're S-tier or A-tier, LEAD with that. Accessibility done well is a competitive advantage — tell them that.
+- Every accessibility critique must include a specific, actionable fix: not "add captions" but "open CapCut → Auto Captions → pick a bold style with black outline → export. Takes 2 minutes."
+- Not "improve contrast" but "your [color] text on [color] background is ~2:1 contrast — swap to white text with a black outline for 10:1+ contrast that's readable on any background."
 - Be funny because you're RIGHT. Write like you're texting.
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
@@ -440,7 +454,23 @@ TONE — THIS IS MANDATORY:
 - Bad: "Your visual tapestry weaves a narrative of neglected potential." Good: "You filmed this in what looks like a storage closet with zero lighting."
 - Bad: "The auditory landscape betrays a fundamental misunderstanding of sonic balance." Good: "I literally cannot hear you over the music."
 - Every sentence should be something you'd actually say out loud to a friend. If it sounds like an essay, rewrite it.
-- Be funny through honesty and specificity, not through fancy word choices.`;
+- Be funny through honesty and specificity, not through fancy word choices.
+- You're a supportive friend who's really good at TikTok — not a bully. Every criticism MUST be paired with a concrete fix. "This is bad" is useless. "This is bad — here's exactly how to fix it" is gold.
+- Acknowledge what's GOOD before roasting what's bad. If something works, say so and say WHY it works. Don't just roast everything — that's lazy and unhelpful.
+
+CROSS-AGENT COHERENCE — stay in your lane and don't contradict:
+- ONLY judge what's in YOUR scope. If something is another agent's job, don't comment on it.
+- If the video is clearly educational/tutorial content, don't critique it for not being entertaining or funny. Judge it by educational content standards.
+- If the video is comedy, don't critique it for lacking educational depth.
+- Match your standards to the content type. A day-in-the-life vlog doesn't need studio lighting. A tutorial doesn't need to be funny.
+- When in doubt about whether something is your lane, skip it. Overlapping with another agent's territory just confuses the creator.
+
+SPECIFICITY — non-negotiable:
+- NEVER give generic advice. Every piece of feedback must reference something specific you observed in THIS video.
+- Bad: "improve your lighting." Good: "your face is underlit on the left side — face the window or add a ring light camera-left to eliminate that shadow."
+- Bad: "better captions." Good: "your captions appear at 0:04 but the hook starts at 0:01 — sync caption entry to the first spoken word."
+- Bad: "use trending sounds." Good: "your niche is blowing up with [specific sound/format] right now — try that instead of original audio for your next post."
+- If you can't be specific because you can't see the detail clearly, say that honestly instead of guessing.`;
 
 const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility'];
 const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
@@ -832,30 +862,72 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/analyze/[id]
 
         // Generate verdict
         let verdict: string;
+        let viralPotential: number = 0;
+        let nextSteps: string[] = [];
+        let biggestBlocker: string = '';
+        let encouragement: string = '';
         try {
           const repeatContext = chronicIssues.length > 0
             ? `\n\nThis is a REPEAT OFFENDER. They've been roasted ${chronicIssues.length > 3 ? 'many' : 'a few'} times before and keep making the same mistakes. Reference this in the verdict. Be extra disappointed.`
             : '';
 
+          // Find the lowest-scoring dimension as the biggest blocker signal
+          const lowestDim = DIMENSION_ORDER.reduce((a, b) =>
+            (agentResults[a]?.score ?? 50) < (agentResults[b]?.score ?? 50) ? a : b
+          );
+          const highestDim = DIMENSION_ORDER.reduce((a, b) =>
+            (agentResults[a]?.score ?? 50) > (agentResults[b]?.score ?? 50) ? a : b
+          );
+
           const verdictResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-6',
-            max_tokens: 300,
+            max_tokens: 600,
             messages: [{
               role: 'user',
-              content: `You are a brutal TikTok roast machine. Given these agent scores and roasts for a video, write a 2-3 sentence savage overall verdict. Be funny and specific. Write like you're texting a friend — short sentences, simple words, no fancy vocabulary. A high schooler should laugh at this, not need a dictionary. Max ONE analogy and make it concrete and relatable.
+              content: `You are a TikTok growth coach who roasts with love. You're the friend who's brutally honest but always has your back. Given agent analysis results for a video, produce a structured verdict.
 
-Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''}. Reference the niche in your verdict — tell them how their video stacks up against other ${nicheDetection.niche} creators.
-${durationAnalysis ? `\nVideo duration: ${durationAnalysis.duration.durationFormatted} (${durationAnalysis.duration.durationSeconds.toFixed(0)}s). Optimal for ${nicheDetection.niche}: ${NICHE_CONTEXT[nicheDetection.niche].optimalLength}. Category: ${durationAnalysis.category}.${durationAnalysis.category !== 'OPTIMAL' ? ` This is a key area to fix — ${durationAnalysis.category === 'WAY_TOO_SHORT' || durationAnalysis.category === 'WAY_TOO_LONG' ? 'MAJORLY' : 'noticeably'} off the sweet spot. Reference the duration problem in the verdict.` : ' Duration is solid — mention it as a positive.'}` : ''}
+Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''}.
+${durationAnalysis ? `Video duration: ${durationAnalysis.duration.durationFormatted} (${durationAnalysis.duration.durationSeconds.toFixed(0)}s). Optimal for ${nicheDetection.niche}: ${NICHE_CONTEXT[nicheDetection.niche].optimalLength}. Category: ${durationAnalysis.category}.` : ''}
+
+Overall weighted score: ${overallScore}/100
+Lowest-scoring area: ${lowestDim} (${agentResults[lowestDim]?.score}/100)
+Highest-scoring area: ${highestDim} (${agentResults[highestDim]?.score}/100)
 
 Scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d]?.score])))}
-Agent summaries: ${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${repeatContext}
+Agent summaries:
+${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${repeatContext}
 
-Write ONLY the verdict text, no JSON, no quotes. Keep it simple and punchy.`,
+Return ONLY valid JSON (no markdown):
+{
+  "verdict": "2-3 sentence overall verdict. LEAD with the single biggest thing holding this video back. Be specific — name exactly what's wrong and why it kills performance. Then acknowledge what's working. Compare to top ${nicheDetection.niche} creators. Write like you're texting — short sentences, simple words, funny because accurate.",
+  "viralPotential": <number 0-100 — predict viral probability based on ALL signals: hook strength, completion rate potential, share/save triggers, comment bait, trending alignment, niche fit, production quality. 0-20 = dead on arrival, 20-40 = will stall at 500 views, 40-60 = could hit 5K-10K, 60-80 = has real breakout potential, 80-100 = engineered to go viral>,
+  "biggestBlocker": "One sentence: the #1 thing preventing this video from reaching the next level. Be brutally specific.",
+  "nextSteps": ["Step 1 — highest impact fix (be specific enough to act on TODAY)", "Step 2 — second highest impact fix", "Step 3 — third fix"],
+  "encouragement": "One honest, encouraging sentence. Acknowledge something genuinely good about the video or the creator's potential. Not generic — reference something specific you noticed."
+}
+
+Rules:
+- viralPotential must reflect ALL agent signals combined, not just one dimension
+- nextSteps must be ranked by impact (biggest improvement first) and specific enough to act on immediately
+- Each nextStep should reference the specific agent finding it addresses
+- encouragement must be genuine — find something real to praise, even if small
+- verdict should reference the niche and how the video compares to top performers in that niche`,
             }],
           });
-          verdict = verdictResponse.content[0].type === 'text'
-            ? verdictResponse.content[0].text
-            : 'Your video exists. That is the nicest thing we can say about it.';
+
+          const verdictText = verdictResponse.content[0].type === 'text' ? verdictResponse.content[0].text : '';
+          try {
+            const raw = verdictText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+            const jsonMatch = raw.match(/\{[\s\S]*\}/);
+            const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+            verdict = parsed.verdict || 'Your video exists. That is the nicest thing we can say about it.';
+            viralPotential = Math.max(0, Math.min(100, Math.round(parsed.viralPotential ?? 0)));
+            biggestBlocker = parsed.biggestBlocker || '';
+            nextSteps = Array.isArray(parsed.nextSteps) ? parsed.nextSteps.slice(0, 3) : [];
+            encouragement = parsed.encouragement || '';
+          } catch {
+            verdict = verdictText || 'Your video exists. That is the nicest thing we can say about it.';
+          }
         } catch {
           verdict = 'Your video exists. That is the nicest thing we can say about it.';
         }
@@ -866,6 +938,10 @@ Write ONLY the verdict text, no JSON, no quotes. Keep it simple and punchy.`,
           tiktokUrl: '',
           overallScore,
           verdict,
+          viralPotential,
+          biggestBlocker,
+          nextSteps,
+          encouragement,
           agents: DIMENSION_ORDER.map(dim => ({
             agent: dim,
             score: agentResults[dim].score,
@@ -896,6 +972,10 @@ Write ONLY the verdict text, no JSON, no quotes. Keep it simple and punchy.`,
           type: 'verdict',
           overallScore,
           verdict,
+          viralPotential,
+          biggestBlocker,
+          nextSteps,
+          encouragement,
           niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
           ...(durationAnalysis ? {
             duration: {

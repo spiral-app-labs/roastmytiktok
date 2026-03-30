@@ -22,6 +22,10 @@ export interface RoastResult {
   tiktokUrl: string;
   overallScore: number;
   verdict: string;
+  viralPotential?: number;
+  biggestBlocker?: string;
+  nextSteps?: string[];
+  encouragement?: string;
   agents: AgentRoast[];
   niche?: {
     detected: string;

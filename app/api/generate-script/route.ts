@@ -76,7 +76,8 @@ USE THIS RESEARCH TO BUILD THE SCRIPT:
 - 63% of highest-CTR videos hook within 3 seconds
 
 **Structure — engineer for watch time (the #1 algorithm signal):**
-- Build in a mid-video retention hook at 30-40% mark (reveal, twist, "but here's the thing...")
+- Build in a mid-video retention hook at 40-60% mark — this is the "pattern interrupt" that stops viewers from scrolling. Use one of these: unexpected twist ("but here's the thing..."), reveal ("and this is where it gets crazy"), re-hook ("now forget everything I just said"), or visual pattern interrupt (sudden zoom, angle change, new prop)
+- The mid-video hook is MANDATORY. It's the difference between 40% and 70% completion rate.
 - End should loop into the beginning OR create a cliffhanger
 - Completion rate above 50% is the viral threshold
 - Every second must earn its place — no padding
@@ -135,14 +136,19 @@ Respond with ONLY valid JSON in this exact structure (no markdown, no explanatio
 }
 
 Requirements:
-- 4-7 scenes covering the full video arc with a mid-video retention hook
-- Hook MUST be Tier 1 (direct address, curiosity gap, problem-solution, or visual pattern interrupt)
+- 4-7 scenes covering the full video arc
+- Scene 1 MUST be a Tier 1 hook (direct address, curiosity gap, problem-solution, or visual pattern interrupt) — combine visual + verbal for maximum stopping power
+- One scene at the 40-60% mark MUST be an explicit mid-video retention hook (pattern interrupt). Label it clearly in the action field: "RETENTION HOOK: [type]". Use one of: unexpected twist, dramatic reveal, re-hook, or visual pattern interrupt
+- The final scene should include a specific CTA matched to the content type:
+  - Tutorial/educational → "Save this for later" (drives saves = HIGH algorithm weight)
+  - Funny/relatable → "Send this to someone who [specific trait]" (drives shares = HIGHEST organic signal)
+  - Controversial/opinion → "Am I wrong? Tell me in the comments" (drives comments = HIGH algorithm weight)
+  - Series content → "Follow for Part 2" (drives follows)
 - On-screen text must work independently of audio (sound-off first design)
-- Caption should include comment bait (a question, bold claim, or "am I wrong?") — NEVER just hashtags
+- Caption MUST include comment bait — write a specific question, bold claim, or binary choice that creates a REASON to comment. Never generic. Example: "Which method do you use — A or B? I already know the comments are gonna be split 😂"
 - 5-8 hashtags: 3-5 niche-specific + 1-2 broad discovery tags (NOT just #fyp)
 - Audio suggestion should specify trending vs original and the voice-to-music balance
-- The script MUST include at least one Tier 1 comment bait pattern (binary choice, controversial take, fill-in-blank, or wrong answer hook)
-- The last scene or caption should create a REASON for viewers to comment — not a generic "comment below"
+- The script MUST include at least one Tier 1 comment bait pattern (binary choice, controversial take, fill-in-blank, or wrong answer hook) — place it in the LAST 3 seconds or in the caption
 - The script should fix EVERY specific weakness identified in the roast`;
 
     const message = await anthropic.messages.create({
