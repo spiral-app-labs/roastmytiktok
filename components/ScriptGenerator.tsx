@@ -38,6 +38,10 @@ function CopyButton({ script }: { script: GeneratedScript }) {
       .join('\n\n');
 
     return [
+      `🧩 FORMAT`,
+      `${script.formatLabel || 'Optimized Script'}${script.formatReasoning ? ` — ${script.formatReasoning}` : ''}`,
+      ...(script.creatorNotes?.length ? [``, `🎥 CREATOR NOTES`, script.creatorNotes.map((note) => `• ${note}`).join('\n')] : []),
+      ``,
       `🎣 HOOK (0-3s)`,
       script.hook,
       ``,

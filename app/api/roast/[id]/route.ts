@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
+import { fetchTrendingContext } from '@/lib/trending-context';
+import { buildSoundLibraryPlan } from '@/lib/sound-library';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,9 +17,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       return Response.json({ error: 'Roast not found' }, { status: 404 });
     }
 
+    const trendingContext = await fetchTrendingContext();
+
     // If full result_json is available, return it directly
     if (data.result_json) {
-      return Response.json(data.result_json);
+      return Response.json({
+        ...data.result_json,
+        soundLibraryPlan: data.result_json.soundLibraryPlan ?? buildSoundLibraryPlan(data.result_json, trendingContext),
+      });
     }
 
     // Fallback: construct partial result from individual columns
@@ -30,7 +37,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       improvementTip: 'Try uploading again for a full analysis.',
     }));
 
-    return Response.json({
+    const fallbackResult = {
       id: data.id,
       tiktokUrl: data.tiktok_url ?? '',
       overallScore: data.overall_score ?? 0,
@@ -45,6 +52,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         hashtags: [],
         description: data.source === 'upload' ? 'Uploaded video' : 'TikTok URL',
       },
+    };
+
+    return Response.json({
+      ...fallbackResult,
+      soundLibraryPlan: buildSoundLibraryPlan(fallbackResult, trendingContext),
     });
   } catch (err) {
     console.error('[roast] Fetch error:', err);

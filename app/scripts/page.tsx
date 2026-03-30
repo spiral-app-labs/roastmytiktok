@@ -48,6 +48,20 @@ function ScriptPreview({ script }: { script: GeneratedScript }) {
         </div>
       </div>
 
+      {script.creatorNotes?.length ? (
+        <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/50">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm">🎥</span>
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Creator Notes</span>
+          </div>
+          <div className="space-y-1.5">
+            {script.creatorNotes.map((note, i) => (
+              <p key={i} className="text-xs text-zinc-400">• {note}</p>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/50">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-sm">#️⃣</span>
@@ -81,7 +95,9 @@ function ScriptCard({ saved, onDelete }: { saved: SavedScript; onDelete: (id: st
       .map((s) => `Scene ${s.number} [${s.timing}]\nAction: ${s.action}\nDialogue: ${s.dialogue}`)
       .join('\n\n');
     const text = [
-      `🎣 HOOK (0-3s)`, script.hook, ``,
+      `🧩 FORMAT`, `${script.formatLabel || 'Optimized Script'}${script.formatReasoning ? ` — ${script.formatReasoning}` : ''}`,
+      ...(script.creatorNotes?.length ? [``, `🎥 CREATOR NOTES`, script.creatorNotes.map((note) => `• ${note}`).join('\n')] : []),
+      ``, `🎣 HOOK (0-3s)`, script.hook, ``,
       `🎬 SCENES`, scenes, ``,
       `📝 ON-SCREEN TEXT`, script.onScreenText.map((t) => `• ${t}`).join('\n'), ``,
       `✍️ CAPTION`, script.caption, ``,

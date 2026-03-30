@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { fetchTrendingContext, buildScriptTrendingContext } from '@/lib/trending-context';
-import { type ScriptFormat, getFormatById } from '@/lib/script-formats';
+import {
+  type ScriptFormat,
+  buildFormatExecutionBrief,
+  resolveScriptFormat,
+} from '@/lib/script-formats';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -15,12 +19,40 @@ export interface ScriptScene {
 }
 
 export interface GeneratedScript {
+  formatId?: ScriptFormat;
+  formatLabel?: string;
+  formatReasoning?: string;
+  creatorNotes?: string[];
   hook: string;
   scenes: ScriptScene[];
   onScreenText: string[];
   caption: string;
   hashtags: string[];
   audioSuggestion: string;
+}
+
+function normalizeScript(script: GeneratedScript, fallbackFormat: { id: ScriptFormat; label: string }): GeneratedScript {
+  const creatorNotes = Array.isArray(script.creatorNotes)
+    ? script.creatorNotes.filter(Boolean).slice(0, 4)
+    : [];
+
+  return {
+    ...script,
+    formatId: script.formatId && script.formatId !== 'generic' ? script.formatId : fallbackFormat.id,
+    formatLabel: script.formatLabel || fallbackFormat.label,
+    formatReasoning: script.formatReasoning || `Built for the ${fallbackFormat.label} format so the script structure matches how this kind of TikTok actually wins watch time.`,
+    creatorNotes,
+    scenes: Array.isArray(script.scenes)
+      ? script.scenes.map((scene, index) => ({
+          ...scene,
+          number: typeof scene.number === 'number' ? scene.number : index + 1,
+        }))
+      : [],
+    hashtags: Array.isArray(script.hashtags)
+      ? script.hashtags.map((tag) => tag.replace(/^#/, '').trim()).filter(Boolean)
+      : [],
+    onScreenText: Array.isArray(script.onScreenText) ? script.onScreenText.filter(Boolean) : [],
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -32,12 +64,16 @@ export async function POST(request: NextRequest) {
       weaknesses,
       userPrompt,
       format: formatId,
+      niche,
+      duration,
     }: {
       roastScore: number;
       agentFeedback: Array<{ agent: string; roastText: string; findings: string[]; improvementTip: string }>;
       weaknesses: string[];
       userPrompt?: string;
       format?: ScriptFormat;
+      niche?: string;
+      duration?: number;
     } = body;
 
     if (!roastScore || !agentFeedback || !Array.isArray(agentFeedback)) {
@@ -59,15 +95,20 @@ export async function POST(request: NextRequest) {
     const trendingCtx = await fetchTrendingContext();
     const trendingSection = buildScriptTrendingContext(trendingCtx);
 
-    const formatDef = getFormatById(formatId || 'generic');
-    const formatSection = formatDef.promptSection
-      ? `\n## FORMAT-SPECIFIC TEMPLATE:\n${formatDef.promptSection}\n\nYou MUST follow this format structure. Adapt the general guidelines below to fit this specific format.\n`
+    const selectedFormat = resolveScriptFormat(formatId, niche, duration);
+    const formatReason = formatId === 'generic' || !formatId
+      ? `The creator chose auto mode, so you MUST use ${selectedFormat.label} because it best fits the niche/duration context.`
+      : `The creator explicitly chose ${selectedFormat.label}, so commit to that structure hard.`;
+    const formatSection = selectedFormat.promptSection
+      ? `\n## FORMAT-SPECIFIC TEMPLATE:\n${selectedFormat.promptSection}\n\n## FORMAT EXECUTION BRIEF:\n${buildFormatExecutionBrief(selectedFormat)}\n${formatReason}\n\nYou MUST follow this format structure. Adapt the general guidelines below to fit this specific format.\n`
       : '';
 
     const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K followers. You've just received a brutal AI roast of a TikTok video that scored ${roastScore}/100. Your job: create a replacement script that fixes every weakness and is engineered for maximum algorithmic push.
 ${formatSection}
 ## Roast Score: ${roastScore}/100
 ${weaknessSummary}
+${niche ? `Detected niche: ${niche}` : ''}
+${duration ? `Original video duration: ${duration}s` : ''}
 
 ## Agent Feedback:
 ${feedbackSummary}
@@ -125,6 +166,13 @@ ${trendingSection}
 
 Respond with ONLY valid JSON in this exact structure (no markdown, no explanation):
 {
+  "formatId": "${selectedFormat.id}",
+  "formatLabel": "${selectedFormat.label}",
+  "formatReasoning": "1-2 sentences explaining why this format is the best vehicle for the rewrite.",
+  "creatorNotes": [
+    "3-4 practical filming notes that make this script easier to shoot well",
+    "Mention the most important visual or pacing choice"
+  ],
   "hook": "The first 1-3 seconds — MUST be a Tier 1 hook type. Write the exact words + describe the visual action.",
   "scenes": [
     {
@@ -147,7 +195,7 @@ Requirements:
 - 4-7 scenes covering the full video arc
 - Scene 1 MUST be a Tier 1 hook (direct address, curiosity gap, problem-solution, or visual pattern interrupt) — combine visual + verbal for maximum stopping power
 - One scene at the 40-60% mark MUST be an explicit mid-video retention hook (pattern interrupt). Label it clearly in the action field: "RETENTION HOOK: [type]". Use one of: unexpected twist, dramatic reveal, re-hook, or visual pattern interrupt
-- The final scene should include a specific CTA matched to the content type:
+- The final scene should include a specific CTA matched to ${selectedFormat.contentType} content:
   - Tutorial/educational → "Save this for later" (drives saves = HIGH algorithm weight)
   - Funny/relatable → "Send this to someone who [specific trait]" (drives shares = HIGHEST organic signal)
   - Controversial/opinion → "Am I wrong? Tell me in the comments" (drives comments = HIGH algorithm weight)
@@ -157,11 +205,13 @@ Requirements:
 - 5-8 hashtags: 3-5 niche-specific + 1-2 broad discovery tags (NOT just #fyp)
 - Audio suggestion should specify trending vs original and the voice-to-music balance
 - The script MUST include at least one Tier 1 comment bait pattern (binary choice, controversial take, fill-in-blank, or wrong answer hook) — place it in the LAST 3 seconds or in the caption
-- The script should fix EVERY specific weakness identified in the roast`;
+- The script should fix EVERY specific weakness identified in the roast
+- Every scene should feel native to the ${selectedFormat.label} format. If a scene could belong to any format, rewrite it to be more format-specific.
+- creatorNotes must be practical production guidance, not strategy fluff`;
 
     const message = await anthropic.messages.create({
       model: 'claude-opus-4-5',
-      max_tokens: 1500,
+      max_tokens: 1800,
       messages: [
         {
           role: 'user',
@@ -177,9 +227,11 @@ Requirements:
 
     let script: GeneratedScript;
     try {
-      // Strip any markdown code fences if present
       const raw = textContent.text.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-      script = JSON.parse(raw);
+      script = normalizeScript(JSON.parse(raw), {
+        id: selectedFormat.id,
+        label: selectedFormat.label,
+      });
     } catch {
       console.error('[generate-script] Failed to parse Claude response:', textContent.text);
       return Response.json({ error: 'Failed to parse script response' }, { status: 500 });
