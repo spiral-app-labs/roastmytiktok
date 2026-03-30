@@ -12,6 +12,12 @@ export interface TranscriptionResult {
   provider?: 'assemblyai' | 'whisper';
 }
 
+/** Whisper API has a 25 MB file size limit. */
+const WHISPER_MAX_FILE_BYTES = 25 * 1024 * 1024;
+
+/** AssemblyAI allows larger files but cap at 100 MB for safety. */
+const ASSEMBLYAI_MAX_FILE_BYTES = 100 * 1024 * 1024;
+
 function normalizeSegments(
   segments: Array<{ start: number; end: number; text: string }>
 ): TranscriptionSegment[] {
@@ -75,6 +81,13 @@ async function transcribeWithWhisper(
     return null;
   }
 
+  // Validate file size before sending to API
+  const fileSize = statSync(audioPath).size;
+  if (fileSize > WHISPER_MAX_FILE_BYTES) {
+    console.warn(`[transcribe] Audio file too large for Whisper (${(fileSize / 1024 / 1024).toFixed(1)} MB > ${WHISPER_MAX_FILE_BYTES / 1024 / 1024} MB limit) — skipping`);
+    return null;
+  }
+
   const fileData = readFileSync(audioPath);
   const blob = new Blob([fileData], { type: 'audio/wav' });
 
@@ -99,15 +112,27 @@ async function transcribeWithWhisper(
     return null;
   }
 
-  const json = await res.json();
-  const text: string = json.text ?? '';
-  const segments = normalizeSegments((json.segments ?? []).map(
+  let json: Record<string, unknown>;
+  try {
+    json = await res.json();
+  } catch (parseErr) {
+    console.error('[transcribe] Whisper returned non-JSON response:', parseErr);
+    return null;
+  }
+
+  const text: string = typeof json.text === 'string' ? json.text : '';
+  const segments = normalizeSegments((Array.isArray(json.segments) ? json.segments : []).map(
     (segment: { start: number; end: number; text: string }) => ({
       start: segment.start,
       end: segment.end,
       text: segment.text,
     })
   ));
+
+  if (!text && segments.length === 0) {
+    console.warn('[transcribe] Whisper returned empty transcript');
+    return null;
+  }
 
   console.log(
     `[transcribe] Whisper returned ${text.length} chars, ${segments.length} segments`
@@ -170,6 +195,13 @@ async function transcribeWithAssemblyAI(
   }
 
   console.log('[transcribe] Calling AssemblyAI API…');
+
+  // Validate file size before uploading
+  const fileSize = statSync(audioPath).size;
+  if (fileSize > ASSEMBLYAI_MAX_FILE_BYTES) {
+    console.warn(`[transcribe] Audio file too large for AssemblyAI (${(fileSize / 1024 / 1024).toFixed(1)} MB > ${ASSEMBLYAI_MAX_FILE_BYTES / 1024 / 1024} MB limit) — skipping`);
+    return null;
+  }
 
   const data = readFileSync(audioPath);
   const uploadRes = await fetchWithRetry(`${ASSEMBLYAI_BASE}/upload`, {

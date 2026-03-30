@@ -27,6 +27,25 @@ export interface ActionPlanStep {
   whyItMatters: string;
 }
 
+export interface SoundLibraryRecommendation {
+  name: string;
+  status: string;
+  velocity: number;
+  fitLabel: 'best bet' | 'worth testing' | 'watchlist';
+  usage: string;
+  whyItFits: string[];
+  caution: string;
+  searchQuery: string;
+}
+
+export interface SoundLibraryPlan {
+  headline: string;
+  summary: string;
+  creatorAngle: string;
+  recommendations: SoundLibraryRecommendation[];
+  actionSteps: string[];
+}
+
 export interface RoastResult {
   id: string;
   tiktokUrl: string;
@@ -60,6 +79,7 @@ export interface RoastResult {
   };
   audioTranscript?: string;
   audioSegments?: Array<{ start: number; end: number; text: string }>;
+  soundLibraryPlan?: SoundLibraryPlan | null;
   metadata: {
     views: number;
     likes: number;

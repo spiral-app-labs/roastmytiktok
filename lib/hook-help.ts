@@ -33,6 +33,16 @@ export interface FirstGlanceCheckItem {
   note: string;
 }
 
+export interface HookTypeLens {
+  key: 'visual' | 'spoken' | 'text' | 'motion' | 'curiosity' | 'attractiveness';
+  label: string;
+  score: number;
+  status: 'working' | 'needs-work';
+  whatItMeans: string;
+  note: string;
+  fix: string;
+}
+
 export function getHookWorkshop(roast: RoastResult): HookWorkshop {
   const hook = getAgent(roast, 'hook');
   const visual = getAgent(roast, 'visual');
@@ -170,6 +180,77 @@ export function getFirstGlanceChecks(roast: RoastResult): FirstGlanceCheckItem[]
       label: 'mute-mode message',
       status: (caption?.score ?? 0) >= 65 ? 'working' : 'needs-work',
       note: clean(caption?.findings?.[0]) || 'the first-screen message is not readable or obvious enough without sound.',
+    },
+  ];
+}
+
+export function getHookTypeLenses(roast: RoastResult): HookTypeLens[] {
+  const hook = getAgent(roast, 'hook');
+  const visual = getAgent(roast, 'visual');
+  const audio = getAgent(roast, 'audio');
+  const caption = getAgent(roast, 'caption');
+
+  const visualScore = visual?.score ?? 50;
+  const spokenScore = audio?.score ?? hook?.score ?? 50;
+  const textScore = caption?.score ?? 50;
+  const motionScore = Math.round(((visual?.score ?? 50) * 0.6) + ((audio?.score ?? 50) * 0.4));
+  const curiosityScore = hook?.score ?? 50;
+  const attractivenessScore = Math.round(((visual?.score ?? 50) * 0.7) + ((hook?.score ?? 50) * 0.3));
+
+  return [
+    {
+      key: 'visual',
+      label: 'visual hook',
+      score: visualScore,
+      status: visualScore >= 65 ? 'working' : 'needs-work',
+      whatItMeans: 'does frame one look different enough to stop the thumb on mute?',
+      note: clean(visual?.findings?.[0]) || 'the first frame still looks too ordinary to earn a pause.',
+      fix: 'open tighter, brighter, or with the payoff already on screen so the viewer gets the point before the explanation starts.',
+    },
+    {
+      key: 'spoken',
+      label: 'spoken hook',
+      score: spokenScore,
+      status: spokenScore >= 65 ? 'working' : 'needs-work',
+      whatItMeans: 'does the first sentence land as a claim instead of a warm-up?',
+      note: clean(audio?.findings?.[0]) || clean(hook?.findings?.[0]) || 'the spoken opener is taking too long to promise value.',
+      fix: 'cut greetings and context. start with the sharpest opinion, result, or pain point in the first sentence.',
+    },
+    {
+      key: 'text',
+      label: 'text hook',
+      score: textScore,
+      status: textScore >= 65 ? 'working' : 'needs-work',
+      whatItMeans: 'can a silent scroller understand the promise from the on-screen words instantly?',
+      note: clean(caption?.findings?.[0]) || 'the on-screen text is not doing enough work for viewers who never unmute.',
+      fix: 'put one bold, readable promise on screen in frame one instead of stacking multiple ideas.',
+    },
+    {
+      key: 'motion',
+      label: 'motion hook',
+      score: motionScore,
+      status: motionScore >= 65 ? 'working' : 'needs-work',
+      whatItMeans: 'is there immediate movement or change that makes the opening feel alive?',
+      note: clean(visual?.findings?.[1]) || clean(audio?.findings?.[1]) || 'the opener settles in too slowly and gives the viewer time to swipe.',
+      fix: 'start on the action, cut the camera-settling beat, and make the first half-second feel in-progress, not preamble.',
+    },
+    {
+      key: 'curiosity',
+      label: 'curiosity hook',
+      score: curiosityScore,
+      status: curiosityScore >= 70 ? 'working' : 'needs-work',
+      whatItMeans: 'is there a clear tension, surprise, or payoff gap that pulls people into the next second?',
+      note: clean(hook?.findings?.[0]) || 'there is not enough tension or payoff promised up front yet.',
+      fix: 'name the problem or surprising result first, then make the viewer need the explanation.',
+    },
+    {
+      key: 'attractiveness',
+      label: 'attractiveness hook',
+      score: attractivenessScore,
+      status: attractivenessScore >= 65 ? 'working' : 'needs-work',
+      whatItMeans: 'does the opener feel polished, intentional, and worth giving attention to?',
+      note: clean(visual?.findings?.[2]) || 'the opening does not yet feel premium or magnetic enough to earn a second chance.',
+      fix: 'clean up the framing, lighting, styling, or crop so the opener feels deliberate before the message even lands.',
     },
   ];
 }
