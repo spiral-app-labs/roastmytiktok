@@ -6,7 +6,7 @@ export const AGENTS: AgentDef[] = [
     emoji: '💀',
     name: 'Hook Agent',
     oneLiner: 'Your first 3 seconds were a war crime against attention spans',
-    analyzes: 'Opening frame, first words, visual grab, scroll-stop power, hook timing',
+    analyzes: 'Opening frame, first words, visual grab, scroll-stop power, hook timing, thumbnail/first-frame effectiveness',
   },
   {
     key: 'visual',
@@ -20,7 +20,7 @@ export const AGENTS: AgentDef[] = [
     emoji: '✍️',
     name: 'Caption Agent',
     oneLiner: 'Your on-screen text gave them a migraine',
-    analyzes: 'On-screen text, captions, readability, CTA placement, hashtag strategy',
+    analyzes: 'On-screen text, captions, readability, CTA placement, caption timing/sync, font size, position safety, contrast ratio',
   },
   {
     key: 'audio',
@@ -34,7 +34,7 @@ export const AGENTS: AgentDef[] = [
     emoji: '🔮',
     name: 'Algorithm Agent',
     oneLiner: 'The algorithm saw your video and chose violence',
-    analyzes: 'Posting time, hashtags, engagement bait, trend alignment, FYP potential',
+    analyzes: 'Posting time, hashtag strategy (count, categorization, banned tag detection, niche-specific suggestions), engagement bait, trend alignment, FYP potential',
   },
   {
     key: 'authenticity',
