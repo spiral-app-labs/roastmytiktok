@@ -122,9 +122,47 @@ export async function POST(request: NextRequest) {
     // Run Claude analysis
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const prompt = `You are analyzing a TikTok creator's content history. Here are their last ${videos.length} videos with performance data:
+    const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K. You're analyzing @${handle}'s content history with the precision of a data scientist and the bluntness of a best friend. Here are their last ${videos.length} videos with performance data:
 
 ${videoSummary}
+
+ANALYSIS FRAMEWORK — use these benchmarks to evaluate:
+
+**Engagement Rate Benchmarks by Follower Tier:**
+- Under 5K followers: ~4.2% engagement per view is normal (highest tier — small accounts have the most engaged audiences)
+- Under 100K followers: ~7.5% engagement rate expected
+- Over 10M followers: ~2.88% engagement rate (scale dilutes engagement)
+- General healthy range: 3-6% engagement rate
+
+**Format Virality Rankings** (compare their formats against this):
+1. Educational/Tutorial — highest save + share potential
+2. Storytelling — deep emotional connection, high comments
+3. POV Videos — instant immersion, shareable in-group content
+4. Duet/Stitch — piggybacks existing viral momentum
+5. Before/After — visual satisfaction, proves results
+6. Trend Participation — leverages algorithmic push
+7. Talking Head — builds authority, personality-dependent
+8. Day-in-the-Life — parasocial connection, aspirational
+9. Green Screen — contextual commentary
+10. Reaction Videos — shared emotional experience
+
+**Hook Effectiveness Tiers:**
+- Tier 1 (best): Direct address/call-out, curiosity gap, problem-solution promise, visual pattern interrupt
+- Tier 2 (strong): Shocking statement, POV setup, trending sound opening
+- Tier 3 (situational): Countdown/listicle, before/after tease
+
+**Optimal Length by Niche:**
+- Comedy: 7-20s (quick punchline)
+- Education/Tutorial: 30-60s (teach without padding)
+- Fitness: 15-45s (show the exercise, not the warm-up)
+- Food/Cooking: 30-90s (speed up prep, slow down the money shot)
+- Storytelling: 60-180s (hook in first 3s, midpoint twist at 30-40%)
+
+**What Separates 100K from 1M+ Views:**
+- Completion rate >50% on 30s+ videos
+- Comment-to-view ratio >0.5%
+- Share-to-view ratio >0.3%
+- Replay value + share trigger + comment debate fuel
 
 Analyze patterns and return ONLY valid JSON (no markdown, no explanation) matching this schema exactly:
 {
@@ -141,13 +179,13 @@ Analyze patterns and return ONLY valid JSON (no markdown, no explanation) matchi
 }
 
 Rules:
-- topPerformingFormats: 2-4 content formats that get the most views. Group by pattern (e.g. "dance trend", "storytime", "POV skit"). Include 1-2 example descriptions.
-- worstPerformingFormats: 2-3 formats that underperform relative to their average. Explain why.
-- recurringWeaknesses: 3-5 specific, actionable weaknesses you see across multiple videos.
-- strengths: 3-5 things this creator does well consistently.
-- nicheAnalysis: 2-3 sentences on their niche positioning and audience.
-- nextVideoIdeas: 5 specific video ideas with hook text they could film tomorrow. Make them specific to THIS creator's style and strengths.
-- overallVerdict: 2-3 sentence blunt assessment. Be honest but constructive. Reference specific data.`;
+- topPerformingFormats: 2-4 content formats that get the most views. Group by pattern (e.g. "educational tutorial", "storytime", "POV skit"). Include 1-2 example descriptions. Compare against the format virality rankings above — are they using high-rank or low-rank formats?
+- worstPerformingFormats: 2-3 formats that underperform relative to their average. Explain WHY using specific data (e.g. "your talking head videos average Xk views vs your tutorial videos at Xk — talking head is rank #7 for virality and requires strong personality to carry").
+- recurringWeaknesses: 3-5 specific, actionable weaknesses. Not "improve your hooks" — instead "your hooks are mostly Tier 3 countdown/listicle style which ranks #8 in effectiveness — try direct address hooks like 'If you [specific trait], stop scrolling'". Reference the actual data.
+- strengths: 3-5 things this creator does well. Be specific — name the videos, the formats, the patterns.
+- nicheAnalysis: 2-3 sentences on niche positioning. Identify their primary niche from the taxonomy (Comedy, Education, Lifestyle, Fitness, Beauty, Tech, Food, Finance, Travel, Gaming, Parenting, Fashion, Pets, DIY, Music). Is their niche clear enough for the algorithm to categorize them? Compare their engagement rate against the benchmark for their follower tier.
+- nextVideoIdeas: 5 specific video ideas with EXACT hook text they could film tomorrow. Each hook should be Tier 1 or Tier 2 from the hook taxonomy. Match the format to their strengths. Match the length to their niche. Explain why each idea would outperform their current content.
+- overallVerdict: 2-3 sentence blunt, specific assessment. Reference their actual numbers. Tell them exactly where they'd stall in the algorithm distribution phases (test → validation → acceleration → viral) and what's holding them back. Sound like a growth expert friend giving real talk, not a corporate consultant.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250514',
