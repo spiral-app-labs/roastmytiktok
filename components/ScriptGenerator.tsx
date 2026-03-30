@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RoastResult } from '@/lib/types';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { GeneratedScript } from '@/app/api/generate-script/route';
 import { saveScript } from '@/lib/script-history';
+import {
+  type ScriptFormat,
+  SCRIPT_FORMATS,
+  getFormatById,
+  suggestFormat,
+  saveFormatPreference,
+  getFormatPreference,
+} from '@/lib/script-formats';
 
 interface ScriptGeneratorProps {
   roast: RoastResult;
@@ -96,12 +104,113 @@ function CopyButton({ script }: { script: GeneratedScript }) {
   );
 }
 
+function FormatSelector({
+  selected,
+  suggested,
+  onSelect,
+}: {
+  selected: ScriptFormat;
+  suggested: ScriptFormat;
+  onSelect: (f: ScriptFormat) => void;
+}) {
+  const selectedDef = getFormatById(selected);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Script Format</span>
+        {suggested !== 'generic' && selected !== suggested && (
+          <button
+            onClick={() => onSelect(suggested)}
+            className="text-xs text-orange-400 hover:text-orange-300 transition-colors"
+          >
+            Use suggested: {getFormatById(suggested).emoji} {getFormatById(suggested).label}
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        {SCRIPT_FORMATS.map((fmt) => {
+          const isSelected = fmt.id === selected;
+          const isSuggested = fmt.id === suggested && suggested !== 'generic';
+          return (
+            <button
+              key={fmt.id}
+              onClick={() => onSelect(fmt.id)}
+              className={`relative text-left p-3 rounded-xl border transition-all ${
+                isSelected
+                  ? 'bg-orange-500/10 border-orange-500/40 ring-1 ring-orange-500/20'
+                  : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-600'
+              }`}
+            >
+              {isSuggested && !isSelected && (
+                <span className="absolute -top-1.5 -right-1.5 text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/30 px-1.5 py-0.5 rounded-full font-semibold">
+                  suggested
+                </span>
+              )}
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-base">{fmt.emoji}</span>
+                <span className={`text-xs font-semibold ${isSelected ? 'text-orange-300' : 'text-zinc-300'}`}>
+                  {fmt.label}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-500 leading-tight line-clamp-2">{fmt.description}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Template preview */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={selected}
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.2 }}
+          className="overflow-hidden"
+        >
+          <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3">
+            <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+              {selectedDef.emoji} {selectedDef.label} Structure
+            </span>
+            <div className="mt-2 space-y-1">
+              {selectedDef.templatePreview.map((step, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-[10px] text-zinc-600 font-mono mt-0.5 w-3 shrink-0">{i + 1}</span>
+                  <span className="text-xs text-zinc-400">{step}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
   const [loading, setLoading] = useState(false);
   const [script, setScript] = useState<GeneratedScript | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [userPrompt, setUserPrompt] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
+
+  const suggested = suggestFormat(roast.niche?.detected, roast.metadata?.duration);
+  const [selectedFormat, setSelectedFormat] = useState<ScriptFormat>('generic');
+
+  useEffect(() => {
+    const saved = getFormatPreference();
+    if (saved) {
+      setSelectedFormat(saved);
+    } else if (suggested !== 'generic') {
+      setSelectedFormat(suggested);
+    }
+  }, [suggested]);
+
+  const handleFormatSelect = (fmt: ScriptFormat) => {
+    setSelectedFormat(fmt);
+    saveFormatPreference(fmt);
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -127,6 +236,7 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
           agentFeedback,
           weaknesses,
           userPrompt: userPrompt.trim() || undefined,
+          format: selectedFormat,
         }),
       });
 
@@ -161,15 +271,21 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
       className="mt-6"
     >
       {!script && (
-        <div className="bg-gradient-to-br from-orange-500/10 via-pink-500/5 to-transparent border border-orange-500/20 rounded-2xl p-6 text-center space-y-4">
+        <div className="bg-gradient-to-br from-orange-500/10 via-pink-500/5 to-transparent border border-orange-500/20 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="text-2xl">✨</span>
             <h3 className="text-lg font-bold text-white">Turn Your Roast Into a Script</h3>
           </div>
-          <p className="text-sm text-zinc-400 max-w-md mx-auto">
+          <p className="text-sm text-zinc-400 max-w-md mx-auto text-center">
             Claude will analyze every piece of feedback and generate an optimized TikTok script
             that directly fixes your weaknesses.
           </p>
+
+          <FormatSelector
+            selected={selectedFormat}
+            suggested={suggested}
+            onSelect={handleFormatSelect}
+          />
 
           <div>
             <button
@@ -204,21 +320,23 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
             </p>
           )}
 
-          <GradientButton
-            onClick={handleGenerate}
-            loading={loading}
-            size="lg"
-            className="rounded-xl px-8"
-          >
-            {loading ? 'Generating Script...' : '✨ Generate an Improved Script'}
-          </GradientButton>
+          <div className="text-center">
+            <GradientButton
+              onClick={handleGenerate}
+              loading={loading}
+              size="lg"
+              className="rounded-xl px-8"
+            >
+              {loading ? 'Generating Script...' : `✨ Generate ${getFormatById(selectedFormat).label} Script`}
+            </GradientButton>
+          </div>
 
           {loading && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: [0.4, 1, 0.4] }}
               transition={{ duration: 1.5, repeat: Infinity }}
-              className="text-xs text-zinc-500"
+              className="text-xs text-zinc-500 text-center"
             >
               Claude is studying your roast feedback...
             </motion.p>
@@ -238,6 +356,9 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
               <div className="flex items-center gap-2">
                 <span className="text-xl">✨</span>
                 <h3 className="text-lg font-bold text-white">Your Optimized Script</h3>
+                <span className="text-xs bg-zinc-800 text-zinc-400 border border-zinc-700 px-2 py-0.5 rounded-full">
+                  {getFormatById(selectedFormat).emoji} {getFormatById(selectedFormat).label}
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <CopyButton script={script} />
