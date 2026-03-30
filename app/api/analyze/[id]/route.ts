@@ -13,6 +13,9 @@ import { fetchTrendingContext as fetchNewTrendingContext, buildAgentTrendingCont
 import { detectNiche, NicheDetection } from '@/lib/niche-detect';
 import { buildAgentNicheContext, NICHE_CONTEXT } from '@/lib/niche-context';
 import { getVideoDuration, analyzeDuration, DurationAnalysis } from '@/lib/video-duration';
+import { buildEvidenceLedger, buildFallbackActionPlan, parseStrategicSummary } from '@/lib/action-plan';
+import { sanitizeActionPlan, sanitizeAgentResult, sanitizeUserFacingText } from '@/lib/analysis-safety';
+import type { ActionPlanStep } from '@/lib/types';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 
@@ -69,16 +72,21 @@ const AGENT_PROMPTS: Record<DimensionKey, { name: string; prompt: string }> = {
     name: 'Hook Agent',
     prompt: `You are Hook Agent — you judge ONLY the first 3 seconds. 63% of TikTok's highest-CTR videos hook within 3 seconds. That's your bible. If the first 3 seconds don't stop the scroll, nothing else matters.
 
+ETHAN'S DEFINITION OF A HOOK — use this exact framing:
+A hook is ANYTHING in the first 2-3 seconds that grabs attention immediately: visual, spoken line, text overlay, attractiveness, lighting, motion, sound, curiosity, or a combination. If none of those make a stranger pause, the hook failed.
+
 YOUR JOB — and ONLY your job:
 - Does frame 1 stop the scroll or invite a swipe? Be brutal and specific.
 - Do the opening words create a curiosity gap, call out a specific audience, or promise value — or do they just exist?
 - Is there a visual pattern interrupt (unexpected motion, fast cut, dramatic zoom, face too close)?
+- Do lighting, facial expression, movement, sound, or text overlay create instant tension?
 - Does the hook combine visual AND verbal elements? Combination hooks outperform either alone.
+- Decide whether the hook is WEAK, MIXED, or STRONG. Weak means distribution probably dies before caption/CTA feedback matters.
 
 NOT YOUR JOB (stay in your lane):
-- Ongoing video quality or lighting (Visual Agent)
+- Ongoing video quality or lighting after the opening beat (Visual Agent)
 - Captions after second 3 (Caption Agent)
-- Music/audio quality (Audio Agent)
+- Music/audio quality after the opening beat (Audio Agent)
 
 HOOK TAXONOMY — Grade their hook against this ranked system:
 
@@ -115,6 +123,14 @@ COMMENT BAIT HOOKS — check if the hook ALSO drives comments:
 - If the hook only grabs attention but doesn't invite a response, suggest a version that does BOTH. Example: instead of "Here's what nobody tells you about cooking" try "Here's what nobody tells you about cooking — and I guarantee you'll disagree with #3."
 - The best hooks combine Tier 1 attention-grabbing WITH Tier 1 comment bait (binary choice, controversial take, fill-in-blank, or wrong answer hook).
 
+GOOD VS BAD HOOK CALIBRATION — use examples like these when teaching:
+- Bad hook: "hey guys so today i wanted to talk about sleep training"
+- Better hook: "if your baby fights every nap, you're probably doing this one thing too early"
+- Bad hook: creator standing still in normal room lighting waiting 2 seconds before speaking
+- Better hook: close-up face, immediate motion, bold text overlay like "stop doing this on day 1", then the first spoken line lands in under a second
+- Bad hook: "3 tips for meal prep"
+- Better hook: "i cut my grocery bill in half with this 10-minute meal prep rule"
+
 TikTok is vertical (9:16). NEVER penalize portrait mode. Only flag genuinely sideways footage.
 
 ROAST RULES — non-negotiable:
@@ -124,6 +140,8 @@ ROAST RULES — non-negotiable:
 - Be funny because you're RIGHT. The roast lands because it's accurate.
 - If the hook is actually good, LEAD with that. Say what tier it hits and why it works. Don't skip the praise just to be savage — good hooks deserve credit.
 - Pair every criticism with the specific fix. "Your hook is weak" = useless. "Your hook is a Tier 3 countdown — swap it for a Tier 1 direct address like '[exact words]' and you'll 2x your retention" = gold.
+- If the hook is weak, explicitly say the video is probably losing distribution before late-video CTA/caption wins can matter. Teach WHY the algorithm likely stops pushing it early.
+- Always include at least one concrete replacement hook line, shot idea, or text-overlay rewrite.
 ` + buildExampleFeedbackBlock('hook') + `
 
 Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
@@ -613,7 +631,88 @@ const DIMENSION_WEIGHTS: Record<DimensionKey, number> = {
   accessibility: 0.08,
 };
 
-function parseAgentResponse(text: string): { score: number; roastText: string; findings: string[]; improvementTip: string } {
+const HOOK_FIRST_WEIGHTS: Record<DimensionKey, number> = {
+  hook: 0.4,
+  visual: 0.17,
+  caption: 0.08,
+  audio: 0.11,
+  algorithm: 0.11,
+  authenticity: 0.07,
+  conversion: 0.03,
+  accessibility: 0.03,
+};
+
+const LATE_STAGE_DIMENSIONS: DimensionKey[] = ['conversion', 'caption', 'accessibility'];
+
+function classifyHookStrength(score: number): 'weak' | 'mixed' | 'strong' {
+  if (score < 55) return 'weak';
+  if (score < 75) return 'mixed';
+  return 'strong';
+}
+
+function getDimensionWeights(hookScore: number | undefined): Record<DimensionKey, number> {
+  if (typeof hookScore !== 'number') return DIMENSION_WEIGHTS;
+  return classifyHookStrength(hookScore) === 'weak' ? HOOK_FIRST_WEIGHTS : DIMENSION_WEIGHTS;
+}
+
+function buildHookPriorityContext(dimension: DimensionKey, hookResult?: { score: number; roastText: string; findings: string[]; improvementTip: string }): string {
+  if (!hookResult || dimension === 'hook') return '';
+
+  const hookStrength = classifyHookStrength(hookResult.score);
+  const hookReceipt = [hookResult.findings[0], hookResult.improvementTip]
+    .filter(Boolean)
+    .join(' | ');
+
+  if (hookStrength === 'weak') {
+    const lateStageNote = LATE_STAGE_DIMENSIONS.includes(dimension)
+      ? `Because you are a ${dimension} agent, explicitly say this is SECONDARY until the first 2-3 seconds stop the scroll.`
+      : 'You can still diagnose your lane, but tie it back to the weak hook first.';
+
+    return `
+
+HOOK-FIRST OVERRIDE: Hook Agent scored this video ${hookResult.score}/100 (${hookStrength}). Their receipt: ${hookReceipt || hookResult.roastText}. Treat the weak opening as the main story. Explain how early distribution is likely dying before later beats matter. ${lateStageNote} Do NOT make CTA, caption polish, or end-of-video fixes sound like the main unlock.`;
+  }
+
+  if (hookStrength === 'strong') {
+    return `
+
+HOOK-FIRST CONTEXT: Hook Agent scored this video ${hookResult.score}/100 (${hookStrength}). The opening is doing its job, so it's fair to push harder on downstream issues in your lane. Use the strong hook as context, not as the problem.`;
+  }
+
+  return `
+
+HOOK-FIRST CONTEXT: Hook Agent scored this video ${hookResult.score}/100 (${hookStrength}). Mention whether your issue is hurting a hook that almost works, but do not outrank the opening unless your evidence is stronger.`;
+}
+
+function buildHookSummary(hookResult: { score: number; roastText: string; findings: string[]; improvementTip: string }) {
+  const strength = classifyHookStrength(hookResult.score);
+  const firstFinding = hookResult.findings[0] || 'The opening is not doing enough work.';
+  const headline = strength === 'weak'
+    ? 'your first 2-3 seconds are the main reason this stalls'
+    : strength === 'mixed'
+      ? 'your hook has something there, but it is not fully earning the hold'
+      : 'your hook is buying enough attention to care about the rest';
+  const distributionRisk = strength === 'weak'
+    ? 'tiktok probably tests this, sees people swipe early, and stops giving the rest of the video a real chance.'
+    : strength === 'mixed'
+      ? 'the opening buys a little curiosity, but not enough to guarantee distribution if the next beat drags.'
+      : 'the opening clears the first distribution hurdle, so later execution has room to matter.';
+  const focusNote = strength === 'weak'
+    ? 'fix the hook before obsessing over CTA polish, caption tweaks, or end-card ideas.'
+    : strength === 'mixed'
+      ? 'tighten the opening first, then clean up the next biggest leak.'
+      : 'the hook is not the bottleneck, so secondary fixes can now move the needle.';
+
+  return {
+    score: hookResult.score,
+    strength,
+    headline: `${headline} ${firstFinding}`.trim(),
+    distributionRisk,
+    focusNote,
+  };
+}
+
+function parseAgentResponse(text: string, dimension: DimensionKey): { score: number; roastText: string; findings: string[]; improvementTip: string } {
   // Try to extract JSON from the response (handle markdown code blocks)
   let jsonStr = text;
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -627,12 +726,12 @@ function parseAgentResponse(text: string): { score: number; roastText: string; f
   }
 
   const parsed = JSON.parse(jsonStr);
-  return {
+  return sanitizeAgentResult({
     score: Math.max(0, Math.min(100, Math.round(parsed.score))),
     roastText: parsed.roastText || 'No roast text generated.',
     findings: Array.isArray(parsed.findings) ? parsed.findings : [],
     improvementTip: parsed.improvementTip || 'Try harder next time.',
-  };
+  }, dimension);
 }
 
 interface ViralPattern {
@@ -840,8 +939,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
             if (!hasTranscriptionKey) {
               send({ type: 'status', message: 'Audio transcription unavailable — set OPENAI_API_KEY or ASSEMBLYAI_API_KEY.' });
-            } else if (transcript?.text) {
-              send({ type: 'status', message: 'Audio transcribed successfully.' });
+            } else if (transcript?.text || transcript?.segments?.length) {
+              send({ type: 'status', message: `Audio transcribed successfully${transcript.provider ? ` via ${transcript.provider}` : ''}.` });
             } else {
               send({ type: 'status', message: 'No speech detected in audio.' });
             }
@@ -855,10 +954,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         let captionQualityContext = '';
+        let captionQuality = null;
         if (frames.length > 0) {
           try {
             send({ type: 'status', message: 'Auditing caption timing and readability...' });
-            const captionQuality = await analyzeCaptionQuality({ anthropic, frames, transcript });
+            captionQuality = await analyzeCaptionQuality({ anthropic, frames, transcript });
             captionQualityContext = buildCaptionQualityContext(captionQuality);
           } catch (err) {
             console.warn('[analyze] Caption quality audit failed:', err);
@@ -907,17 +1007,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           send({ type: 'agent', agent: dimension, status: 'analyzing', name });
 
           try {
-            const imageContent = frames.map(frame => ({
-              type: 'image' as const,
-              source: {
-                type: 'base64' as const,
-                media_type: 'image/jpeg' as const,
-                data: frame.imageBase64,
+            const imageContent = frames.flatMap(frame => ([
+              {
+                type: 'text' as const,
+                text: `${frame.label} (${frame.slot === 'opening' ? 'hook-sensitive sample' : 'later-story sample'})`,
               },
-            }));
+              {
+                type: 'image' as const,
+                source: {
+                  type: 'base64' as const,
+                  media_type: 'image/jpeg' as const,
+                  data: frame.imageBase64,
+                },
+              },
+            ]));
 
             const escalationContext = buildEscalationContext(chronicIssues, dimension);
             const hookContext = dimension === 'hook' ? playbookContext : '';
+            const hookPriorityContext = buildHookPriorityContext(dimension, agentResults.hook);
 
             // Build audio context for relevant agents
             let audioContext = '';
@@ -941,7 +1048,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             const captionAuditContext = dimension === 'caption' || dimension === 'accessibility'
               ? captionQualityContext
               : '';
-            const fullPrompt = prompt + TONE_RULES + hookContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext;
+            const fullPrompt = prompt + TONE_RULES + hookContext + hookPriorityContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext;
 
             const response = await anthropic.messages.create({
               model: 'claude-sonnet-4-6',
@@ -956,7 +1063,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             });
 
             const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
-            const result = parseAgentResponse(responseText);
+            const result = parseAgentResponse(responseText, dimension);
             agentResults[dimension] = result;
 
             send({
@@ -985,10 +1092,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           }
         }
 
+        const hookScore = agentResults.hook?.score;
+        const hookSummary = buildHookSummary(agentResults.hook);
+        const analysisMode = hookSummary.strength === 'weak' ? 'hook-first' : 'balanced';
+        const scoringWeights = getDimensionWeights(hookScore);
+
         // Calculate weighted overall score
         let overallScore = 0;
         for (const dim of DIMENSION_ORDER) {
-          overallScore += (agentResults[dim]?.score ?? 50) * DIMENSION_WEIGHTS[dim];
+          overallScore += (agentResults[dim]?.score ?? 50) * scoringWeights[dim];
         }
         overallScore = Math.round(overallScore);
 
@@ -996,6 +1108,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         let verdict: string;
         let viralPotential: number = 0;
         let nextSteps: string[] = [];
+        let actionPlan: ActionPlanStep[] = [];
         let biggestBlocker: string = '';
         let encouragement: string = '';
         try {
@@ -1003,25 +1116,40 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             ? `\n\nThis is a REPEAT OFFENDER. They've been roasted ${chronicIssues.length > 3 ? 'many' : 'a few'} times before and keep making the same mistakes. Reference this in the verdict. Be extra disappointed.`
             : '';
 
-          // Find the lowest-scoring dimension as the biggest blocker signal
-          const lowestDim = DIMENSION_ORDER.reduce((a, b) =>
-            (agentResults[a]?.score ?? 50) < (agentResults[b]?.score ?? 50) ? a : b
-          );
+          const lowestDim = analysisMode === 'hook-first'
+            ? 'hook'
+            : DIMENSION_ORDER.reduce((a, b) =>
+                (agentResults[a]?.score ?? 50) < (agentResults[b]?.score ?? 50) ? a : b
+              );
           const highestDim = DIMENSION_ORDER.reduce((a, b) =>
             (agentResults[a]?.score ?? 50) > (agentResults[b]?.score ?? 50) ? a : b
           );
+          const evidenceLedger = buildEvidenceLedger({
+            agentResults,
+            transcriptText: transcript?.text,
+            transcriptSegments: transcript?.segments,
+            captionQuality,
+            durationSec: durationAnalysis?.duration.durationSeconds ?? videoDuration?.durationSeconds,
+            nicheLabel: nicheDetection.subNiche ? `${nicheDetection.niche} (${nicheDetection.subNiche})` : nicheDetection.niche,
+          });
+          const fallbackActionPlan = buildFallbackActionPlan({
+            agentResults,
+            transcriptSegments: transcript?.segments,
+            captionQuality,
+            priorityDimensions: analysisMode === 'hook-first' ? ['hook', 'visual', 'audio'] : [],
+          });
 
           const verdictResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-6',
-            max_tokens: 600,
+            max_tokens: 900,
             messages: [{
               role: 'user',
-              content: `You are a TikTok growth coach who roasts with love. You're the friend who's brutally honest but always has your back. Given agent analysis results for a video, produce a structured verdict.
+              content: `You are a killer TikTok strategist. Your job is not to summarize. Your job is to tell the creator exactly what to fix first, with evidence from THIS video.
 
 Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''}.
 ${durationAnalysis ? `Video duration: ${durationAnalysis.duration.durationFormatted} (${durationAnalysis.duration.durationSeconds.toFixed(0)}s). Optimal for ${nicheDetection.niche}: ${NICHE_CONTEXT[nicheDetection.niche].optimalLength}. Category: ${durationAnalysis.category}.` : ''}
 
-Overall weighted score: ${overallScore}/100
+Overall weighted score: ${overallScore}/100\nAnalysis mode: ${analysisMode}\nHook summary: ${hookSummary.headline}\nDistribution risk: ${hookSummary.distributionRisk}\nFocus note: ${hookSummary.focusNote}
 Lowest-scoring area: ${lowestDim} (${agentResults[lowestDim]?.score}/100)
 Highest-scoring area: ${highestDim} (${agentResults[highestDim]?.score}/100)
 
@@ -1029,36 +1157,50 @@ Scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentRe
 Agent summaries:
 ${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${repeatContext}
 
+${evidenceLedger}
+
 Return ONLY valid JSON (no markdown):
 {
-  "verdict": "2-3 sentence overall verdict. LEAD with the single biggest thing holding this video back. Be specific — name exactly what's wrong and why it kills performance. Then acknowledge what's working. Compare to top ${nicheDetection.niche} creators. Write like you're texting — short sentences, simple words, funny because accurate.",
-  "viralPotential": <number 0-100 — predict viral probability based on ALL signals: hook strength, completion rate potential, share/save triggers, comment bait, trending alignment, niche fit, production quality. 0-20 = dead on arrival, 20-40 = will stall at 500 views, 40-60 = could hit 5K-10K, 60-80 = has real breakout potential, 80-100 = engineered to go viral>,
-  "biggestBlocker": "One sentence: the #1 thing preventing this video from reaching the next level. Be brutally specific.",
-  "nextSteps": ["Step 1 — highest impact fix (be specific enough to act on TODAY)", "Step 2 — second highest impact fix", "Step 3 — third fix"],
-  "encouragement": "One honest, encouraging sentence. Acknowledge something genuinely good about the video or the creator's potential. Not generic — reference something specific you noticed."
+  "verdict": "2-3 sentence overall verdict. Lead with the #1 thing holding this video back and why it hurts performance. Mention one thing that is actually working. Compare to top ${nicheDetection.niche} creators.",
+  "viralPotential": <number 0-100>,
+  "biggestBlocker": "One sentence naming the single biggest bottleneck.",
+  "actionPlan": [
+    {
+      "priority": "P1",
+      "dimension": "hook",
+      "issue": "what is wrong right now",
+      "evidence": ["quote, timestamp, or caption-audit proof from this video", "second proof point"],
+      "doThis": "imperative instruction the creator can execute today",
+      "example": "exact replacement line, framing, or edit move",
+      "whyItMatters": "why this fix changes retention, conversion, or distribution"
+    }
+  ],
+  "encouragement": "One honest, specific encouraging sentence."
 }
 
 Rules:
-- viralPotential must reflect ALL agent signals combined, not just one dimension
-- nextSteps must be ranked by impact (biggest improvement first) and specific enough to act on immediately
-- Each nextStep should reference the specific agent finding it addresses
-- encouragement must be genuine — find something real to praise, even if small
-- verdict should reference the niche and how the video compares to top performers in that niche`,
+- The verdict, biggestBlocker, and P1 actionPlan item must describe the same core problem.\n- If analysis mode is hook-first, that core problem MUST be the weak opening and you must explicitly deprioritize late-video CTA/caption polishing until the hook is fixed.\n- Do not introduce multiple headline problems. Pick one bottleneck and make the plan fix that first.
+- Give exactly 3 actionPlan items ranked P1 to P3.
+- P1 must be the highest-leverage fix, not just the lowest score.\n- When the hook is weak, say why TikTok likely kills distribution early before the rest of the video can help.\n- Every actionPlan item must cite 1-3 concrete evidence bullets from the ledger. No generic evidence.
+- Only cite evidence that is explicitly present in the ledger: quotes, timestamps, caption metrics, or agent findings from this video.
+- Every doThis must be specific enough to execute today.\n- If the hook is weak, include a concrete opening rewrite, shot idea, or text-overlay replacement in either P1 doThis or example.\n- Use exact replacement wording when possible.
+- If the transcript gives you a quote, use it.
+- Keep the advice creator-grade, not beginner-blog-grade.`
             }],
           });
 
           const verdictText = verdictResponse.content[0].type === 'text' ? verdictResponse.content[0].text : '';
-          try {
-            const raw = verdictText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-            const jsonMatch = raw.match(/\{[\s\S]*\}/);
-            const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
-            verdict = parsed.verdict || 'Your video exists. That is the nicest thing we can say about it.';
-            viralPotential = Math.max(0, Math.min(100, Math.round(parsed.viralPotential ?? 0)));
-            biggestBlocker = parsed.biggestBlocker || '';
-            nextSteps = Array.isArray(parsed.nextSteps) ? parsed.nextSteps.slice(0, 3) : [];
-            encouragement = parsed.encouragement || '';
-          } catch {
-            verdict = verdictText || 'Your video exists. That is the nicest thing we can say about it.';
+          const parsed = parseStrategicSummary(verdictText, lowestDim, fallbackActionPlan);
+          if (parsed) {
+            const safePlan = sanitizeActionPlan(parsed.actionPlan);
+            verdict = sanitizeUserFacingText(parsed.verdict, 'The opening promise and execution still are not lining up.');
+            viralPotential = parsed.viralPotential;
+            biggestBlocker = sanitizeUserFacingText(parsed.biggestBlocker, safePlan[0]?.issue || 'The video still has one obvious bottleneck holding it back.');
+            actionPlan = safePlan.length > 0 ? safePlan : sanitizeActionPlan(fallbackActionPlan);
+            nextSteps = actionPlan.map((step) => `${step.priority}: ${step.doThis}`);
+            encouragement = sanitizeUserFacingText(parsed.encouragement, 'There is something here, but the first fix needs to land harder.');
+          } else {
+            verdict = sanitizeUserFacingText(verdictText, 'Your video exists. That is the nicest thing we can say about it.');
           }
         } catch {
           verdict = 'Your video exists. That is the nicest thing we can say about it.';
@@ -1073,7 +1215,10 @@ Rules:
           viralPotential,
           biggestBlocker,
           nextSteps,
+          actionPlan,
           encouragement,
+          analysisMode,
+          hookSummary,
           agents: DIMENSION_ORDER.map(dim => ({
             agent: dim,
             score: agentResults[dim].score,
@@ -1107,7 +1252,10 @@ Rules:
           viralPotential,
           biggestBlocker,
           nextSteps,
+          actionPlan,
           encouragement,
+          analysisMode,
+          hookSummary,
           niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
           ...(durationAnalysis ? {
             duration: {

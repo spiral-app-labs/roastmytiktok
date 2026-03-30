@@ -114,7 +114,10 @@ export default function AnalyzePage() {
     let viralPotential = 0;
     let biggestBlocker = '';
     let nextSteps: string[] = [];
+    let actionPlan: RoastResult['actionPlan'] = [];
     let encouragement = '';
+    let analysisMode: RoastResult['analysisMode'] = 'balanced';
+    let hookSummary: RoastResult['hookSummary'] | undefined;
 
     const sessionId = getSessionId();
     const eventSource = new EventSource(`/api/analyze/${id}?session_id=${encodeURIComponent(sessionId)}`);
@@ -149,7 +152,10 @@ export default function AnalyzePage() {
           viralPotential = data.viralPotential ?? 0;
           biggestBlocker = data.biggestBlocker ?? '';
           nextSteps = data.nextSteps ?? [];
+          actionPlan = data.actionPlan ?? [];
           encouragement = data.encouragement ?? '';
+          analysisMode = data.analysisMode ?? 'balanced';
+          hookSummary = data.hookSummary;
         }
 
         if (data.type === 'done') {
@@ -163,7 +169,10 @@ export default function AnalyzePage() {
             viralPotential,
             biggestBlocker,
             nextSteps,
+            actionPlan,
             encouragement,
+            analysisMode,
+            hookSummary,
             agents: agentResults,
             metadata: {
               views: 0,

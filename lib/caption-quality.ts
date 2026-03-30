@@ -147,7 +147,7 @@ export async function analyzeCaptionQuality(params: {
           text: `You are auditing TikTok caption quality for retention and accessibility.
 
 FRAME TIMESTAMPS:
-${frames.map((frame, index) => `Frame ${index + 1}: ${frame.timestampSec.toFixed(2)}s`).join('\n')}
+${frames.map((frame, index) => `Frame ${index + 1}: ${frame.label}`).join('\n')}
 
 TRANSCRIPT SEGMENTS:
 ${transcriptContext}
