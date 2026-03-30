@@ -90,6 +90,16 @@ USE THIS RESEARCH TO BUILD THE SCRIPT:
 - Series → "Follow for Part 2"
 - Place CTA mid-video (higher conversion) or as persistent on-screen text
 
+**Comment Bait — engineer the script to drive comments:**
+- Include a Tier 1 comment bait pattern somewhere in the script:
+  1. Binary Choice: "Which one — A or B?" (creates camps, drives debate)
+  2. Controversial Take: "Unpopular opinion: [take]" (people comment to agree AND disagree)
+  3. Fill-in-the-Blank: "Name a [category] that [opinion]. I'll go first..." (lowers barrier)
+  4. Wrong Answer Hook: "Tell me [X] without telling me [X]" (competition to be funniest)
+- Place the comment bait in the LAST 3 seconds or in the caption — not the middle
+- The caption MUST include comment bait (a question, bold claim, or "am I wrong?")
+- Never ask for comments explicitly ("comment below") — create a REASON to comment
+
 **Audio Strategy:**
 - Trending sound + voiceover = best of both worlds (algorithmic boost + original content)
 - If original audio only, voice must be clear, energetic, and confident
@@ -122,9 +132,11 @@ Requirements:
 - 4-7 scenes covering the full video arc with a mid-video retention hook
 - Hook MUST be Tier 1 (direct address, curiosity gap, problem-solution, or visual pattern interrupt)
 - On-screen text must work independently of audio (sound-off first design)
-- Caption should include comment bait (a question, bold claim, or "am I wrong?")
+- Caption should include comment bait (a question, bold claim, or "am I wrong?") — NEVER just hashtags
 - 5-8 hashtags: 3-5 niche-specific + 1-2 broad discovery tags (NOT just #fyp)
 - Audio suggestion should specify trending vs original and the voice-to-music balance
+- The script MUST include at least one Tier 1 comment bait pattern (binary choice, controversial take, fill-in-blank, or wrong answer hook)
+- The last scene or caption should create a REASON for viewers to comment — not a generic "comment below"
 - The script should fix EVERY specific weakness identified in the roast`;
 
     const message = await anthropic.messages.create({
