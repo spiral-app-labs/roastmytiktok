@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { fetchTrendingContext, buildScriptTrendingContext } from '@/lib/trending-context';
+import { type ScriptFormat, getFormatById } from '@/lib/script-formats';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -30,11 +31,13 @@ export async function POST(request: NextRequest) {
       agentFeedback,
       weaknesses,
       userPrompt,
+      format: formatId,
     }: {
       roastScore: number;
       agentFeedback: Array<{ agent: string; roastText: string; findings: string[]; improvementTip: string }>;
       weaknesses: string[];
       userPrompt?: string;
+      format?: ScriptFormat;
     } = body;
 
     if (!roastScore || !agentFeedback || !Array.isArray(agentFeedback)) {
@@ -56,8 +59,13 @@ export async function POST(request: NextRequest) {
     const trendingCtx = await fetchTrendingContext();
     const trendingSection = buildScriptTrendingContext(trendingCtx);
 
-    const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K followers. You've just received a brutal AI roast of a TikTok video that scored ${roastScore}/100. Your job: create a replacement script that fixes every weakness and is engineered for maximum algorithmic push.
+    const formatDef = getFormatById(formatId || 'generic');
+    const formatSection = formatDef.promptSection
+      ? `\n## FORMAT-SPECIFIC TEMPLATE:\n${formatDef.promptSection}\n\nYou MUST follow this format structure. Adapt the general guidelines below to fit this specific format.\n`
+      : '';
 
+    const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K followers. You've just received a brutal AI roast of a TikTok video that scored ${roastScore}/100. Your job: create a replacement script that fixes every weakness and is engineered for maximum algorithmic push.
+${formatSection}
 ## Roast Score: ${roastScore}/100
 ${weaknessSummary}
 
