@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // Fallback: construct partial result from individual columns
-    const agentKeys = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity'] as const;
+    const agentKeys = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'hashtag_strategy'] as const;
     const agents = agentKeys.map(key => ({
       agent: key,
       score: data.agent_scores?.[key] ?? 50,

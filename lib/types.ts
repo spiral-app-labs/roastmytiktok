@@ -1,4 +1,4 @@
-export type DimensionKey = 'hook' | 'visual' | 'caption' | 'audio' | 'algorithm' | 'authenticity' | 'conversion' | 'accessibility';
+export type DimensionKey = 'hook' | 'visual' | 'caption' | 'audio' | 'algorithm' | 'authenticity' | 'conversion' | 'accessibility' | 'hashtag_strategy';
 
 export interface AgentDef {
   key: DimensionKey;

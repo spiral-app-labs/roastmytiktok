@@ -128,7 +128,7 @@ function normalizePriority(value: unknown, index: number): 'P1' | 'P2' | 'P3' {
 }
 
 function normalizeDimension(value: unknown, fallback: DimensionKey): DimensionKey {
-  const valid = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility'];
+  const valid = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility', 'hashtag_strategy'];
   return typeof value === 'string' && valid.includes(value) ? (value as DimensionKey) : fallback;
 }
 
@@ -156,6 +156,7 @@ const WHY_IT_MATTERS_BY_DIMENSION: Record<DimensionKey, string> = {
   authenticity: 'A more believable delivery increases trust, comments, and rewatches.',
   conversion: 'A sharper CTA turns passive views into follows, clicks, and saves.',
   accessibility: 'Accessible delivery expands retention beyond viewers who can hear everything perfectly.',
+  hashtag_strategy: 'Better hashtag targeting helps the algorithm find and distribute to the right audience.',
 };
 
 export function buildFallbackActionPlan(params: {

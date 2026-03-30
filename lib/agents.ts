@@ -57,4 +57,11 @@ export const AGENTS: AgentDef[] = [
     oneLiner: 'Not everyone experiences your content the same way',
     analyzes: 'Caption quality for deaf/HoH viewers, color contrast, text readability, audio descriptions, inclusive content',
   },
+  {
+    key: 'hashtag_strategy',
+    emoji: '#️⃣',
+    name: 'Hashtag Strategy Agent',
+    oneLiner: 'Your hashtags are screaming into the void and nobody\'s listening',
+    analyzes: 'Hashtag count, niche specificity, broad vs niche mix, trending vs evergreen balance, overly generic tag detection, competitor hashtag gaps',
+  },
 ];
