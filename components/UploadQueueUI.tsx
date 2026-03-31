@@ -293,8 +293,16 @@ function QueueItemCard({
 
       {/* Error message */}
       {item.status === 'error' && item.error && (
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-3 space-y-1.5">
           <p className="text-xs text-red-400/80 bg-red-500/10 rounded-lg px-2 py-1.5">{item.error}</p>
+          {item.error.includes('Free limit reached') && (
+            <a
+              href="/pricing"
+              className="flex items-center justify-center gap-1.5 w-full text-xs font-semibold text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 rounded-lg px-2 py-1.5 transition-colors"
+            >
+              🔥 Upgrade for unlimited roasts →
+            </a>
+          )}
         </div>
       )}
 
@@ -589,6 +597,9 @@ export default function UploadQueueUI() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (res.status === 429) {
+          throw new Error('FREE_LIMIT_REACHED');
+        }
         throw new Error(data.error || 'Failed to initialize upload');
       }
 
@@ -688,10 +699,13 @@ export default function UploadQueueUI() {
       });
 
     } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Processing failed';
       updateItem(item.id, {
         status: 'error',
         progress: 0,
-        error: err instanceof Error ? err.message : 'Processing failed',
+        error: errMsg === 'FREE_LIMIT_REACHED'
+          ? '🔒 Free limit reached (3 roasts/day). Upgrade for unlimited roasts.'
+          : errMsg,
         completedAt: Date.now(),
       });
     }

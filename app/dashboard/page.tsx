@@ -84,7 +84,7 @@ function UploadArea() {
 
   const handleFile = useCallback((f: File) => {
     setError(null)
-    if (f.size > 500 * 1024 * 1024) { setError('File too large. Max 500MB.'); return }
+    if (f.size > 150 * 1024 * 1024) { setError('File too large. Max 150MB.'); return }
     if (!f.type.startsWith('video/')) { setError('Please upload a video file.'); return }
     setFile(f)
     setPreviewUrl(URL.createObjectURL(f))
@@ -170,7 +170,7 @@ function UploadArea() {
             <div className="text-4xl mb-3">📤</div>
             <p className="text-zinc-200 font-semibold">Drop your video here</p>
             <p className="text-zinc-500 text-sm mt-1">or click to browse</p>
-            <p className="text-zinc-600 text-xs mt-2">mp4, mov, avi &middot; max 500MB</p>
+            <p className="text-zinc-600 text-xs mt-2">mp4, mov, avi &middot; max 150MB</p>
           </div>
         ) : (
           <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl p-4 flex items-center gap-4">

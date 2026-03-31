@@ -277,13 +277,34 @@ export default function AnalyzePage() {
             animate={{ opacity: 1 }}
             className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm"
           >
-            {error}
-            <button
-              onClick={() => router.push('/')}
-              className="block mt-3 mx-auto text-orange-400 hover:text-orange-300 transition-colors text-sm"
-            >
-              &larr; Try again
-            </button>
+            {error.includes('Rate limit') || error.includes('429') ? (
+              <div className="text-center space-y-3">
+                <p className="font-semibold text-orange-400">🔒 Free daily limit reached</p>
+                <p className="text-zinc-400 text-xs">You&apos;ve used your 3 free roasts today. Come back tomorrow or upgrade for unlimited.</p>
+                <a
+                  href="/pricing"
+                  className="inline-block px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white text-xs font-bold hover:opacity-90 transition-opacity"
+                >
+                  🔥 Upgrade for Unlimited Roasts
+                </a>
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="block mt-1 mx-auto text-zinc-500 hover:text-zinc-300 transition-colors text-xs"
+                >
+                  ← Back to dashboard
+                </button>
+              </div>
+            ) : (
+              <>
+                {error}
+                <button
+                  onClick={() => router.push('/')}
+                  className="block mt-3 mx-auto text-orange-400 hover:text-orange-300 transition-colors text-sm"
+                >
+                  &larr; Try again
+                </button>
+              </>
+            )}
           </motion.div>
         )}
 

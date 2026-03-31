@@ -8,7 +8,7 @@ import {
 } from '@/lib/bypass';
 
 // Routes that require auth (bypass cookie OR Supabase session)
-const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/settings', '/history', '/account'];
+const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/settings', '/history', '/account', '/compare', '/calendar'];
 
 function hasSupabaseSession(request: NextRequest): boolean {
   return request.cookies.getAll().some(

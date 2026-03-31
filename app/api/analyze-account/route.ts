@@ -90,6 +90,8 @@ function buildVideoSummary(videos: TikTokVideo[]): string {
     .join('\n\n');
 }
 
+export const maxDuration = 120; // allow up to 2 min for yt-dlp + AI analysis
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -108,15 +110,20 @@ export async function POST(request: NextRequest) {
       followerCount = result.followerCount;
     } catch (err) {
       console.error('[analyze-account] yt-dlp error:', err);
-      return Response.json(
-        { error: `Could not fetch videos for @${handle}. Make sure the account is public and the handle is correct.` },
-        { status: 422 }
-      );
+      const errMsg = err instanceof Error ? err.message : String(err)
+      const isPrivate = errMsg.toLowerCase().includes('private') || errMsg.toLowerCase().includes('login required') || errMsg.toLowerCase().includes('403')
+      const isNotFound = errMsg.toLowerCase().includes('not found') || errMsg.toLowerCase().includes('404') || errMsg.toLowerCase().includes('does not exist')
+      const errorText = isPrivate
+        ? `@${handle} appears to be a private account. This tool only works with public TikTok accounts.`
+        : isNotFound
+        ? `@${handle} doesn't exist on TikTok. Double-check the handle and try again.`
+        : `Could not fetch videos for @${handle}. Make sure the account is public and the handle is correct.`
+      return Response.json({ error: errorText }, { status: 422 })
     }
 
     if (videos.length === 0) {
       return Response.json(
-        { error: `No videos found for @${handle}.` },
+        { error: `No public videos found for @${handle}. The account may be private or have no posts.` },
         { status: 404 }
       );
     }
