@@ -78,6 +78,16 @@ const HOOK_EXAMPLES = [
     strong: 'Unexpected prop, bold expression, outfit switch, or unusual angle that earns a pause.',
     weak: 'Nothing visually changes until the viewer is already gone.',
   },
+  {
+    type: 'Motion hook',
+    strong: 'Cut mid-action: something is already happening in frame one before the viewer decides whether to stay.',
+    weak: 'Camera settles in for 2 seconds while you find your angle. The scroll already happened.',
+  },
+  {
+    type: 'Curiosity hook',
+    strong: '"the reason your videos cap at 200 is almost never the content itself."',
+    weak: '"hey, today I wanted to share something about TikTok growth with you."',
+  },
 ]
 
 // Particle positions (stable, SSR-safe — generated once)
