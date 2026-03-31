@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import AppNav from "@/components/AppNav";
 import { Providers } from "@/components/Providers";
 import Link from "next/link";
+import { HomeJsonLd } from "@/components/JsonLd";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,6 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased dark">
+      <head>
+        <HomeJsonLd />
+      </head>
       <body className="min-h-full flex flex-col bg-[#0a0a0a] text-white">
         <Providers>
         <a
