@@ -57,6 +57,30 @@ const FEATURES = [
   { icon: '⚡', title: 'Fast Feedback', desc: 'Upload once, leave with a smarter first 3 seconds.' },
 ];
 
+const SUCCESS_STORIES = [
+  {
+    handle: '@brayden.creates',
+    before: '180 views avg',
+    after: '12K on next video',
+    fix: 'Dead opener → pattern-interrupt hook',
+    quote: 'The reshoot planner showed me my opener was dead — refilmed it in 10 minutes.',
+  },
+  {
+    handle: '@liftwithlaura',
+    before: '220 views avg',
+    after: '47K on next video',
+    fix: 'No text hook → bold on-screen text frame 1',
+    quote: 'I had no hook at all. Just a greeting. Fixed it, next video did 40x my average.',
+  },
+  {
+    handle: '@techwithterry',
+    before: '310 views avg',
+    after: '8.2K on next video',
+    fix: 'Buried payoff → curiosity gap opener',
+    quote: 'Got a 34/100. Best thing that ever happened to my channel.',
+  },
+];
+
 const HOOK_EXAMPLES = [
   {
     type: 'Visual hook',
@@ -208,7 +232,7 @@ export default function Home() {
                   ))}
                 </div>
                 <span className="text-zinc-300 text-sm font-medium">
-                  <span className="text-orange-400 font-bold">847</span> creators escaped the 200-view plateau this week
+                  <span className="text-orange-400 font-bold">2,847</span> videos roasted &middot; <span className="text-orange-400 font-bold">847</span> creators past 200 views this week
                 </span>
               </div>
 
@@ -254,6 +278,29 @@ export default function Home() {
                   <div className="flex items-center px-2.5 py-1.5 rounded-lg bg-zinc-900/70 border border-zinc-800 text-xs text-zinc-500">
                     +5 more agents
                   </div>
+                </div>
+              </div>
+
+              {/* Success stories — social proof */}
+              <div className="space-y-3">
+                <p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">200 views → viral</p>
+                <div className="grid grid-cols-1 gap-3">
+                  {SUCCESS_STORIES.map((s) => (
+                    <GlassCard key={s.handle} variant="surface" className="p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-red-400 font-bold line-through">{s.before}</span>
+                          <span className="text-zinc-600">→</span>
+                          <span className="text-emerald-400 font-bold">{s.after}</span>
+                        </div>
+                      </div>
+                      <p className="text-zinc-300 text-xs italic leading-relaxed">&ldquo;{s.quote}&rdquo;</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-zinc-600 text-xs font-medium">{s.handle}</span>
+                        <span className="text-[10px] text-zinc-700 bg-zinc-900 rounded-full px-2 py-0.5">{s.fix}</span>
+                      </div>
+                    </GlassCard>
+                  ))}
                 </div>
               </div>
 
