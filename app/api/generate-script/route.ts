@@ -40,8 +40,14 @@ export async function POST(request: NextRequest) {
       format?: ScriptFormat;
     } = body;
 
-    if (!roastScore || !agentFeedback || !Array.isArray(agentFeedback)) {
+    if (roastScore === undefined || roastScore === null || !agentFeedback || !Array.isArray(agentFeedback)) {
       return Response.json({ error: 'roastScore and agentFeedback are required' }, { status: 400 });
+    }
+    if (typeof roastScore !== 'number' || roastScore < 0 || roastScore > 100) {
+      return Response.json({ error: 'roastScore must be a number between 0 and 100' }, { status: 400 });
+    }
+    if (agentFeedback.length === 0) {
+      return Response.json({ error: 'agentFeedback must not be empty' }, { status: 400 });
     }
 
     const feedbackSummary = agentFeedback

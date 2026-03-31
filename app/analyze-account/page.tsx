@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 const DimensionRadarChart = dynamic(() => import('@/components/charts/DimensionRadarChart'), { ssr: false });
@@ -706,6 +707,118 @@ function BenchmarkChart({ entries }: { entries: HistoryEntry[] }) {
   );
 }
 
+// ─── TikTok Account Analyzer ─────────────────────────────────────────────────
+
+function TikTokAccountAnalyzer() {
+  const router = useRouter()
+  const [handle, setHandle] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const clean = handle.trim().replace(/^@/, '').replace(/\s+/g, '')
+    if (!clean) { setError('Enter a TikTok handle to analyze.'); return }
+    setError(null)
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/analyze-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handle: clean }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        if (res.status === 422) {
+          setError(`Could not fetch @${clean}. Make sure the account is public and the handle is correct.`)
+        } else if (res.status === 404) {
+          setError(`No videos found for @${clean}. The account may be private or have no public videos.`)
+        } else {
+          setError(data.error || 'Analysis failed. Please try again.')
+        }
+        setLoading(false)
+        return
+      }
+
+      const data = await res.json()
+
+      // Cache in sessionStorage for the results page
+      try {
+        sessionStorage.setItem(`account_${clean}`, JSON.stringify(data))
+      } catch { /* ignore */ }
+
+      router.push(`/account/${encodeURIComponent(clean)}`)
+    } catch {
+      setError('Network error. Please check your connection and try again.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.05 }}
+      className="mb-8"
+    >
+      <GlassCard variant="surface" className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl fire-gradient flex items-center justify-center text-lg">📊</div>
+          <div>
+            <h2 className="text-base font-bold text-white">Analyze a TikTok Account</h2>
+            <p className="text-xs text-zinc-500">Enter any public TikTok handle to get AI pattern analysis across their last 30 videos</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm select-none">@</span>
+              <input
+                ref={inputRef}
+                type="text"
+                value={handle}
+                onChange={(e) => { setHandle(e.target.value); setError(null) }}
+                placeholder="tiktokhandle"
+                disabled={loading}
+                className="w-full pl-8 pr-4 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-white text-sm placeholder-zinc-600 focus:outline-none focus:border-orange-500/60 transition-colors disabled:opacity-50"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !handle.trim()}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Analyzing...
+                </span>
+              ) : 'Analyze Account →'}
+            </button>
+          </div>
+
+          {loading && (
+            <p className="text-xs text-zinc-500 animate-pulse">Fetching videos via yt-dlp + running AI analysis — this takes ~20–40 seconds...</p>
+          )}
+
+          {error && (
+            <p className="text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2">{error}</p>
+          )}
+
+          <p className="text-[11px] text-zinc-600">Only works with public TikTok accounts. Analysis fetches the last 30 videos.</p>
+        </form>
+      </GlassCard>
+    </motion.div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AnalyzeAccountPage() {
@@ -758,6 +871,8 @@ export default function AnalyzeAccountPage() {
           backHref="/dashboard"
           backLabel="← Dashboard"
         />
+
+        <TikTokAccountAnalyzer />
 
         {loading ? (
           <AnalysisLoadingState />
