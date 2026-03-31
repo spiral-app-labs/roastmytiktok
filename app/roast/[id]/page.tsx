@@ -13,7 +13,9 @@ import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
 import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
-import { ScriptGenerator } from '@/components/ScriptGenerator';
+import dynamic from 'next/dynamic';
+
+const ScriptGenerator = dynamic(() => import('@/components/ScriptGenerator').then(m => m.ScriptGenerator), { ssr: false });
 import { HookHierarchyDiagram, HookExamplesBank, HookExplainerBanner, EducationalTooltip } from '@/components/HookEducation';
 import { useToast } from '@/components/ui';
 

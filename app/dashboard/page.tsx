@@ -4,9 +4,9 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-} from 'recharts'
+import dynamic from 'next/dynamic'
+
+const ScoreTrendChart = dynamic(() => import('@/components/charts/ScoreTrendChart'), { ssr: false })
 import { createClient } from '@/lib/supabase/client'
 import { getHistory, getSessionId, HistoryEntry } from '@/lib/history'
 import { AGENTS } from '@/lib/agents'
@@ -71,17 +71,6 @@ function StatCard({ label, value, sub, delay = 0 }: { label: string; value: Reac
 }
 
 /* ─── custom tooltip ─── */
-function ChartTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { label: string; score: number } }> }) {
-  if (!active || !payload?.[0]) return null
-  const d = payload[0].payload
-  return (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs shadow-lg">
-      <p className="text-zinc-400">{d.label}</p>
-      <p className={`font-bold ${scoreColor(d.score)}`}>{d.score}/100</p>
-    </div>
-  )
-}
-
 /* ─── upload area ─── */
 function UploadArea() {
   const router = useRouter()
@@ -431,28 +420,7 @@ export default function DashboardPage() {
                 <GlassCard variant="surface" className="p-5">
                   <h3 className="text-sm font-semibold text-zinc-300 mb-4">Score Trend</h3>
                   <div className="h-40">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
-                        <defs>
-                          <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#fb923c" stopOpacity={0.4} />
-                            <stop offset="100%" stopColor="#fb923c" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#71717a' }} axisLine={false} tickLine={false} />
-                        <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#71717a' }} axisLine={false} tickLine={false} />
-                        <Tooltip content={<ChartTooltip />} />
-                        <Area
-                          type="monotone"
-                          dataKey="score"
-                          stroke="#fb923c"
-                          strokeWidth={2}
-                          fill="url(#scoreGrad)"
-                          dot={{ r: 3, fill: '#fb923c', stroke: '#18181b', strokeWidth: 2 }}
-                          activeDot={{ r: 5, fill: '#fb923c' }}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                    <ScoreTrendChart data={chartData} />
                   </div>
                 </GlassCard>
               </motion.div>
