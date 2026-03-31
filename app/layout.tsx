@@ -7,6 +7,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Roast My TikTok — AI Agents Roast Your Content",
   description: "Your TikTok is cringe. Watch AI prove it. 6 specialized AI agents analyze and brutally roast your TikTok videos.",
+  manifest: "/manifest.json",
+  themeColor: "#fb923c",
 };
 
 export default function RootLayout({
