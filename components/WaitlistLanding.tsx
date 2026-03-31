@@ -211,6 +211,11 @@ export default function WaitlistLanding() {
                 <span className="text-red-400 font-semibold">{slotsRemaining} spots left</span>
                 <span className="text-zinc-600">— founding rate locked at signup</span>
               </div>
+              <p className="text-zinc-600 text-xs text-center leading-relaxed">
+                By joining, you agree to receive launch updates at this email. No spam — unsubscribe anytime.
+                See our{' '}
+                <a href="/privacy" className="text-orange-400/70 hover:text-orange-400 transition-colors hover:underline">Privacy Policy</a>.
+              </p>
             </>
           )}
         </motion.div>

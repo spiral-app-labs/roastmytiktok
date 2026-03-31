@@ -410,9 +410,11 @@ export default function UploadUI() {
                     }}
                   />
 
-                  <p className="text-zinc-500 text-xs text-center">
-                    By uploading, you agree to our{' '}
-                    <Link href="/terms" className="text-orange-400 hover:underline">Terms of Service</Link>{' '}
+                  <p className="text-zinc-500 text-xs text-center leading-relaxed">
+                    By uploading, you confirm you own or have rights to this video and consent to AI analysis.
+                    Your video is stored temporarily and deleted after processing.
+                    See our{' '}
+                    <Link href="/terms" className="text-orange-400 hover:underline">Terms</Link>{' '}
                     and{' '}
                     <Link href="/privacy" className="text-orange-400 hover:underline">Privacy Policy</Link>.
                   </p>

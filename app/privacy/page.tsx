@@ -9,7 +9,7 @@ export default function PrivacyPage() {
         </Link>
 
         <h1 className="text-3xl font-bold text-white mb-2">Privacy Policy</h1>
-        <p className="text-sm text-zinc-500 mb-10">Last updated: March 29, 2026</p>
+        <p className="text-sm text-zinc-500 mb-10">Last updated: March 30, 2026</p>
 
         <div className="space-y-8 text-sm text-zinc-400 leading-relaxed">
           <section>
@@ -17,6 +17,7 @@ export default function PrivacyPage() {
             <p className="mb-3">We collect the following information when you use RoastMyTikTok:</p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li><strong className="text-zinc-300">Account info:</strong> Email address and name (via Google OAuth or magic link sign-in).</li>
+              <li><strong className="text-zinc-300">Waitlist email:</strong> If you join the waitlist before launch, we collect your email address to send you launch updates.</li>
               <li><strong className="text-zinc-300">Uploaded videos:</strong> Video files you upload for analysis.</li>
               <li><strong className="text-zinc-300">TikTok account data:</strong> Public profile information and video metadata when you use Account Analysis.</li>
               <li><strong className="text-zinc-300">Usage data:</strong> Roast history, scores, and interaction patterns within the app.</li>
@@ -26,7 +27,8 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">2. How We Use Your Information</h2>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
-              <li>To process and analyze your videos using AI.</li>
+              <li>To process and analyze your videos using AI (requires your explicit upload consent).</li>
+              <li>To send launch updates and product announcements to waitlist emails (you can unsubscribe anytime).</li>
               <li>To provide personalized recommendations and track your improvement.</li>
               <li>To maintain your roast history and account preferences.</li>
               <li>To improve the Service and develop new features.</li>
@@ -35,8 +37,11 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">3. Video Storage &amp; Processing</h2>
+            <p className="mb-3">
+              By uploading a video, you explicitly consent to AI processing of that video for analysis. Uploaded videos are stored in secure cloud storage for the duration of your session and deleted within 30 days of upload. We do not share, sell, or publicly display your uploaded videos.
+            </p>
             <p>
-              Uploaded videos are stored temporarily in secure cloud storage for processing. Videos may be deleted after analysis is complete. We do not share, sell, or publicly display your uploaded videos. Video frames extracted for AI analysis are processed in real-time and not permanently stored.
+              Video frames extracted during AI analysis are processed in real-time and not permanently stored. Analysis results (scores, written feedback) are retained in your account history until you request deletion or delete your account.
             </p>
           </section>
 
@@ -62,8 +67,15 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li>Access your personal data and roast history.</li>
               <li>Request deletion of your account and associated data.</li>
-              <li>Opt out of any marketing communications.</li>
+              <li>Withdraw consent for AI video processing (by deleting your uploads or account).</li>
+              <li>Opt out of waitlist or marketing emails at any time via the unsubscribe link or by contacting us.</li>
             </ul>
+            <p className="mt-3">
+              To exercise any of these rights, contact us at{' '}
+              <a href="mailto:support@roastmytiktok.com" className="text-orange-400 hover:text-orange-300 transition-colors">
+                support@roastmytiktok.com
+              </a>.
+            </p>
           </section>
 
           <section>

@@ -9,7 +9,7 @@ export default function TermsPage() {
         </Link>
 
         <h1 className="text-3xl font-bold text-white mb-2">Terms of Service</h1>
-        <p className="text-sm text-zinc-500 mb-10">Last updated: March 29, 2026</p>
+        <p className="text-sm text-zinc-500 mb-10">Last updated: March 30, 2026</p>
 
         <div className="space-y-8 text-sm text-zinc-400 leading-relaxed">
           <section>
@@ -37,8 +37,24 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">3. How We Use Your Content</h2>
+            <p className="mb-3">
+              Videos you upload are processed by AI to generate your roast analysis. By uploading, you explicitly consent to this processing. We do not share, sell, or publicly display your uploaded videos.
+            </p>
             <p>
-              Videos you upload are processed by AI to generate your roast analysis. We do not share, sell, or publicly display your uploaded videos. Uploaded videos are stored temporarily for processing and may be deleted after analysis is complete.
+              <strong className="text-white">Video retention:</strong> Uploaded videos are stored in secure cloud storage for the duration of your session and deleted within 30 days of upload. Video frames extracted during AI analysis are processed in real-time and not permanently stored. Analysis results (scores, feedback text) are retained in your account history until you request deletion.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-white mb-3">3a. Waitlist &amp; Email Communications</h2>
+            <p className="mb-3">
+              If you submit your email address to join our waitlist, you consent to receive launch updates and product announcements from RoastMyTikTok. You can unsubscribe at any time by clicking the unsubscribe link in any email or by contacting us at{' '}
+              <a href="mailto:support@roastmytiktok.com" className="text-orange-400 hover:text-orange-300 transition-colors">
+                support@roastmytiktok.com
+              </a>.
+            </p>
+            <p>
+              We will not sell or share your email address with third parties for marketing purposes.
             </p>
           </section>
 
