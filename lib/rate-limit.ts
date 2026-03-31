@@ -55,7 +55,11 @@ export function checkRateLimit(req: NextRequest, opts: RateLimitOptions): NextRe
   if (current.count >= opts.max) {
     const retryAfter = Math.ceil((current.resetAt - now) / 1000);
     return NextResponse.json(
-      { error: 'Rate limit exceeded. Please try again later.' },
+      {
+        error: 'Free limit reached. You\'ve used your 3 free roasts today.',
+        upgradeUrl: '/pricing',
+        retryAfterSeconds: retryAfter,
+      },
       {
         status: 429,
         headers: {

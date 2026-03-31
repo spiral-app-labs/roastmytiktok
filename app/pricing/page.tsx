@@ -231,7 +231,7 @@ export default function PricingPage() {
           </div>
 
           <Link
-            href="/login"
+            href="/login?intent=subscribe&plan=monthly&redirect=/pricing"
             className="block text-center py-3 px-6 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all mb-8"
           >
             Start Monthly
@@ -295,7 +295,7 @@ export default function PricingPage() {
           {!yearly && <div className="mb-6" />}
 
           <Link
-            href="/login"
+            href="/login?intent=subscribe&plan=yearly&redirect=/pricing"
             className="block text-center py-4 px-6 rounded-xl font-bold fire-gradient text-white hover:opacity-90 transition-opacity mb-3 text-base shadow-lg shadow-orange-500/20"
           >
             Start Yearly →
