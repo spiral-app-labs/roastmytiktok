@@ -45,9 +45,9 @@ const AGENTS_PREVIEW = [
 ];
 
 const TESTIMONIALS = [
-  { text: 'My hook agent score was a 12. I cried. Then I fixed it. Now at 2M views.', handle: '@tiktoker_reformed' },
-  { text: 'This thing called out my lighting before my followers even noticed. Brutal.', handle: '@content.creator.xyz' },
-  { text: 'Got a 34/100. Best thing that ever happened to my channel.', handle: '@growingfast2024' },
+  { text: 'I was stuck at 180 views for months. The reshoot planner showed me my opener was dead — refilmed it in 10 minutes and broke 12K.', handle: '@tiktoker_reformed' },
+  { text: 'The hook breakdown literally showed me I had no hook at all. Just a greeting. Fixed it, next video did 40x my average.', handle: '@content.creator.xyz' },
+  { text: 'Got a 34/100. Best thing that ever happened to my channel. The rewrite workshop gave me three openers I could film that day.', handle: '@growingfast2024' },
 ];
 
 const FEATURES = [
@@ -59,19 +59,29 @@ const FEATURES = [
 
 const HOOK_EXAMPLES = [
   {
-    type: 'Visual + motion',
+    type: 'Visual hook',
     strong: 'Open on the finished result, a fast zoom, or a dramatic before/after in frame 1.',
     weak: 'Start with a static selfie and a dead stare while you get into position.',
   },
   {
-    type: 'Spoken curiosity',
-    strong: '“this mistake is why your videos die at 300 views.”',
-    weak: '“hey guys, so today i wanted to talk about...”',
+    type: 'Spoken hook',
+    strong: '"this mistake is why your videos die at 300 views."',
+    weak: '"hey guys, so today i wanted to talk about..."',
   },
   {
-    type: 'On-screen text',
-    strong: 'Big text in frame 1: “3 things that kill retention instantly”',
-    weak: 'Tiny text appears at 0:03 after the scroll already happened.',
+    type: 'Text hook (on-screen)',
+    strong: 'Bold text in frame 1: "3 things that kill retention instantly" — readable on mute.',
+    weak: 'Tiny text appears at 0:03, after the scroll already happened.',
+  },
+  {
+    type: 'Motion hook',
+    strong: 'Something moves in the first half-second — jump cut, zoom, fast pan, or action already in progress.',
+    weak: 'Opener settles in slowly while you adjust the camera or walk into frame.',
+  },
+  {
+    type: 'Curiosity hook',
+    strong: 'Name the surprising outcome, unexpected take, or payoff gap before you explain anything.',
+    weak: 'Start with context and backstory — the payoff is buried behind a warm-up.',
   },
   {
     type: 'Attractiveness / pattern interrupt',
@@ -90,7 +100,7 @@ const HOOK_EXAMPLES = [
   },
 ]
 
-// Particle positions (stable, SSR-safe — generated once)
+// Particle positions (stable, SSR-safe - generated once)
 const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   id: i,
   x: (i * 37 + 11) % 100,
@@ -198,7 +208,7 @@ export default function Home() {
                   ))}
                 </div>
                 <span className="text-zinc-300 text-sm font-medium">
-                  <span className="text-orange-400 font-bold">847</span> TikToks roasted this week
+                  <span className="text-orange-400 font-bold">847</span> creators escaped the 200-view plateau this week
                 </span>
               </div>
 
@@ -308,9 +318,9 @@ export default function Home() {
                 <div className="relative space-y-6">
                   <div className="text-center space-y-2">
                     <div className="text-4xl">🔥</div>
-                    <h2 className="text-2xl font-black text-white">Exclusive Access</h2>
+                    <h2 className="text-2xl font-black text-white">Break Past 200 Views</h2>
                     <p className="text-zinc-400 text-sm">
-                      built for creators whose videos keep stalling before they ever get a fair shot.
+                      your videos aren&apos;t bad — your opener is killing them before they get a chance. find out why and fix it today.
                     </p>
                   </div>
 
@@ -358,9 +368,9 @@ export default function Home() {
 
                   <div className="space-y-2">
                     {[
-                      'hook rewrite workshop with better opener options',
-                      'opening reshoot planner with concrete shot + text ideas',
-                      'qualitative hold read that avoids fake precision',
+                      'see exactly which hook type you used and why it leaks',
+                      'get 3 stronger rewrites with camera, timing, and text direction',
+                      'walk away with a reshoot plan you can film in 10 minutes',
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-2.5 text-xs text-zinc-400">
                         <span className="text-orange-400 font-bold">✓</span>

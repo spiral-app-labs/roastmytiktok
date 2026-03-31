@@ -1,18 +1,20 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
-import { getFirstGlanceChecks, getHoldAssessment, getHookRewriteWorkflow, getHookTypeLenses, getHookWorkshop, getReshootPlanner, getReshootTakes } from '@/lib/hook-help';
+import { getDetectedHookType, getFirstGlanceChecks, getHoldAssessment, getHookRewriteWorkflow, getHookTypeLenses, getHookWorkshop, getReshootPlanner, getReshootTakes } from '@/lib/hook-help';
 import { getPersonalizedHookPatterns } from '@/lib/viral-hooks';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
 import { DeepDiveNav } from '@/components/DeepDiveNav';
+import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
 import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
 import { ScriptGenerator } from '@/components/ScriptGenerator';
+import { HookHierarchyDiagram, HookExamplesBank, HookExplainerBanner, EducationalTooltip } from '@/components/HookEducation';
 
 function getLetterGrade(score: number): string {
   if (score >= 90) return 'A+';
@@ -32,7 +34,6 @@ export default function RoastPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [downstreamOpen, setDownstreamOpen] = useState(false);
 
   const handleCopyLink = useCallback(async () => {
     const url = `${window.location.origin}/roast/${id}`;
@@ -118,18 +119,16 @@ export default function RoastPage() {
     );
   }
 
-  return <RoastContent roast={roast} copied={copied} downstreamOpen={downstreamOpen} setDownstreamOpen={setDownstreamOpen} handleCopyLink={handleCopyLink} handleShareOnX={handleShareOnX} />;
+  return <RoastContent roast={roast} copied={copied} handleCopyLink={handleCopyLink} handleShareOnX={handleShareOnX} />;
 }
 
 /* ---- Extracted so hooks are unconditional in the outer component ---- */
 
 function RoastContent({
-  roast, copied, downstreamOpen, setDownstreamOpen, handleCopyLink, handleShareOnX,
+  roast, copied, handleCopyLink, handleShareOnX,
 }: {
   roast: RoastResult;
   copied: boolean;
-  downstreamOpen: boolean;
-  setDownstreamOpen: (v: boolean) => void;
   handleCopyLink: () => void;
   handleShareOnX: (score: number) => void;
 }) {
@@ -150,6 +149,7 @@ function RoastContent({
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
   const isHookWeak = roast.analysisMode === 'hook-first' || roast.hookSummary?.strength === 'weak';
   const hookWorkshop = getHookWorkshop(roast);
+  const detectedHookType = getDetectedHookType(roast);
   const hookTypeLenses = getHookTypeLenses(roast);
   const hookRewriteWorkflow = getHookRewriteWorkflow(roast);
   const reshootPlanner = getReshootPlanner(roast);
@@ -175,6 +175,7 @@ function RoastContent({
     }
     items.push(
       { id: 'hook-workshop', label: 'Hook Breakdown', emoji: '🎣' },
+      { id: 'hook-education', label: 'Hook School', emoji: '🎓' },
       { id: 'hook-examples', label: 'Hook Examples', emoji: '📚' },
       { id: 'hold-strength', label: 'Watch Strength', emoji: '⏱️' },
       { id: 'first-glance', label: 'First Glance', emoji: '👁️' },
@@ -507,38 +508,47 @@ function RoastContent({
             transition={{ delay: 1.05, duration: 0.5 }}
             className="scroll-mt-20 mb-10"
           >
-            {/* Big red hook-gate banner */}
-            <div className="relative overflow-hidden rounded-3xl border-2 border-red-500/40 bg-gradient-to-br from-red-500/15 via-red-900/10 to-zinc-950 p-6 sm:p-8">
-              {/* Pulsing background glow */}
+            {/* Dominant hook-gate banner — can't-miss alert framing */}
+            <div className="relative overflow-hidden rounded-[32px] border-2 border-red-500/50 bg-gradient-to-br from-red-500/20 via-red-900/12 to-zinc-950 p-8 sm:p-10 shadow-2xl shadow-red-500/10">
+              {/* Pulsing background glow — larger for dominance */}
               <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-0 right-0 w-72 h-72 bg-red-500/10 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-500/8 rounded-full blur-3xl" />
+                <div className="absolute -top-20 -right-20 w-[400px] h-[400px] bg-red-500/12 rounded-full blur-[100px] animate-pulse" />
+                <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-red-500/8 rounded-full blur-[80px]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-red-500/5 rounded-full blur-[120px]" />
               </div>
 
               <div className="relative z-10">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-6">
+                {/* Alert banner strip */}
+                <div className="mb-6 flex items-center gap-3 rounded-2xl border border-red-500/40 bg-red-500/15 px-5 py-3">
+                  <span className="text-red-400 text-xl animate-pulse">🚨</span>
+                  <p className="text-sm sm:text-base font-bold text-red-200 uppercase tracking-wide">
+                    Hook failure detected — everything below depends on fixing this first
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 mb-8">
                   <div className="shrink-0">
-                    <ScoreRing score={hookScore} size={90} />
+                    <ScoreRing score={hookScore} size={120} />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-red-400 text-2xl">🚨</span>
-                      <h2 className="text-xl sm:text-2xl font-black text-white">Your hook isn&apos;t getting the ball over the net</h2>
-                    </div>
-                    <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
-                      Nothing else matters until this is fixed. Strategy, visuals, captions, audio — they&apos;re all downstream of getting someone to stop scrolling. Right now, that&apos;s not happening.
+                    <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">Your <EducationalTooltip tooltipKey="hook">hook</EducationalTooltip> isn&apos;t getting the ball over the net</h2>
+                    <p className="mt-3 text-sm sm:text-base text-zinc-300 leading-relaxed max-w-xl">
+                      Nothing else matters until this is fixed. Strategy, visuals, captions, audio — they&apos;re all <EducationalTooltip tooltipKey="downstream-advice">downstream</EducationalTooltip> of getting someone to <EducationalTooltip tooltipKey="scroll-stop">stop scrolling</EducationalTooltip>. Right now, that&apos;s not happening.
+                    </p>
+                    <p className="mt-2 text-xs text-red-300/80">
+                      Hook score {hookScore}/100 — {weakHookPenalty} points below the bar where other feedback starts to matter.
                     </p>
                   </div>
                 </div>
 
                 {roast.hookSummary && (
                   <>
-                    <div className="grid gap-3 sm:grid-cols-3 mb-4">
-                      <div className="rounded-xl border border-red-500/25 bg-red-500/8 p-4">
+                    <div className="grid gap-3 sm:grid-cols-3 mb-5">
+                      <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
                         <p className="text-[11px] font-bold uppercase tracking-widest text-red-400 mb-1.5">The problem</p>
                         <p className="text-sm text-zinc-200">{roast.hookSummary.headline}</p>
                       </div>
-                      <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                      <div className="rounded-xl border border-red-500/25 bg-red-500/8 p-4">
                         <p className="text-[11px] font-bold uppercase tracking-widest text-red-400/80 mb-1.5">Distribution risk</p>
                         <p className="text-sm text-zinc-300">{roast.hookSummary.distributionRisk}</p>
                       </div>
@@ -548,7 +558,7 @@ function RoastContent({
                       </div>
                     </div>
                     {roast.hookSummary.earlyDropNote && (
-                      <div className="mb-4 rounded-xl border border-zinc-700/50 bg-zinc-950/60 px-4 py-3">
+                      <div className="mb-5 rounded-xl border border-zinc-700/50 bg-zinc-950/60 px-4 py-3">
                         <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5">why distribution dies early</p>
                         <p className="text-sm text-zinc-300 leading-relaxed">{roast.hookSummary.earlyDropNote}</p>
                       </div>
@@ -558,7 +568,7 @@ function RoastContent({
 
                 {/* Inline hook agent card when hook is weak */}
                 {hookAgentRoast && (
-                  <div className="mt-4">
+                  <div className="mt-5">
                     <AgentCard roast={hookAgentRoast} index={0} variant="primary" />
                   </div>
                 )}
@@ -591,26 +601,35 @@ function RoastContent({
 
         {/* Hook workshop */}
         <motion.div
-          id="hook-workshop"
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1, duration: 0.45 }}
-          className="scroll-mt-20 mb-6"
+          className="mb-6"
         >
-          <div className={`rounded-2xl border p-5 text-left ${isHookWeak ? 'border-orange-500/30 bg-orange-500/[0.06]' : 'border-orange-500/20 bg-zinc-900/60'}`}>
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-orange-400">Hook rewrite workshop</p>
-                <h3 className="text-lg font-bold text-white mt-1">what to reshoot in the first beat</h3>
-              </div>
-              <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-orange-300">
-                opener first
-              </span>
-            </div>
-            <div className="space-y-3">
+          <CollapsibleSection
+            id="hook-workshop"
+            eyebrow="Hook rewrite workshop"
+            title="what to reshoot in the first beat"
+            emoji="🎣"
+            tier={isHookWeak ? 1 : 2}
+            accent={isHookWeak ? 'border-orange-500/30 bg-orange-500/[0.06]' : 'border-orange-500/20 bg-zinc-900/60'}
+            defaultOpen
+          >
+            <div className="space-y-3 text-left">
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">current opener</p>
                 <p className="text-sm text-zinc-200">{hookWorkshop.openerLine}</p>
+              </div>
+              <div className={`rounded-xl border p-3 ${detectedHookType.type !== 'none' ? 'border-indigo-500/20 bg-indigo-500/[0.06]' : 'border-zinc-700/40 bg-zinc-950/40'}`}>
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-indigo-300">detected hook type</p>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${detectedHookType.confidence === 'likely' ? 'text-emerald-300' : detectedHookType.confidence === 'possible' ? 'text-yellow-300' : 'text-zinc-500'}`}>
+                    {detectedHookType.confidence}
+                  </span>
+                </div>
+                <p className="text-sm font-semibold text-zinc-100">{detectedHookType.label}</p>
+                <p className="text-xs text-zinc-400 mt-1">{detectedHookType.explanation}</p>
+                <p className="text-xs text-orange-200 mt-2"><span className="text-orange-400">upgrade:</span> {detectedHookType.upgrade}</p>
               </div>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">why it is leaking</p>
@@ -635,12 +654,12 @@ function RoastContent({
                   ))}
                 </div>
               </div>
-              {/* Hook anatomy / type lenses — educational layer */}
+              {/* Hook anatomy — educational layer distinguishing all 6 hook types */}
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">hook anatomy</p>
-                    <p className="text-xs text-zinc-400 mt-1">great hooks stack multiple levers: visual, spoken, text, motion, curiosity, and attractiveness. here&apos;s how yours scores on each.</p>
+                    <p className="text-xs text-zinc-400 mt-1">great hooks stack multiple levers: visual, spoken, text, motion, <EducationalTooltip tooltipKey="open-loop">curiosity</EducationalTooltip>, and attractiveness. here&apos;s how yours scores on each.</p>
                   </div>
                   <span className="rounded-full border border-zinc-700 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 shrink-0">
                     teachable layer
@@ -686,247 +705,251 @@ function RoastContent({
                 </div>
               </div>
             </div>
-          </div>
+          </CollapsibleSection>
+        </motion.div>
+
+        {/* Hook education layer — beginner explainer + hierarchy + examples bank */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.115, duration: 0.45 }}
+          className="mb-6"
+        >
+          <CollapsibleSection
+            id="hook-education"
+            eyebrow="Hook school"
+            title="understand why hooks gate everything"
+            emoji="🎓"
+            tier={isHookWeak ? 1 : 2}
+            accent={isHookWeak ? 'border-red-500/20 bg-red-500/[0.04]' : 'border-zinc-800/70 bg-zinc-900/60'}
+            defaultOpen={isHookWeak}
+          >
+            <div className="space-y-4">
+              <HookExplainerBanner />
+              <HookHierarchyDiagram isHookWeak={isHookWeak} />
+              <HookExamplesBank detectedType={detectedHookType} />
+            </div>
+          </CollapsibleSection>
         </motion.div>
 
         <motion.div
-          id="hook-examples"
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.13, duration: 0.45 }}
-          className="scroll-mt-20 mb-6"
+          className="mb-6"
         >
-          <div className="rounded-2xl border border-emerald-500/20 bg-zinc-900/60 p-5 text-left">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Top hook examples</p>
-                <h3 className="text-lg font-bold text-white mt-1">steal a proven pattern, not just a note</h3>
-              </div>
-              <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-emerald-300">
-                from the top 50 library
-              </span>
-            </div>
-            <p className="text-sm text-zinc-400">
-              these are matched from our viral hook bank based on your topic and the kind of opener weakness this video has. use one as-is or remix the structure.
-            </p>
-            <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-              {hookPatterns.map((pattern) => (
-                <div key={pattern.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300">{pattern.pattern}</p>
-                      <p className="mt-1 text-xs text-zinc-500">{pattern.angle}</p>
+          <CollapsibleSection
+            id="hook-examples"
+            eyebrow="Top hook examples"
+            title="steal a proven pattern, not just a note"
+            emoji="📚"
+            tier={isHookWeak ? 1 : 2}
+            accent="border-emerald-500/20 bg-zinc-900/60"
+          >
+            <div className="text-left">
+              <p className="text-sm text-zinc-400 mb-4">
+                these are matched from our viral hook bank based on your topic and the kind of opener weakness this video has. use one as-is or remix the structure.
+              </p>
+              <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                {hookPatterns.map((pattern) => (
+                  <div key={pattern.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300">{pattern.pattern}</p>
+                        <p className="mt-1 text-xs text-zinc-500">{pattern.angle}</p>
+                      </div>
+                      <span className="rounded-full border border-zinc-700 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        top fit
+                      </span>
                     </div>
-                    <span className="rounded-full border border-zinc-700 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                      top fit
-                    </span>
+                    <p className="mt-3 text-sm font-semibold text-white">&ldquo;{pattern.line}&rdquo;</p>
+                    <p className="mt-2 text-xs text-zinc-400">{pattern.whyItWorks}</p>
+                    <p className="mt-3 text-xs text-emerald-200/90">{pattern.personalizationNote}</p>
                   </div>
-                  <p className="mt-3 text-sm font-semibold text-white">“{pattern.line}”</p>
-                  <p className="mt-2 text-xs text-zinc-400">{pattern.whyItWorks}</p>
-                  <p className="mt-3 text-xs text-emerald-200/90">{pattern.personalizationNote}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          </CollapsibleSection>
         </motion.div>
 
-        {/* Hold-strength + First-glance side by side */}
+        {/* Hold-strength + First-glance — downstream when hook is weak */}
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.15, duration: 0.45 }}
           className="grid gap-4 lg:grid-cols-2 mb-6"
         >
-          <div id="hold-strength" className={`scroll-mt-20 rounded-2xl border p-5 text-left ${holdAssessment.riskBand === 'high' ? 'border-red-500/25 bg-red-500/8' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/25 bg-yellow-500/8' : 'border-emerald-500/25 bg-emerald-500/8'}`}>
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Hold-strength read</p>
-                <h3 className="text-lg font-bold text-white mt-1">{holdAssessment.headline}</h3>
-              </div>
-              <div className={`rounded-full border px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest shrink-0 ${holdAssessment.riskBand === 'high' ? 'border-red-500/30 text-red-300' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/30 text-yellow-300' : 'border-emerald-500/30 text-emerald-300'}`}>
-                {holdAssessment.holdBand} hold
-              </div>
-            </div>
-            <p className="text-sm text-zinc-300">{holdAssessment.summary}</p>
-            <ul className="mt-3 space-y-1.5">
-              {holdAssessment.reasons.map((reason, index) => (
-                <li key={index} className="flex gap-2 text-sm text-zinc-300">
-                  <span className="text-orange-400">•</span>
-                  <span>{reason}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div id="first-glance" className="scroll-mt-20 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 text-left">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">First-glance diagnostic</p>
-            <p className="text-sm text-zinc-500 mt-1">an honest frame-one gut check for a cold viewer.</p>
-            <div className="mt-3 space-y-2">
-              {firstGlanceChecks.map((item) => (
-                <div key={item.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
-                  <div className="flex items-center justify-between gap-3 mb-1">
-                    <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
-                    <span className={`text-[11px] font-bold uppercase tracking-widest ${item.status === 'working' ? 'text-emerald-300' : 'text-red-300'}`}>
-                      {item.status === 'working' ? 'working' : 'needs work'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-400">{item.note}</p>
+          <CollapsibleSection
+            id="hold-strength"
+            eyebrow="Hold-strength read"
+            title={holdAssessment.headline}
+            emoji="⏱️"
+            tier={isHookWeak ? 3 : 2}
+            gated={isHookWeak}
+            accent={holdAssessment.riskBand === 'high' ? 'border-red-500/25 bg-red-500/8' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/25 bg-yellow-500/8' : 'border-emerald-500/25 bg-emerald-500/8'}
+          >
+            <div className="text-left">
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`rounded-full border px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest shrink-0 ${holdAssessment.riskBand === 'high' ? 'border-red-500/30 text-red-300' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/30 text-yellow-300' : 'border-emerald-500/30 text-emerald-300'}`}>
+                  {holdAssessment.holdBand} hold
                 </div>
-              ))}
+              </div>
+              <p className="text-sm text-zinc-300">{holdAssessment.summary}</p>
+              <p className="mt-2 text-[11px] text-zinc-500 italic">this is a qualitative read based on what we can see in the opening beats, not a watch-time prediction. no tool can tell you your exact retention curve from a video file.</p>
+              <ul className="mt-3 space-y-1.5">
+                {holdAssessment.reasons.map((reason, index) => (
+                  <li key={index} className="flex gap-2 text-sm text-zinc-300">
+                    <span className="text-orange-400">•</span>
+                    <span>{reason}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            id="first-glance"
+            eyebrow="First-glance diagnostic"
+            title="frame-one gut check"
+            emoji="👁️"
+            tier={isHookWeak ? 3 : 2}
+            gated={isHookWeak}
+            accent="border-zinc-800 bg-zinc-900/60"
+          >
+            <div className="text-left">
+              <p className="text-sm text-zinc-500 mb-3">an honest <EducationalTooltip tooltipKey="frame-one">frame-one</EducationalTooltip> gut check for a cold viewer.</p>
+              <div className="space-y-2">
+                {firstGlanceChecks.map((item) => (
+                  <div key={item.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
+                      <span className={`text-[11px] font-bold uppercase tracking-widest ${item.status === 'working' ? 'text-emerald-300' : 'text-red-300'}`}>
+                        {item.status === 'working' ? 'working' : 'needs work'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400">{item.note}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleSection>
         </motion.div>
 
         {/* Reshoot planner */}
         <motion.div
-          id="reshoot-planner"
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2, duration: 0.45 }}
-          className="scroll-mt-20 mb-8 rounded-2xl border border-blue-500/20 bg-zinc-900/60 p-5 text-left"
+          className="mb-8"
         >
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Opening reshoot planner</p>
-              <h3 className="text-lg font-bold text-white mt-1">film this version next</h3>
-            </div>
-            <span className="text-xs text-zinc-500">built for same-day reshoots</span>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {reshootPlanner.map((step) => (
-              <div key={step.label} className="rounded-xl border border-blue-500/15 bg-blue-500/5 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">{step.label}</p>
-                <p className="text-sm font-semibold text-zinc-100">{step.direction}</p>
-                <p className="text-xs text-zinc-400 mt-1">{step.detail}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-2xl border border-blue-500/15 bg-zinc-950/40 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300">filmable take options</p>
-                <h4 className="mt-1 text-sm font-semibold text-white">pick one and refilm it clean</h4>
-              </div>
-              <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-200">
-                a/b/c test
-              </span>
-            </div>
-            <div className="mt-4 grid gap-3 lg:grid-cols-3">
-              {reshootTakes.map((take) => (
-                <div key={take.label} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300">{take.label}</p>
-                  <div className="mt-3 space-y-3">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">spoken line</p>
-                      <p className="mt-1 text-sm text-white">{take.spokenLine}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">visual</p>
-                      <p className="mt-1 text-xs text-zinc-300">{take.visual}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">text overlay</p>
-                      <p className="mt-1 text-xs text-zinc-200">{take.textOverlay}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">why this take works</p>
-                      <p className="mt-1 text-xs text-zinc-400">{take.whyItWorks}</p>
-                    </div>
+          <CollapsibleSection
+            id="reshoot-planner"
+            eyebrow="Opening reshoot planner"
+            title="film this version next"
+            emoji="🎬"
+            tier={isHookWeak ? 2 : 3}
+            accent="border-blue-500/20 bg-zinc-900/60"
+          >
+            <div className="text-left">
+              <div className="grid gap-3 md:grid-cols-2">
+                {reshootPlanner.map((step) => (
+                  <div key={step.label} className="rounded-xl border border-blue-500/15 bg-blue-500/5 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">{step.label}</p>
+                    <p className="text-sm font-semibold text-zinc-100">{step.direction}</p>
+                    <p className="text-xs text-zinc-400 mt-1">{step.detail}</p>
                   </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-2xl border border-blue-500/15 bg-zinc-950/40 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300">filmable take options</p>
+                    <h4 className="mt-1 text-sm font-semibold text-white">pick one and refilm it clean</h4>
+                  </div>
+                  <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-200">
+                    a/b/c test
+                  </span>
                 </div>
-              ))}
+                <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                  {reshootTakes.map((take) => (
+                    <div key={take.label} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300">{take.label}</p>
+                      <div className="mt-3 space-y-3">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">spoken line</p>
+                          <p className="mt-1 text-sm text-white">{take.spokenLine}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">visual</p>
+                          <p className="mt-1 text-xs text-zinc-300">{take.visual}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">camera / framing</p>
+                          <p className="mt-1 text-xs text-zinc-300">{take.cameraNote}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">timing</p>
+                          <p className="mt-1 text-xs text-blue-200/80">{take.timing}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">text overlay</p>
+                          <p className="mt-1 text-xs text-zinc-200">{take.textOverlay}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">why this take works</p>
+                          <p className="mt-1 text-xs text-zinc-400">{take.whyItWorks}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          </CollapsibleSection>
         </motion.div>
 
-        {/* ========== DOWNSTREAM SEPARATOR — when hook is weak ========== */}
-        {isHookWeak && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.3 }}
-            className="mb-8"
-          >
-            <div className="relative flex items-center gap-4 py-4">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-700/60 to-transparent" />
-              <button
-                onClick={() => setDownstreamOpen(!downstreamOpen)}
-                className="group flex items-center gap-2.5 px-5 py-3 rounded-2xl border border-zinc-700/60 bg-zinc-900/80 hover:border-zinc-600 transition-all"
-              >
-                <span className="text-zinc-500 text-sm">🏐</span>
-                <span className="text-sm font-semibold text-zinc-400 group-hover:text-zinc-300 transition-colors">
-                  {downstreamOpen ? 'Hide' : 'Show'} secondary feedback
-                </span>
-                <span className="text-xs text-zinc-600 hidden sm:inline">
-                  — strategy, packaging, and placement stay benched until the hook lands
-                </span>
-                <motion.span
-                  animate={{ rotate: downstreamOpen ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="text-zinc-500"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                  </svg>
-                </motion.span>
-              </button>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-700/60 to-transparent" />
-            </div>
-          </motion.div>
-        )}
-
         {/* ========== AGENT CARDS + DOWNSTREAM CONTENT ========== */}
-        <AnimatePresence>
-          {(!isHookWeak || downstreamOpen) && (
-            <motion.div
-              id="agent-cards"
-              initial={isHookWeak ? { opacity: 0, height: 0 } : { opacity: 1 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.4, ease: 'easeInOut' }}
-              className={`scroll-mt-20 overflow-hidden ${isHookWeak ? 'opacity-75' : ''}`}
-            >
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.3, duration: 0.45 }}
+          className="mb-8"
+        >
+          <CollapsibleSection
+            id="agent-cards"
+            eyebrow={isHookWeak ? 'Secondary feedback' : 'Full analysis'}
+            title={isHookWeak ? 'fix hook first — these stay benched until it lands' : 'detailed breakdown by dimension'}
+            emoji="🔬"
+            tier={isHookWeak ? 3 : 1}
+            gated={isHookWeak}
+            accent={isHookWeak ? 'border-zinc-800/50 bg-zinc-950/40' : 'border-zinc-800/70 bg-zinc-900/60'}
+          >
+            <div>
               {/* Dimmed overlay hint when hook is weak */}
               {isHookWeak && (
-                <>
-                  <div className="mb-3">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-600">secondary feedback</p>
-                    <p className="mt-1 text-sm text-zinc-500">use this after you fix the opener. it sharpens the video, but it will not rescue a weak first second.</p>
-                  </div>
-                  <div className="mb-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3 flex items-center gap-3">
-                    <span className="text-zinc-600 text-lg">🔇</span>
-                    <p className="text-sm text-zinc-500">
-                      These scores matter less until the hook is fixed. Improving these won&apos;t help if viewers never make it past the first second.
-                    </p>
-                  </div>
-                </>
+                <div className="mb-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3 flex items-center gap-3">
+                  <span className="text-zinc-600 text-lg">🔇</span>
+                  <p className="text-sm text-zinc-500">
+                    These scores matter less until the hook is fixed. Improving these won&apos;t help if viewers never make it past the first second.
+                  </p>
+                </div>
               )}
 
               {/* Fixed issues celebration */}
               {fixedIssues.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="mb-6 bg-green-500/5 border border-green-500/20 rounded-2xl p-5"
-                >
+                <div className="mb-6 bg-green-500/5 border border-green-500/20 rounded-2xl p-5">
                   <p className="text-green-400 font-semibold mb-2">Progress Detected</p>
                   {fixedIssues.map((f, i) => (
                     <p key={i} className="text-sm text-zinc-400">
                       You finally fixed <span className="text-green-400 font-medium">{f.dimension}</span>: {f.finding.slice(0, 60)}. We&apos;re proud. Genuinely.
                     </p>
                   ))}
-                </motion.div>
+                </div>
               )}
 
               {/* Chronic issues */}
               {chronicIssues.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="mb-6 bg-red-500/5 border border-red-500/20 rounded-2xl p-5"
-                >
+                <div className="mb-6 bg-red-500/5 border border-red-500/20 rounded-2xl p-5">
                   <p className="text-red-400 font-bold text-lg mb-1">CHRONIC ISSUES</p>
                   <p className="text-sm text-zinc-400 mb-3">These problems keep appearing across your roasts. We&apos;re keeping count.</p>
                   <div className="space-y-3">
@@ -962,7 +985,7 @@ function RoastContent({
                   <Link href="/history" className="mt-3 inline-block text-xs text-orange-400 hover:text-orange-300 transition-colors">
                     View full history &rarr;
                   </Link>
-                </motion.div>
+                </div>
               )}
 
               {/* Detected Sound chip — shown when we extracted real sound data from the TikTok URL */}
@@ -1027,9 +1050,9 @@ function RoastContent({
 
               {/* Script Generator */}
               <ScriptGenerator roast={roast} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </CollapsibleSection>
+        </motion.div>
 
         {/* Bottom CTA */}
         <motion.div
