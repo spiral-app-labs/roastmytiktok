@@ -13,6 +13,7 @@ import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalat
 import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
 import { ScriptGenerator } from '@/components/ScriptGenerator';
+import { HookHierarchyDiagram, HookExamplesBank, HookExplainerBanner, EducationalTooltip } from '@/components/HookEducation';
 
 function getLetterGrade(score: number): string {
   if (score >= 90) return 'A+';
@@ -176,6 +177,7 @@ function RoastContent({
     }
     items.push(
       { id: 'hook-workshop', label: 'Hook Breakdown', emoji: '🎣' },
+      { id: 'hook-education', label: 'Hook School', emoji: '🎓' },
       { id: 'hook-examples', label: 'Hook Examples', emoji: '📚' },
       { id: 'hold-strength', label: 'Watch Strength', emoji: '⏱️' },
       { id: 'first-glance', label: 'First Glance', emoji: '👁️' },
@@ -524,10 +526,10 @@ function RoastContent({
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-red-400 text-2xl">🚨</span>
-                      <h2 className="text-xl sm:text-2xl font-black text-white">Your hook isn&apos;t getting the ball over the net</h2>
+                      <h2 className="text-xl sm:text-2xl font-black text-white">Your <EducationalTooltip tooltipKey="hook">hook</EducationalTooltip> isn&apos;t getting the ball over the net</h2>
                     </div>
                     <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
-                      Nothing else matters until this is fixed. Strategy, visuals, captions, audio — they&apos;re all downstream of getting someone to stop scrolling. Right now, that&apos;s not happening.
+                      Nothing else matters until this is fixed. Strategy, visuals, captions, audio — they&apos;re all <EducationalTooltip tooltipKey="downstream-advice">downstream</EducationalTooltip> of getting someone to <EducationalTooltip tooltipKey="scroll-stop">stop scrolling</EducationalTooltip>. Right now, that&apos;s not happening.
                     </p>
                   </div>
                 </div>
@@ -652,7 +654,7 @@ function RoastContent({
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">hook anatomy</p>
-                    <p className="text-xs text-zinc-400 mt-1">great hooks stack multiple levers: visual, spoken, text, motion, curiosity, and attractiveness. here&apos;s how yours scores on each.</p>
+                    <p className="text-xs text-zinc-400 mt-1">great hooks stack multiple levers: visual, spoken, text, motion, <EducationalTooltip tooltipKey="open-loop">curiosity</EducationalTooltip>, and attractiveness. here&apos;s how yours scores on each.</p>
                   </div>
                   <span className="rounded-full border border-zinc-700 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 shrink-0">
                     teachable layer
@@ -699,6 +701,19 @@ function RoastContent({
               </div>
             </div>
           </div>
+        </motion.div>
+
+        {/* Hook education layer — beginner explainer + hierarchy + examples bank */}
+        <motion.div
+          id="hook-education"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.115, duration: 0.45 }}
+          className="scroll-mt-20 mb-6 space-y-4"
+        >
+          <HookExplainerBanner />
+          <HookHierarchyDiagram isHookWeak={isHookWeak} />
+          <HookExamplesBank detectedType={detectedHookType} />
         </motion.div>
 
         <motion.div
@@ -752,7 +767,7 @@ function RoastContent({
           <div id="hold-strength" className={`scroll-mt-20 rounded-2xl border p-5 text-left ${holdAssessment.riskBand === 'high' ? 'border-red-500/25 bg-red-500/8' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/25 bg-yellow-500/8' : 'border-emerald-500/25 bg-emerald-500/8'}`}>
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Hold-strength read</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-400"><EducationalTooltip tooltipKey="hold-strength">Hold-strength</EducationalTooltip> read</p>
                 <h3 className="text-lg font-bold text-white mt-1">{holdAssessment.headline}</h3>
               </div>
               <div className={`rounded-full border px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest shrink-0 ${holdAssessment.riskBand === 'high' ? 'border-red-500/30 text-red-300' : holdAssessment.riskBand === 'medium' ? 'border-yellow-500/30 text-yellow-300' : 'border-emerald-500/30 text-emerald-300'}`}>
@@ -773,7 +788,7 @@ function RoastContent({
 
           <div id="first-glance" className="scroll-mt-20 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 text-left">
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">First-glance diagnostic</p>
-            <p className="text-sm text-zinc-500 mt-1">an honest frame-one gut check for a cold viewer.</p>
+            <p className="text-sm text-zinc-500 mt-1">an honest <EducationalTooltip tooltipKey="frame-one">frame-one</EducationalTooltip> gut check for a cold viewer.</p>
             <div className="mt-3 space-y-2">
               {firstGlanceChecks.map((item) => (
                 <div key={item.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
@@ -879,7 +894,7 @@ function RoastContent({
                   {downstreamOpen ? 'Hide' : 'Show'} secondary feedback
                 </span>
                 <span className="text-xs text-zinc-600 hidden sm:inline">
-                  — strategy, packaging, and placement stay benched until the hook lands
+                  — <EducationalTooltip tooltipKey="downstream-advice">strategy, packaging, and placement</EducationalTooltip> stay benched until the hook lands
                 </span>
                 <motion.span
                   animate={{ rotate: downstreamOpen ? 180 : 0 }}
