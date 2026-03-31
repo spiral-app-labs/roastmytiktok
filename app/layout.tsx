@@ -6,10 +6,17 @@ import { HomeJsonLd } from "@/components/JsonLd";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Roast My TikTok — AI Agents Roast Your Content",
+  metadataBase: new URL("https://roastmytiktok.com"),
+  title: {
+    default: "Roast My TikTok — AI Agents Roast Your Content",
+    template: "%s | Roast My TikTok",
+  },
   description: "Your TikTok is cringe. Watch AI prove it. 6 specialized AI agents analyze and brutally roast your TikTok videos.",
   manifest: "/manifest.json",
   themeColor: "#fb923c",
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function RootLayout({

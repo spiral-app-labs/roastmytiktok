@@ -31,6 +31,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    alternates: {
+      canonical: `/roast/${id}`,
+    },
     twitter: {
       card: 'summary_large_image',
       title,
