@@ -3,8 +3,16 @@ import type { ActionPlanStep, DimensionKey } from '@/lib/types';
 const LEAK_PATTERNS = [
   /\b(system prompt|prompt details|internal instructions?|developer instructions?)\b/i,
   /\b(return only valid json|valid json|json schema|markdown code block)\b/i,
-  /\b(anthropic|claude-sonnet|assistant role|user role)\b/i,
+  /\b(anthropic|claude-sonnet|claude-opus|claude-haiku|assistant role|user role)\b/i,
   /\b(stay in your lane|not your job|your job and only your job|tone rules)\b/i,
+  // AC4-fix: Catch additional model/provider names and internal jargon
+  /\b(openai|gpt-4|gpt-3|whisper-1|assemblyai)\b/i,
+  /\b(max_tokens|temperature\s*[:=]|top_p\s*[:=])\b/i,
+  /\b(hook.first override|cross.agent coherence|escalat(e|ion) (your|intensity))\b/i,
+  /\b(sanitize|truncat(e|ion) for token|token limit)\b/i,
+  /\b(roast rules|non.negotiable|example of great feedback)\b/i,
+  /\b(hook taxonomy|tier [1-3].*score \d)/i,
+  /\b(evidence ledger|niche benchmark data)\b/i,
 ];
 
 const JSON_WRAPPER = /```(?:json)?|```/gi;
@@ -99,6 +107,13 @@ const INJECTION_PATTERNS = [
   /\bact\s+as\b/i,
   /\bdisregard\b.*\binstructions?\b/i,
   /\breturn\s+the\s+(system|initial)\s+prompt\b/i,
+  // AC4-fix: Additional injection vectors
+  /\bforget\s+(everything|all|your)\b/i,
+  /\boverride\s+(your|the|all)\b/i,
+  /\bnew\s+instructions?\s*:/i,
+  /\bdo\s+not\s+follow\b.*\brules\b/i,
+  /\brepeat\s+(the\s+)?(above|system|instructions)\b/i,
+  /\bprint\s+(your|the)\s+(system|initial|full)\b/i,
 ];
 
 /**

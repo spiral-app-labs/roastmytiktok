@@ -17,6 +17,14 @@ interface PlannedFrame {
 /** Minimum JPEG size in bytes — anything smaller is likely corrupt or blank. */
 const MIN_FRAME_BYTES = 500;
 
+/**
+ * Maximum JPEG size below which the frame is likely a solid-color or
+ * near-black image (e.g. fade-from-black). Empirically, a 1280×720
+ * solid-black JPEG compresses to ~2-3 KB; real content is almost always
+ * larger than 5 KB.
+ */
+const SUSPECT_LOW_QUALITY_BYTES = 5_000;
+
 /** Maximum time (ms) to allow for a single ffprobe/ffmpeg call. */
 const FFMPEG_TIMEOUT_MS = 15_000;
 
@@ -27,6 +35,7 @@ export function buildFramePlan(durationSec: number, numFrames: number = 8): Plan
 
   const desiredFrames = Math.max(4, numFrames);
   const openingWindow = Math.min(Math.max(durationSec * 0.35, 2.5), 4);
+  // Reserve one extra slot for the true first-frame grab (≤0.05s)
   const openingCount = Math.min(4, Math.max(3, Math.ceil(desiredFrames / 2)));
   const storyCount = Math.max(0, desiredFrames - openingCount);
   const timestamps = new Map<number, PlannedFrame>();
@@ -40,6 +49,10 @@ export function buildFramePlan(durationSec: number, numFrames: number = 8): Plan
       : `Story frame at ${timestampSec.toFixed(2)}s`;
     timestamps.set(timestampSec, { timestampSec, slot, label });
   };
+
+  // AC1-fix: Always grab the true first frame (≤0.05s) so text overlays
+  // that appear on the very first frame are never missed.
+  pushFrame(0.05, 'opening');
 
   for (let i = 0; i < openingCount; i++) {
     const raw = openingCount === 1
@@ -115,7 +128,7 @@ export function extractFrames(videoPath: string, numFrames: number = 8): Extract
 
       try {
         execSync(
-          `ffmpeg -ss ${frame.timestampSec.toFixed(2)} -i "${videoPath}" -frames:v 1 -q:v 2 "${outputPath}" -y 2>/dev/null`,
+          `ffmpeg -ss ${frame.timestampSec.toFixed(2)} -i "${videoPath}" -frames:v 1 -q:v 1 "${outputPath}" -y 2>/dev/null`,
           { timeout: FFMPEG_TIMEOUT_MS }
         );
 
@@ -130,12 +143,19 @@ export function extractFrames(videoPath: string, numFrames: number = 8): Extract
           continue;
         }
 
+        // AC1-fix: Flag suspiciously small frames that are likely solid-
+        // color or near-black (fade-from-black transitions). We still
+        // include them but tag the label so downstream agents know.
+        const isSuspectLowQuality = fileSize < SUSPECT_LOW_QUALITY_BYTES;
+
         const buffer = readFileSync(outputPath);
         frames.push({
           timestampSec: frame.timestampSec,
           imageBase64: buffer.toString('base64'),
           slot: frame.slot,
-          label: frame.label,
+          label: isSuspectLowQuality
+            ? `${frame.label} [low-detail/possible fade-to-black — may not contain useful content]`
+            : frame.label,
         });
       } catch (frameErr) {
         // Individual frame failure — log and continue with remaining frames

@@ -204,19 +204,29 @@ async function transcribeWithAssemblyAI(
   }
 
   const data = readFileSync(audioPath);
-  const uploadRes = await fetchWithRetry(`${ASSEMBLYAI_BASE}/upload`, {
-    method: 'POST',
-    headers: { authorization: apiKey, 'content-type': 'application/octet-stream' },
-    body: data,
-  });
-  if (!uploadRes.ok) {
-    const body = await uploadRes.text();
-    console.error(
-      `[transcribe] AssemblyAI upload failed ${uploadRes.status}: ${body.slice(0, 500)}`
-    );
+
+  // AC3-fix: Wrap the upload in a per-step try/catch so a network-level
+  // failure during upload doesn't crash the entire function.
+  let upload_url: string;
+  try {
+    const uploadRes = await fetchWithRetry(`${ASSEMBLYAI_BASE}/upload`, {
+      method: 'POST',
+      headers: { authorization: apiKey, 'content-type': 'application/octet-stream' },
+      body: data,
+    });
+    if (!uploadRes.ok) {
+      const body = await uploadRes.text();
+      console.error(
+        `[transcribe] AssemblyAI upload failed ${uploadRes.status}: ${body.slice(0, 500)}`
+      );
+      return null;
+    }
+    const uploadJson = await uploadRes.json();
+    upload_url = uploadJson.upload_url;
+  } catch (uploadErr) {
+    console.error('[transcribe] AssemblyAI upload network error:', uploadErr instanceof Error ? uploadErr.message : uploadErr);
     return null;
   }
-  const { upload_url } = await uploadRes.json();
 
   const createRes = await fetchWithRetry(`${ASSEMBLYAI_BASE}/transcript`, {
     method: 'POST',
@@ -241,32 +251,52 @@ async function transcribeWithAssemblyAI(
   const deadline = Date.now() + timeoutMs;
   let delayMs = 1500;
 
+  let consecutivePollFailures = 0;
   while (Date.now() < deadline) {
-    const pollRes = await fetchWithRetry(`${ASSEMBLYAI_BASE}/transcript/${id}`, {
-      headers: assemblyHeaders(),
-    });
-    if (!pollRes.ok) {
-      const body = await pollRes.text();
-      console.error(`[transcribe] AssemblyAI poll failed ${pollRes.status}: ${body.slice(0, 300)}`);
-      return null;
-    }
-    const json = await pollRes.json();
+    try {
+      const pollRes = await fetchWithRetry(`${ASSEMBLYAI_BASE}/transcript/${id}`, {
+        headers: assemblyHeaders(),
+      });
+      if (!pollRes.ok) {
+        const body = await pollRes.text();
+        console.error(`[transcribe] AssemblyAI poll failed ${pollRes.status}: ${body.slice(0, 300)}`);
+        // AC3-fix: Allow up to 3 consecutive poll failures before giving up
+        // (transient network blips shouldn't kill the whole transcription).
+        consecutivePollFailures++;
+        if (consecutivePollFailures >= 3) {
+          console.error('[transcribe] AssemblyAI poll failed 3 times consecutively — giving up');
+          return null;
+        }
+        await wait(delayMs);
+        delayMs = Math.min(delayMs + 1000, 5000);
+        continue;
+      }
+      consecutivePollFailures = 0;
+      const json = await pollRes.json();
 
-    if (json.status === 'completed') {
-      const result = parseAssemblyTranscript(json);
-      if (!result) {
-        console.error('[transcribe] AssemblyAI completed without transcript text or segments');
+      if (json.status === 'completed') {
+        const result = parseAssemblyTranscript(json);
+        if (!result) {
+          console.error('[transcribe] AssemblyAI completed without transcript text or segments');
+          return null;
+        }
+        console.log(
+          `[transcribe] AssemblyAI returned ${result.text.length} chars, ${result.segments.length} segments`
+        );
+        return result;
+      }
+
+      if (json.status === 'error') {
+        console.error('[transcribe] AssemblyAI transcript error:', json.error);
         return null;
       }
-      console.log(
-        `[transcribe] AssemblyAI returned ${result.text.length} chars, ${result.segments.length} segments`
-      );
-      return result;
-    }
-
-    if (json.status === 'error') {
-      console.error('[transcribe] AssemblyAI transcript error:', json.error);
-      return null;
+    } catch (pollErr) {
+      console.warn('[transcribe] AssemblyAI poll network error:', pollErr instanceof Error ? pollErr.message : pollErr);
+      consecutivePollFailures++;
+      if (consecutivePollFailures >= 3) {
+        console.error('[transcribe] AssemblyAI poll failed 3 times consecutively — giving up');
+        return null;
+      }
     }
 
     await wait(delayMs);
@@ -328,5 +358,13 @@ export async function transcribeAudio(
     '[transcribe] All transcription methods failed. ' +
       `Providers attempted: ${[hasAssemblyAI && 'AssemblyAI', hasOpenAI && 'Whisper'].filter(Boolean).join(', ')}`
   );
-  return null;
+
+  // AC3-fix: Return a hardened fallback result instead of null so
+  // downstream agents always receive structured context and can note
+  // that audio analysis was attempted but unavailable.
+  return {
+    text: '',
+    segments: [],
+    provider: undefined,
+  } as TranscriptionResult;
 }
