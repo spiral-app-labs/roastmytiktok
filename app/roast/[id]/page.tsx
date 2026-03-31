@@ -988,6 +988,37 @@ function RoastContent({
                 </div>
               )}
 
+              {/* Detected Sound chip — shown when we extracted real sound data from the TikTok URL */}
+              {roast.detectedSound && (
+                <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.05] p-4 flex items-start gap-3">
+                  <span className="text-lg mt-0.5">🎵</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-1">sound used in this video</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-white truncate">{roast.detectedSound.name}</p>
+                      {roast.detectedSound.isOriginal ? (
+                        <span className="rounded-full border border-sky-500/30 text-sky-300 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">original audio</span>
+                      ) : (
+                        <span className="rounded-full border border-violet-500/30 text-violet-300 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">licensed sound</span>
+                      )}
+                    </div>
+                    {roast.detectedSound.author && !roast.detectedSound.isOriginal && (
+                      <p className="text-xs text-zinc-500 mt-0.5">by {roast.detectedSound.author}</p>
+                    )}
+                    {roast.detectedSound.soundUrl && (
+                      <a
+                        href={roast.detectedSound.soundUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-1 inline-block"
+                      >
+                        view on TikTok →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Agent cards grid */}
               <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${isHookWeak ? '[&>*]:opacity-80 [&>*]:saturate-[0.7]' : ''}`}>
                 {/* When hook is weak, hook card was shown above in the gate — show others here */}

@@ -4,6 +4,16 @@ export interface AudioCharacteristics {
   hasSpeech: boolean;
   hasMusic: boolean;
   speechPercent: number;
+  /** Estimated speaking pace category — only set when speech is detected without a full transcript. */
+  pacingHint?: 'fast' | 'normal' | 'slow';
+  /** Mean audio volume in dBFS — helps audio agent characterize loudness/clarity. */
+  meanVolumeDB?: number;
+  /** Max audio volume in dBFS — used to detect clipping or very quiet recordings. */
+  maxVolumeDB?: number;
+  /** Number of detected silence gaps — correlates with speaking pace and natural pauses. */
+  silenceGapCount?: number;
+  /** Audio duration in seconds. */
+  durationSec?: number;
 }
 
 /**
@@ -69,7 +79,39 @@ export function detectSpeechMusic(audioPath: string): AudioCharacteristics {
       ? Math.round(Math.min(100, Math.max(0, (1 - silenceRatio) * 100)))
       : 0;
 
-    return { hasSpeech, hasMusic, speechPercent };
+    // Count silence gaps to estimate speaking pace when transcript is unavailable.
+    // TikTok speech at ~140-160 wpm creates roughly 2-4 silence gaps per second.
+    let silenceGapCount = 0;
+    try {
+      const silenceGapOutput = execSync(
+        `ffmpeg -i "${audioPath}" -af silencedetect=noise=-30dB:d=0.3 -f null - 2>&1`,
+        { encoding: 'utf-8', timeout: 15000 }
+      );
+      const gapMatches = silenceGapOutput.match(/silence_start:/g);
+      silenceGapCount = gapMatches ? gapMatches.length : 0;
+    } catch { /* ignore */ }
+
+    // Pacing heuristic: gaps per second on speech-active audio
+    let pacingHint: AudioCharacteristics['pacingHint'];
+    if (hasSpeech && duration > 0) {
+      const speechDuration = duration * (1 - silenceRatio);
+      const gapsPerSecond = speechDuration > 0 ? silenceGapCount / speechDuration : 0;
+      // Rough calibration: fast speech ~4+ gaps/s, normal ~2-4, slow <2
+      if (gapsPerSecond >= 3.5) pacingHint = 'fast';
+      else if (gapsPerSecond >= 1.5) pacingHint = 'normal';
+      else if (hasSpeech) pacingHint = 'slow';
+    }
+
+    return {
+      hasSpeech,
+      hasMusic,
+      speechPercent,
+      pacingHint,
+      meanVolumeDB: Number.isFinite(meanVolume) ? meanVolume : undefined,
+      maxVolumeDB: Number.isFinite(maxVolume) ? maxVolume : undefined,
+      silenceGapCount,
+      durationSec: duration,
+    };
   } catch (err) {
     console.warn('[speech-music-detect] Detection failed:', err);
     return { hasSpeech: false, hasMusic: false, speechPercent: 0 };

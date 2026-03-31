@@ -17,6 +17,7 @@ import { buildEvidenceLedger, buildFallbackActionPlan, parseStrategicSummary } f
 import { sanitizeActionPlan, sanitizeAgentResult, sanitizeUserFacingText, sanitizePromptInput, truncateForTokenLimit } from '@/lib/analysis-safety';
 import { logSuccess, logFailure } from '@/lib/analysis-logger';
 import type { ActionPlanStep } from '@/lib/types';
+import { detectTikTokSound } from '@/lib/tiktok-sound-detect';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 
@@ -875,7 +876,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   // Fetch video path from Supabase session record
   const { data: session, error: sessionError } = await supabaseServer
     .from('rmt_roast_sessions')
-    .select('video_url, filename')
+    .select('video_url, filename, tiktok_url')
     .eq('id', id)
     .single();
 
@@ -911,10 +912,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       let audioPath: string | null = null;
 
       try {
-        // Fetch trending context, chronic issues, and viral patterns in parallel with frame extraction
+        // Fetch trending context, chronic issues, viral patterns, and TikTok sound metadata in parallel
         const trendingContextPromise = fetchStructuredTrendingContext();
         const chronicIssuesPromise = fetchChronicIssues(sessionId);
         const viralPatternsPromise = fetchTopViralPatterns();
+        const detectedSoundPromise = detectTikTokSound((session as { video_url: string; filename?: string; tiktok_url?: string }).tiktok_url);
 
         // Extract frames
         send({ type: 'status', message: 'Extracting frames...' });
@@ -1002,6 +1004,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const trendingCtx = await trendingContextPromise;
         const chronicIssues = await chronicIssuesPromise;
         const viralPatterns = await viralPatternsPromise;
+        const detectedSound = await detectedSoundPromise;
         const playbookContext = buildPlaybookContext(viralPatterns);
 
         // Detect niche from available signals
@@ -1061,21 +1064,43 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
             // Build audio context for relevant agents — sanitize transcript inputs
             let audioContext = '';
+            // Append detected sound info to audio + algorithm agents when available
+            const detectedSoundNote = detectedSound
+              ? `\n\nDETECTED SOUND: The creator is using "${sanitizePromptInput(detectedSound.name, 200)}" by ${sanitizePromptInput(detectedSound.author, 100)}. ${detectedSound.isOriginal ? 'This is ORIGINAL AUDIO — no trending sound boost, but builds creator identity.' : 'This is a LICENSED/TRENDING sound — evaluate whether it is a smart choice for this niche and content type.'}${detectedSound.soundUrl ? ` Sound page: ${detectedSound.soundUrl}` : ''}`
+              : '';
             if (dimension === 'audio' && transcript?.text) {
               const safeTranscript = sanitizePromptInput(transcript.text, 3000);
               const segmentLines = transcript.segments
                 .slice(0, 50)
                 .map(s => `${s.start.toFixed(1)}s-${s.end.toFixed(1)}s: "${sanitizePromptInput(s.text, 500)}"`)
                 .join('\n');
-              audioContext = `\n\nAUDIO TRANSCRIPT:\n${safeTranscript}\n\nSPEECH SEGMENTS (with timestamps):\n${segmentLines}\n\nAUDIO STRUCTURE: ${audioChars.hasSpeech ? 'Voice detected' : 'No clear voice'} | ${audioChars.hasMusic ? 'Music/background audio detected' : 'No background music'}\n\nNow analyze the ACTUAL audio content above. Reference specific words/phrases the creator said. Quote them. If the transcript is empty, note that the video appears to have no speech.`;
+              audioContext = `\n\nAUDIO TRANSCRIPT:\n${safeTranscript}\n\nSPEECH SEGMENTS (with timestamps):\n${segmentLines}\n\nAUDIO STRUCTURE: ${audioChars.hasSpeech ? 'Voice detected' : 'No clear voice'} | ${audioChars.hasMusic ? 'Music/background audio detected' : 'No background music'}${detectedSoundNote}\n\nNow analyze the ACTUAL audio content above. Reference specific words/phrases the creator said. Quote them. If the transcript is empty, note that the video appears to have no speech.`;
             } else if (dimension === 'audio') {
-              audioContext = '\n\nNo audio transcript available — transcription was unavailable or no speech was detected. Analyze based on visual cues only and note that audio analysis was limited.';
+              // No transcript — build the richest possible audio context from ffmpeg analysis.
+              // This gives the audio agent meaningful signal even without a transcription key.
+              const pacingNote = audioChars.pacingHint
+                ? `Estimated speaking pace: ${audioChars.pacingHint} (inferred from silence gap frequency).`
+                : '';
+              const volumeNote = (audioChars.meanVolumeDB != null && audioChars.maxVolumeDB != null)
+                ? `Volume: mean ${audioChars.meanVolumeDB.toFixed(1)} dBFS, peak ${audioChars.maxVolumeDB.toFixed(1)} dBFS. ${audioChars.maxVolumeDB > -1 ? 'WARNING: audio may be clipping.' : audioChars.meanVolumeDB < -25 ? 'Audio is quiet — listener may need to turn up volume.' : 'Volume levels appear normal.'}`
+                : '';
+              const silenceNote = audioChars.silenceGapCount != null && audioChars.durationSec != null
+                ? `Detected ${audioChars.silenceGapCount} silence gaps over ${audioChars.durationSec.toFixed(1)}s of audio.`
+                : '';
+              const structureNote = [
+                audioChars.hasSpeech ? 'Voice/speech detected in audio track.' : 'No clear speech detected — may be music-only or silent content.',
+                audioChars.hasMusic ? 'Background music/audio detected.' : 'No continuous background music detected.',
+                pacingNote,
+                volumeNote,
+                silenceNote,
+              ].filter(Boolean).join(' ');
+              audioContext = `\n\nNo audio transcript available (no OPENAI_API_KEY or ASSEMBLYAI_API_KEY configured).\n\nAUDIO SIGNAL ANALYSIS (from ffmpeg waveform detection):\n${structureNote}\n\nAnalyze based on these audio characteristics and visual cues. Note clearly that spoken content could not be transcribed and that a transcript API key would enable deeper analysis.${detectedSoundNote}`;
             } else if (dimension === 'hook' && transcript?.segments?.length) {
               const firstSegment = transcript.segments[0];
               audioContext = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstSegment.text, 500)}". Analyze whether this opening line is a strong hook.`;
             } else if (dimension === 'algorithm' && transcript?.text) {
               const words = sanitizePromptInput(transcript.text, 500).split(/\s+/).slice(0, 30).join(' ');
-              audioContext = `\n\nThe caption/speech mentions: "${words}". Does this align with trending topics?`;
+              audioContext = `\n\nThe caption/speech mentions: "${words}". Does this align with trending topics?${detectedSoundNote}`;
             }
 
             const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);
@@ -1282,7 +1307,7 @@ Rules:
         // Build full result
         const result = {
           id,
-          tiktokUrl: '',
+          tiktokUrl: (session as { video_url: string; filename?: string; tiktok_url?: string }).tiktok_url ?? '',
           overallScore,
           verdict,
           viralPotential,
@@ -1306,6 +1331,7 @@ Rules:
             subNiche: nicheDetection.subNiche,
             confidence: nicheDetection.confidence,
           },
+          ...(detectedSound ? { detectedSound } : {}),
           ...(transcript?.text ? { audioTranscript: transcript.text } : {}),
           ...(transcript?.segments?.length ? { audioSegments: transcript.segments } : {}),
           metadata: {

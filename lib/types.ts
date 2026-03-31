@@ -64,6 +64,14 @@ export interface RoastResult {
   };
   audioTranscript?: string;
   audioSegments?: Array<{ start: number; end: number; text: string }>;
+  /** Sound detected from the TikTok video URL (Phase 1 — free HTML extraction) */
+  detectedSound?: {
+    name: string;
+    author: string;
+    isOriginal: boolean;
+    soundUrl: string | null;
+    musicId: string | null;
+  } | null;
   metadata: {
     views: number;
     likes: number;

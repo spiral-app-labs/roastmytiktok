@@ -138,7 +138,6 @@ export function getDetectedHookType(roast: RoastResult): DetectedHookType {
     upgrade: 'pick one hook type (curiosity gap, direct call-out, or result-first) and build the entire first 2 seconds around it.',
   };
 }
-
 export function getHookWorkshop(roast: RoastResult): HookWorkshop {
   const hook = getAgent(roast, 'hook');
   const visual = getAgent(roast, 'visual');

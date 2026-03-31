@@ -168,23 +168,32 @@ async function callCaptionAnalysis(
 ): Promise<CaptionQualityReport> {
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 900,
+    max_tokens: 1200,
     messages: [{
       role: 'user',
       content: [
-        ...frames.map(frame => ({
-          type: 'image' as const,
-          source: {
-            type: 'base64' as const,
-            media_type: 'image/jpeg' as const,
-            data: frame.imageBase64,
+        // Interleave text labels with images so the model knows which frame is which.
+        // This mirrors how the main agent pipeline sends frames and significantly improves
+        // the model's ability to report accurate timestamps for captions and text hooks.
+        ...frames.flatMap(frame => ([
+          {
+            type: 'text' as const,
+            text: `${frame.label} (${frame.slot === 'opening' ? 'opening / hook zone — check for text overlays and title cards' : 'story zone'})`,
           },
-        })),
+          {
+            type: 'image' as const,
+            source: {
+              type: 'base64' as const,
+              media_type: 'image/jpeg' as const,
+              data: frame.imageBase64,
+            },
+          },
+        ])),
         {
           type: 'text' as const,
           text: `You are auditing TikTok caption quality for retention and accessibility.
 
-FRAME TIMESTAMPS:
+FRAME TIMESTAMPS (also labeled above each image):
 ${frames.map((frame, index) => `Frame ${index + 1}: ${frame.label}`).join('\n')}
 
 TRANSCRIPT SEGMENTS:
