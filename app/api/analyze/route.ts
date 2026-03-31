@@ -1,8 +1,17 @@
 import { NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabaseServer } from '@/lib/supabase-server';
+import { checkRateLimit, isPaidUser } from '@/lib/rate-limit';
+
+const FREE_LIMIT = { name: 'analyze-free', max: 3, windowMs: 24 * 60 * 60 * 1000 };
 
 export async function POST(request: NextRequest) {
+  // Rate limit: free users get 3/day, paid users are unlimited
+  if (!isPaidUser(request)) {
+    const limited = checkRateLimit(request, FREE_LIMIT);
+    if (limited) return limited;
+  }
+
   try {
     const contentTypeHeader = request.headers.get('content-type') ?? '';
 

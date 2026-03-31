@@ -228,7 +228,7 @@ export default function Home() {
               </div>
 
               {/* Feature highlights */}
-              <div id="how-it-works" className="grid grid-cols-2 gap-3 scroll-mt-28">
+              <div id="how-it-works" className="grid grid-cols-1 sm:grid-cols-2 gap-3 scroll-mt-28">
                 {FEATURES.map((f) => (
                   <GlassCard key={f.title} variant="surface" className="p-3">
                     <div className="text-xl mb-1">{f.icon}</div>
@@ -284,8 +284,8 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {HOOK_EXAMPLES.map((example) => (
-                    <div key={example.type} className="rounded-xl border border-zinc-800 bg-black/20 p-4">
+                  {HOOK_EXAMPLES.map((example, idx) => (
+                    <div key={`${example.type}-${idx}`} className="rounded-xl border border-zinc-800 bg-black/20 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">{example.type}</p>
                       <div className="space-y-2 text-sm">
                         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
@@ -410,7 +410,14 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-stretch">
-      <div className="max-w-3xl mx-auto w-full px-4 pt-6">
+      <div className="max-w-3xl mx-auto w-full px-4 pt-6 space-y-4">
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-white">
+            Break past{' '}
+            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">200 views</span>
+          </h1>
+          <p className="text-zinc-400 text-sm">Upload a TikTok. Get a brutally honest roast and a reshoot plan you can film today.</p>
+        </div>
         <AccountCTA />
       </div>
       <UploadQueueUI />
