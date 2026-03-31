@@ -33,6 +33,8 @@ export interface RoastResult {
   overallScore: number;
   verdict: string;
   viralPotential?: number;
+  /** e.g. "top 30% of fitness creators" — generated from niche benchmark scoring */
+  nichePercentile?: string;
   holdAssessment?: {
     holdBand: 'weak' | 'mixed' | 'strong';
     riskBand: 'high' | 'medium' | 'low';

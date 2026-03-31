@@ -1170,6 +1170,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         let actionPlan: ActionPlanStep[] = [];
         let biggestBlocker: string = '';
         let encouragement: string = '';
+        let nichePercentile: string = '';
         try {
           const repeatContext = chronicIssues.length > 0
             ? `\n\nThis is a REPEAT OFFENDER. They've been roasted ${chronicIssues.length > 3 ? 'many' : 'a few'} times before and keep making the same mistakes. Reference this in the verdict. Be extra disappointed.`
@@ -1198,43 +1199,50 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             priorityDimensions: analysisMode === 'hook-first' ? ['hook', 'visual', 'audio'] : [],
           });
 
+          const nicheInfo = NICHE_CONTEXT[nicheDetection.niche];
+
           const verdictResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-6',
-            max_tokens: 900,
+            max_tokens: 1200,
             messages: [{
               role: 'user',
               content: `You are a killer TikTok strategist. Your job is not to summarize. Your job is to tell the creator exactly what to fix first, with evidence from THIS video.
 
 Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''}.
-${durationAnalysis ? `Video duration: ${durationAnalysis.duration.durationFormatted} (${durationAnalysis.duration.durationSeconds.toFixed(0)}s). Optimal for ${nicheDetection.niche}: ${NICHE_CONTEXT[nicheDetection.niche].optimalLength}. Category: ${durationAnalysis.category}.` : ''}
+${durationAnalysis ? `Video duration: ${durationAnalysis.duration.durationFormatted} (${durationAnalysis.duration.durationSeconds.toFixed(0)}s). Optimal for ${nicheDetection.niche}: ${nicheInfo.optimalLength}. Category: ${durationAnalysis.category}.` : ''}
+
+Niche benchmark data for ${nicheDetection.niche}:
+- Average engagement rate in this niche: ${nicheInfo.avgEngagement}
+- Best performing formats: ${nicheInfo.bestFormats.join(', ')}
+- Most common mistakes in this niche: ${nicheInfo.commonMistakes.join(', ')}
+- Recommended hook styles: ${nicheInfo.bestHooks.join(', ')}
 
 Overall weighted score: ${overallScore}/100\nAnalysis mode: ${analysisMode}\nHook summary: ${hookSummary.headline}\nDistribution risk: ${hookSummary.distributionRisk}\nFocus note: ${hookSummary.focusNote}
 Lowest-scoring area: ${lowestDim} (${agentResults[lowestDim]?.score}/100)
 Highest-scoring area: ${highestDim} (${agentResults[highestDim]?.score}/100)
 
-Scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d]?.score])))}
-Agent summaries:
-${DIMENSION_ORDER.map(d => `${d}: ${agentResults[d]?.roastText}`).join('\n')}${repeatContext}
+All agent scores: ${JSON.stringify(Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d]?.score])))}${repeatContext}
 
 ${evidenceLedger}
 
 Return ONLY valid JSON (no markdown):
 {
-  "verdict": "2-3 sentence overall verdict. Lead with the #1 thing holding this video back and why it hurts performance. Mention one thing that is actually working. Compare to top ${nicheDetection.niche} creators.",
+  "verdict": "2-3 sentence overall verdict. Lead with the #1 thing holding this video back and why it hurts performance. Mention one thing that is actually working. Compare to top ${nicheDetection.niche} creators specifically — name what they do differently.",
   "viralPotential": <number 0-100>,
+  "nichePercentile": "One crisp sentence comparing this video to the niche average. Use the niche benchmark data. Example: 'This scores in the bottom third of ${nicheDetection.niche} creators on TikTok — the average ${nicheDetection.niche} account hits ${nicheInfo.avgEngagement} engagement, and this video's setup would land below that.' OR 'This is above-average for ${nicheDetection.niche} — most creators in this niche miss [specific thing you got right].' Be honest and specific.",
   "biggestBlocker": "One sentence naming the single biggest bottleneck.",
   "actionPlan": [
     {
       "priority": "P1",
       "dimension": "hook",
-      "issue": "what is wrong right now",
-      "evidence": ["quote, timestamp, or caption-audit proof from this video", "second proof point"],
-      "doThis": "imperative instruction the creator can execute today",
-      "example": "exact replacement line, framing, or edit move",
+      "issue": "what is wrong right now — be specific, not generic",
+      "evidence": ["specific quote, timestamp, or agent finding from THIS video", "second specific proof point"],
+      "doThis": "imperative instruction the creator can execute today — concrete, not vague",
+      "example": "exact replacement spoken line, text overlay wording, or specific edit move",
       "whyItMatters": "why this fix changes retention, conversion, or distribution"
     }
   ],
-  "encouragement": "One honest, specific encouraging sentence."
+  "encouragement": "One honest, specific encouraging sentence — name something real that's working, not generic praise."
 }
 
 Rules:
@@ -1243,12 +1251,12 @@ Rules:
 - Do not introduce multiple headline problems. Pick one bottleneck and make the plan fix that first.
 - Give exactly 3 actionPlan items ranked P1 to P3.
 - P1 must be the highest-leverage fix, not just the lowest score.
-- When the hook is weak: P1 doThis or example must include a concrete opening rewrite — a specific spoken line, text overlay, or shot description the creator can film today. Not a general tip. Actual replacement words.
-- Every actionPlan item must cite 1-3 concrete evidence bullets from the ledger. No generic evidence.
-- Only cite evidence that is explicitly present in the ledger: quotes, timestamps, caption metrics, or agent findings from this video.
-- Every doThis must be specific enough to execute today.
+- When the hook is weak: P1 doThis or example must include a concrete opening rewrite — a specific spoken line, text overlay, or shot description the creator can film today. Not a general tip. Actual replacement words. Quote the creator's opening if available, then show the upgrade.
+- Every actionPlan item must cite 1-3 specific evidence bullets drawn from the agent findings, transcript, or caption audit above. Do not use generic evidence like "the video needs work." Pull specific observations from the evidence ledger.
+- Every doThis must be specific enough to execute today without further research.
 - If the transcript gives you a quote of the opening line, USE IT in P1 evidence. That is the smoking gun.
-- Keep the advice creator-grade, not beginner-blog-grade.`
+- Keep the advice creator-grade, not beginner-blog-grade. Assume the creator has posted before and knows TikTok basics.
+- nichePercentile must reference the actual niche avg engagement data provided above. Do not invent numbers.`
             }],
           });
 
@@ -1258,6 +1266,7 @@ Rules:
             const safePlan = sanitizeActionPlan(parsed.actionPlan);
             verdict = sanitizeUserFacingText(parsed.verdict, 'The opening promise and execution still are not lining up.');
             viralPotential = parsed.viralPotential;
+            nichePercentile = sanitizeUserFacingText(parsed.nichePercentile ?? '', '');
             biggestBlocker = sanitizeUserFacingText(parsed.biggestBlocker, safePlan[0]?.issue || 'The video still has one obvious bottleneck holding it back.');
             actionPlan = safePlan.length > 0 ? safePlan : sanitizeActionPlan(fallbackActionPlan);
             nextSteps = actionPlan.map((step) => `${step.priority}: ${step.doThis}`);
@@ -1277,6 +1286,7 @@ Rules:
           overallScore,
           verdict,
           viralPotential,
+          ...(nichePercentile ? { nichePercentile } : {}),
           biggestBlocker,
           nextSteps,
           actionPlan,
@@ -1314,6 +1324,7 @@ Rules:
           overallScore,
           verdict,
           viralPotential,
+          ...(nichePercentile ? { nichePercentile } : {}),
           biggestBlocker,
           nextSteps,
           actionPlan,

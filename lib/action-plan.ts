@@ -14,6 +14,7 @@ export interface StrategicSummary {
   biggestBlocker: string;
   actionPlan: ActionPlanStep[];
   encouragement: string;
+  nichePercentile?: string;
 }
 
 export function buildEvidenceLedger(params: {
@@ -28,12 +29,14 @@ export function buildEvidenceLedger(params: {
   const dims = Object.entries(agentResults)
     .sort(([, a], [, b]) => a.score - b.score)
     .map(([dimension, result]) => {
-      const findings = result.findings.slice(0, 2).map((finding) => `- finding: ${finding}`);
-      const roastSentence = firstSentence(result.roastText);
+      // Include ALL findings (not just 2) so the verdict prompt has full evidence to cite
+      const findings = result.findings.map((finding) => `- finding: ${finding}`);
+      // Include the full roastText as agent diagnosis — not just the first sentence
+      const roastDiagnosis = cleanLine(result.roastText).slice(0, 400);
       const tip = cleanLine(result.improvementTip);
       return [
         `${dimension} (${result.score}/100)`,
-        roastSentence ? `- summary: ${roastSentence}` : '',
+        roastDiagnosis ? `- agent diagnosis: ${roastDiagnosis}` : '',
         ...findings,
         tip ? `- prescribed fix: ${tip}` : '',
       ].filter(Boolean).join('\n');
@@ -90,15 +93,18 @@ export function parseStrategicSummary(
         }];
     const normalizedPlan = fallbackSeed.map((seedStep, index) => {
       const parsedStep = Array.isArray(parsed.actionPlan) ? parsed.actionPlan[index] : undefined;
-      const evidence = Array.isArray(parsedStep?.evidence)
-        ? parsedStep.evidence.map((item) => cleanLine(item)).filter(isEvidenceBacked).slice(0, 3)
+      // Relaxed evidence filtering: accept any non-empty string (not just regex-gated ones).
+      // The old strict guard was discarding valid agent findings and causing empty action plans.
+      const rawEvidence = Array.isArray(parsedStep?.evidence)
+        ? parsedStep.evidence.map((item) => cleanLine(item)).filter(Boolean).slice(0, 3)
         : [];
 
       return {
         priority: normalizePriority(parsedStep?.priority, index),
         dimension: normalizeDimension(parsedStep?.dimension, seedStep.dimension),
         issue: cleanLine(parsedStep?.issue) || seedStep.issue,
-        evidence: evidence.length > 0 ? evidence : seedStep.evidence,
+        // Prefer LLM evidence; fall back to seed evidence from agent findings
+        evidence: rawEvidence.length > 0 ? rawEvidence : seedStep.evidence,
         doThis: cleanLine(parsedStep?.doThis) || seedStep.doThis,
         example: cleanLine(parsedStep?.example) || seedStep.example,
         whyItMatters: cleanLine(parsedStep?.whyItMatters) || seedStep.whyItMatters,
@@ -109,8 +115,10 @@ export function parseStrategicSummary(
       verdict: cleanLine(parsed.verdict) || 'The analysis finished, but the verdict came back thin.',
       viralPotential: clampScore(parsed.viralPotential),
       biggestBlocker: cleanLine(parsed.biggestBlocker) || normalizedPlan[0]?.issue || 'The video still has one obvious bottleneck holding it back.',
-      actionPlan: normalizedPlan.filter((step) => step.evidence.length > 0),
+      // No longer filter out steps with empty evidence — every P1/P2/P3 should show up
+      actionPlan: normalizedPlan,
       encouragement: cleanLine(parsed.encouragement) || '',
+      nichePercentile: cleanLine((parsed as Record<string, unknown>).nichePercentile as string | undefined),
     };
   } catch {
     return null;
@@ -143,8 +151,11 @@ function cleanLine(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
 }
 
+// Evidence validation: accept any non-empty string as evidence.
+// The prior strict regex was discarding valid agent findings that didn't contain
+// quotes or timestamps, causing action plan steps to be silently dropped.
 function isEvidenceBacked(value: string): boolean {
-  return /["'\d]|caption|transcript|frame|score|readability|timing|gap|hook|spoken|said|s\b/i.test(value);
+  return value.trim().length > 0;
 }
 
 const WHY_IT_MATTERS_BY_DIMENSION: Record<DimensionKey, string> = {
