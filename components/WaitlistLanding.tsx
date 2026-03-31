@@ -48,6 +48,7 @@ export default function WaitlistLanding() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [slotsRemaining, setSlotsRemaining] = useState(
     parseInt(process.env.NEXT_PUBLIC_SLOTS_REMAINING || '47', 10)
   );
@@ -74,7 +75,7 @@ export default function WaitlistLanding() {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, marketing_consent: marketingConsent }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
@@ -200,6 +201,15 @@ export default function WaitlistLanding() {
                   )}
                 </button>
               </form>
+              <label className="flex items-start gap-2 text-left text-xs text-zinc-500">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(e) => setMarketingConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-orange-500 focus:ring-orange-500/30"
+                />
+                <span>I want launch updates and product emails at this address. Optional, unsubscribe anytime.</span>
+              </label>
               {status === 'error' && (
                 <p className="text-red-400 text-sm">{message}</p>
               )}
@@ -212,7 +222,7 @@ export default function WaitlistLanding() {
                 <span className="text-zinc-600">— founding rate locked at signup</span>
               </div>
               <p className="text-zinc-600 text-xs text-center leading-relaxed">
-                By joining, you agree to receive launch updates at this email. No spam — unsubscribe anytime.
+                We only send launch or product emails if you check the optional box above.
                 See our{' '}
                 <a href="/privacy" className="text-orange-400/70 hover:text-orange-400 transition-colors hover:underline">Privacy Policy</a>.
               </p>

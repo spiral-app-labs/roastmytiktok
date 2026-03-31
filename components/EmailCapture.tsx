@@ -7,6 +7,7 @@ export function EmailCapture() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [dismissed, setDismissed] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   if (dismissed || status === 'success') {
     if (status === 'success') {
@@ -31,7 +32,7 @@ export function EmailCapture() {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, marketing_consent: marketingConsent }),
       });
       if (res.ok || res.status === 409) {
         setStatus('success');
@@ -83,6 +84,15 @@ export function EmailCapture() {
           {status === 'loading' ? 'Joining...' : 'Subscribe'}
         </button>
       </form>
+      <label className="mt-3 flex items-start gap-2 text-xs text-zinc-500">
+        <input
+          type="checkbox"
+          checked={marketingConsent}
+          onChange={(e) => setMarketingConsent(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-orange-500 focus:ring-orange-500/30"
+        />
+        <span>I want weekly TikTok tips and launch emails. Optional, unsubscribe anytime.</span>
+      </label>
       <AnimatePresence>
         {status === 'error' && (
           <motion.p

@@ -9,7 +9,7 @@ export default function PrivacyPage() {
         </Link>
 
         <h1 className="text-3xl font-bold text-white mb-2">Privacy Policy</h1>
-        <p className="text-sm text-zinc-500 mb-10">Last updated: March 30, 2026</p>
+        <p className="text-sm text-zinc-500 mb-10">Last updated: March 31, 2026</p>
 
         <div className="space-y-8 text-sm text-zinc-400 leading-relaxed">
           <section>
@@ -17,7 +17,7 @@ export default function PrivacyPage() {
             <p className="mb-3">We collect the following information when you use RoastMyTikTok:</p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li><strong className="text-zinc-300">Account info:</strong> Email address and name (via Google OAuth or magic link sign-in).</li>
-              <li><strong className="text-zinc-300">Waitlist email:</strong> If you join the waitlist before launch, we collect your email address to send you launch updates.</li>
+              <li><strong className="text-zinc-300">Waitlist email:</strong> If you submit your email and separately opt into updates, we collect your email address to send launch and product emails.</li>
               <li><strong className="text-zinc-300">Uploaded videos:</strong> Video files you upload for analysis.</li>
               <li><strong className="text-zinc-300">TikTok account data:</strong> Public profile information and video metadata when you use Account Analysis.</li>
               <li><strong className="text-zinc-300">Usage data:</strong> Roast history, scores, and interaction patterns within the app.</li>
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-white mb-3">2. How We Use Your Information</h2>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li>To process and analyze your videos using AI (requires your explicit upload consent).</li>
-              <li>To send launch updates and product announcements to waitlist emails (you can unsubscribe anytime).</li>
+              <li>To send launch updates and product announcements only to people who explicitly opt in (you can unsubscribe anytime).</li>
               <li>To provide personalized recommendations and track your improvement.</li>
               <li>To maintain your roast history and account preferences.</li>
               <li>To improve the Service and develop new features.</li>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
             <p className="mb-3">We do not sell your personal data. We may share data with:</p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li><strong className="text-zinc-300">AI providers:</strong> Video frames and metadata are sent to AI services (Anthropic) for analysis. This data is not retained by the AI provider for training.</li>
-              <li><strong className="text-zinc-300">Infrastructure providers:</strong> We use Supabase for authentication and storage, and Vercel for hosting.</li>
+              <li><strong className="text-zinc-300">Infrastructure providers:</strong> We use Supabase for authentication, storage, and consent logging, and Vercel for hosting.</li>
             </ul>
           </section>
 
@@ -81,7 +81,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">7. Cookies</h2>
             <p>
-              We use essential cookies for authentication and session management. We do not use third-party advertising cookies.
+              We use essential cookies for authentication, security, and session management. We do not currently run optional analytics cookies or third-party advertising cookies. We log acknowledgement of this notice to Supabase so we have a server-side record of the choice.
             </p>
           </section>
 

@@ -5,13 +5,21 @@ const INITIAL_SLOTS = parseInt(process.env.NEXT_PUBLIC_SLOTS_REMAINING || '47', 
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
+    const { email, marketing_consent = false } = await req.json();
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 });
     }
 
+    if (typeof marketing_consent !== 'boolean') {
+      return NextResponse.json({ error: 'marketing_consent must be a boolean' }, { status: 400 });
+    }
+
     const normalizedEmail = email.toLowerCase().trim();
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('x-real-ip') ||
+      '127.0.0.1';
 
     // Check if already exists
     const { data: existing } = await supabaseServer
@@ -31,7 +39,13 @@ export async function POST(req: NextRequest) {
     // Insert new entry
     const { data, error } = await supabaseServer
       .from('rmt_waitlist')
-      .insert({ email: normalizedEmail })
+      .insert({
+        email: normalizedEmail,
+        marketing_consent,
+        consent_source: 'waitlist_form',
+        consent_timestamp: new Date().toISOString(),
+        consent_ip: ip,
+      })
       .select('position')
       .single();
 
@@ -50,6 +64,20 @@ export async function POST(req: NextRequest) {
         });
       }
       throw error;
+    }
+
+    if (marketing_consent) {
+      const { error: consentError } = await supabaseServer.from('rmt_email_consent_log').insert({
+        email: normalizedEmail,
+        event: 'grant',
+        marketing_consent: true,
+        consent_source: 'waitlist_form',
+        consent_ip: ip,
+      });
+
+      if (consentError) {
+        console.error('Waitlist consent log error:', consentError);
+      }
     }
 
     return NextResponse.json({
