@@ -523,20 +523,28 @@ function RoastContent({
                 </div>
 
                 {roast.hookSummary && (
-                  <div className="grid gap-3 sm:grid-cols-3 mb-4">
-                    <div className="rounded-xl border border-red-500/25 bg-red-500/8 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-red-400 mb-1.5">The problem</p>
-                      <p className="text-sm text-zinc-200">{roast.hookSummary.headline}</p>
+                  <>
+                    <div className="grid gap-3 sm:grid-cols-3 mb-4">
+                      <div className="rounded-xl border border-red-500/25 bg-red-500/8 p-4">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-red-400 mb-1.5">The problem</p>
+                        <p className="text-sm text-zinc-200">{roast.hookSummary.headline}</p>
+                      </div>
+                      <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-red-400/80 mb-1.5">Distribution risk</p>
+                        <p className="text-sm text-zinc-300">{roast.hookSummary.distributionRisk}</p>
+                      </div>
+                      <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-orange-400 mb-1.5">Focus here</p>
+                        <p className="text-sm text-zinc-200 font-medium">{roast.hookSummary.focusNote}</p>
+                      </div>
                     </div>
-                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-red-400/80 mb-1.5">Distribution risk</p>
-                      <p className="text-sm text-zinc-300">{roast.hookSummary.distributionRisk}</p>
-                    </div>
-                    <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-orange-400 mb-1.5">Focus here</p>
-                      <p className="text-sm text-zinc-200 font-medium">{roast.hookSummary.focusNote}</p>
-                    </div>
-                  </div>
+                    {roast.hookSummary.earlyDropNote && (
+                      <div className="mb-4 rounded-xl border border-zinc-700/50 bg-zinc-950/60 px-4 py-3">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5">why distribution dies early</p>
+                        <p className="text-sm text-zinc-300 leading-relaxed">{roast.hookSummary.earlyDropNote}</p>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Inline hook agent card when hook is weak */}

@@ -632,22 +632,28 @@ const DIMENSION_WEIGHTS: Record<DimensionKey, number> = {
   accessibility: 0.08,
 };
 
+// When the hook is weak, conversion/caption/accessibility are near-irrelevant —
+// nobody reaches the end. Hook weight lifted to 0.45 to make a bad first impression
+// dominate the overall score and signal loudly to the creator.
 const HOOK_FIRST_WEIGHTS: Record<DimensionKey, number> = {
-  hook: 0.4,
-  visual: 0.17,
-  caption: 0.08,
-  audio: 0.11,
+  hook: 0.45,
+  visual: 0.16,
+  caption: 0.07,
+  audio: 0.12,
   algorithm: 0.11,
-  authenticity: 0.07,
-  conversion: 0.03,
-  accessibility: 0.03,
+  authenticity: 0.06,
+  conversion: 0.02,
+  accessibility: 0.01,
 };
 
 const LATE_STAGE_DIMENSIONS: DimensionKey[] = ['conversion', 'caption', 'accessibility'];
 
+// Threshold raised from 55 → 60 so more videos trigger hook-first mode.
+// A score of 55-59 was previously "mixed" but in practice those videos still
+// have a broken opening — they need the same "fix hook first" messaging.
 function classifyHookStrength(score: number): 'weak' | 'mixed' | 'strong' {
-  if (score < 55) return 'weak';
-  if (score < 75) return 'mixed';
+  if (score < 60) return 'weak';
+  if (score < 78) return 'mixed';
   return 'strong';
 }
 
@@ -666,23 +672,32 @@ function buildHookPriorityContext(dimension: DimensionKey, hookResult?: { score:
 
   if (hookStrength === 'weak') {
     const lateStageNote = LATE_STAGE_DIMENSIONS.includes(dimension)
-      ? `Because you are a ${dimension} agent, explicitly say this is SECONDARY until the first 2-3 seconds stop the scroll.`
-      : 'You can still diagnose your lane, but tie it back to the weak hook first.';
+      ? `Because you are a ${dimension} agent: lead by explicitly telling the creator this is SECONDARY work. Use language like "this matters, but it is support work until the first 2-3 seconds stop the scroll — fix the hook and then revisit this." Do NOT make your feedback sound like the primary fix.`
+      : 'You can still diagnose your lane, but open with one sentence tying your issue back to the weak hook context first.';
 
+    // Concrete distribution-phase explanation injected into every agent prompt when hook is weak.
     return `
 
-HOOK-FIRST OVERRIDE: Hook Agent scored this video ${hookResult.score}/100 (${hookStrength}). Their receipt: ${hookReceipt || hookResult.roastText}. Treat the weak opening as the main story. Explain how early distribution is likely dying before later beats matter. ${lateStageNote} Do NOT make CTA, caption polish, or end-of-video fixes sound like the main unlock.`;
+HOOK-FIRST OVERRIDE — READ THIS BEFORE WRITING ANYTHING ELSE:
+Hook Agent scored this video ${hookResult.score}/100 (WEAK). Their diagnosis: ${hookReceipt || hookResult.roastText}
+
+HOW DISTRIBUTION DIES EARLY (explain this to the creator in your own words where relevant):
+TikTok shows a new video to ~200-500 people first. If those viewers swipe away in the first 1-2 seconds — because the hook gave them no reason to stay — TikTok registers a low completion rate and stops distributing the video. The rest of the video never gets a fair test. Better captions, a sharper CTA, polished audio — none of those reach viewers who already scrolled. The opening is the distribution gate. Fail it, and you fail before the rest of your work matters.
+
+${lateStageNote}
+
+Do NOT write as if CTA polish, caption tweaks, or end-of-video formatting are the main thing to fix. They are downstream of getting someone to stop scrolling.`;
   }
 
   if (hookStrength === 'strong') {
     return `
 
-HOOK-FIRST CONTEXT: Hook Agent scored this video ${hookResult.score}/100 (${hookStrength}). The opening is doing its job, so it's fair to push harder on downstream issues in your lane. Use the strong hook as context, not as the problem.`;
+HOOK-FIRST CONTEXT: Hook Agent scored this video ${hookResult.score}/100 (STRONG). The opening cleared the first distribution hurdle, so downstream issues in your lane can actually move performance. Push hard on your area — the hook is not the bottleneck here.`;
   }
 
   return `
 
-HOOK-FIRST CONTEXT: Hook Agent scored this video ${hookResult.score}/100 (${hookStrength}). Mention whether your issue is hurting a hook that almost works, but do not outrank the opening unless your evidence is stronger.`;
+HOOK-FIRST CONTEXT: Hook Agent scored this video ${hookResult.score}/100 (MIXED). The opener has potential but is not fully earning the hold. Diagnose your lane, but where relevant, note whether your issue is compounding a hook that almost works.`;
 }
 
 function buildHookSummary(hookResult: { score: number; roastText: string; findings: string[]; improvementTip: string }) {
@@ -704,12 +719,20 @@ function buildHookSummary(hookResult: { score: number; roastText: string; findin
       ? 'tighten the opening first, then clean up the next biggest leak.'
       : 'the hook is not the bottleneck, so secondary fixes can now move the needle.';
 
+  // Plain-english distribution gate explanation shown in the hook-gate banner on the roast page.
+  const earlyDropNote = strength === 'weak'
+    ? 'tiktok gives every video a test batch of ~200-500 people. if those viewers swipe in the first second or two, tiktok reads that as a bad signal and stops pushing the video. that is why a weak hook kills distribution before your helpful advice, clean captions, or strong CTA ever get a fair shot. fix the opening and the rest of your work actually reaches people.'
+    : strength === 'mixed'
+      ? 'the opening gets partial attention but is not fully passing the initial test batch. viewers who almost stay are still a signal risk — if too many of them bail before the 5-second mark, distribution stalls before the rest of the video lands.'
+      : undefined;
+
   return {
     score: hookResult.score,
     strength,
     headline: `${headline} ${firstFinding}`.trim(),
     distributionRisk,
     focusNote,
+    ...(earlyDropNote ? { earlyDropNote } : {}),
   };
 }
 
@@ -1215,12 +1238,16 @@ Return ONLY valid JSON (no markdown):
 }
 
 Rules:
-- The verdict, biggestBlocker, and P1 actionPlan item must describe the same core problem.\n- If analysis mode is hook-first, that core problem MUST be the weak opening and you must explicitly deprioritize late-video CTA/caption polishing until the hook is fixed.\n- Do not introduce multiple headline problems. Pick one bottleneck and make the plan fix that first.
+- The verdict, biggestBlocker, and P1 actionPlan item must describe the same core problem.
+- If analysis mode is hook-first: P1 MUST be the hook. The verdict MUST explain that TikTok kills distribution in the first test batch (~200-500 people) when early swipes are high — so better CTA/captions/strategy cannot help if nobody reaches that part. Explicitly tell the creator that CTA polish and caption fixes are secondary until the opening is fixed.
+- Do not introduce multiple headline problems. Pick one bottleneck and make the plan fix that first.
 - Give exactly 3 actionPlan items ranked P1 to P3.
-- P1 must be the highest-leverage fix, not just the lowest score.\n- When the hook is weak, say why TikTok likely kills distribution early before the rest of the video can help.\n- Every actionPlan item must cite 1-3 concrete evidence bullets from the ledger. No generic evidence.
+- P1 must be the highest-leverage fix, not just the lowest score.
+- When the hook is weak: P1 doThis or example must include a concrete opening rewrite — a specific spoken line, text overlay, or shot description the creator can film today. Not a general tip. Actual replacement words.
+- Every actionPlan item must cite 1-3 concrete evidence bullets from the ledger. No generic evidence.
 - Only cite evidence that is explicitly present in the ledger: quotes, timestamps, caption metrics, or agent findings from this video.
-- Every doThis must be specific enough to execute today.\n- If the hook is weak, include a concrete opening rewrite, shot idea, or text-overlay replacement in either P1 doThis or example.\n- Use exact replacement wording when possible.
-- If the transcript gives you a quote, use it.
+- Every doThis must be specific enough to execute today.
+- If the transcript gives you a quote of the opening line, USE IT in P1 evidence. That is the smoking gun.
 - Keep the advice creator-grade, not beginner-blog-grade.`
             }],
           });

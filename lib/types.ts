@@ -51,6 +51,8 @@ export interface RoastResult {
     headline: string;
     distributionRisk: string;
     focusNote: string;
+    /** Plain-english explanation of WHY distribution dies early — shown in hook gate banner */
+    earlyDropNote?: string;
   };
   agents: AgentRoast[];
   niche?: {
