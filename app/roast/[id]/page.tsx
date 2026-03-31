@@ -1058,24 +1058,54 @@ function RoastContent({
           </CollapsibleSection>
         </motion.div>
 
-        {/* Bottom CTA */}
+        {/* Bottom CTA — next steps */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.3 }}
-          className="mt-10 rounded-2xl bg-gradient-to-br from-orange-500/10 via-pink-500/5 to-transparent border border-orange-500/20 p-8 text-center space-y-4"
+          className="mt-10 space-y-4"
         >
-          <p className="text-zinc-400 text-sm">Think you can do better?</p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 fire-gradient text-white font-bold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity text-lg"
-          >
-            <span>🔥</span>
-            Roast YOUR TikTok →
-          </Link>
-          <p className="text-zinc-600 text-xs">6 AI agents. Brutally honest. Free.</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 text-center">what to do next</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <a
+              href="#hook-workshop"
+              className="group rounded-2xl border border-orange-500/20 bg-orange-500/[0.06] p-4 hover:border-orange-500/40 transition-all"
+            >
+              <span className="text-xl">🎣</span>
+              <p className="text-sm font-semibold text-white mt-2">Hook rewrite workshop</p>
+              <p className="text-xs text-zinc-400 mt-1">Steal a stronger opener you can film today.</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-orange-400 mt-3 group-hover:text-orange-300">jump to section →</p>
+            </a>
+            <a
+              href="#reshoot-planner"
+              className="group rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] p-4 hover:border-blue-500/40 transition-all"
+            >
+              <span className="text-xl">🎬</span>
+              <p className="text-sm font-semibold text-white mt-2">Reshoot planner</p>
+              <p className="text-xs text-zinc-400 mt-1">Concrete shot, text, and delivery direction.</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-blue-400 mt-3 group-hover:text-blue-300">jump to section →</p>
+            </a>
+            <div
+              className="group rounded-2xl border border-zinc-700 bg-zinc-900/60 p-4 cursor-pointer hover:border-zinc-500 transition-all"
+              onClick={() => handleShareOnX(roast.overallScore)}
+            >
+              <span className="text-xl">📣</span>
+              <p className="text-sm font-semibold text-white mt-2">Share your results</p>
+              <p className="text-xs text-zinc-400 mt-1">Post your score to X and tag your creator friends.</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mt-3 group-hover:text-white">share on X →</p>
+            </div>
+            <Link
+              href="/"
+              className="group rounded-2xl border border-pink-500/20 bg-pink-500/[0.06] p-4 hover:border-pink-500/40 transition-all"
+            >
+              <span className="text-xl">🔥</span>
+              <p className="text-sm font-semibold text-white mt-2">Roast another TikTok</p>
+              <p className="text-xs text-zinc-400 mt-1">Upload a new video and compare your scores.</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-pink-400 mt-3 group-hover:text-pink-300">analyze again →</p>
+            </Link>
+          </div>
           {history.length > 0 && (
-            <div className="pt-1">
+            <div className="text-center pt-1">
               <Link
                 href="/history"
                 className="text-xs text-zinc-600 hover:text-orange-400 transition-colors"
