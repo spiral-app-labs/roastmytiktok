@@ -17,6 +17,7 @@ import dynamic from 'next/dynamic';
 
 const ScriptGenerator = dynamic(() => import('@/components/ScriptGenerator').then(m => m.ScriptGenerator), { ssr: false });
 import { HookHierarchyDiagram, HookExamplesBank, HookExplainerBanner, EducationalTooltip } from '@/components/HookEducation';
+import { EmailCapture } from '@/components/EmailCapture';
 import { useToast } from '@/components/ui';
 
 function getLetterGrade(score: number): string {
@@ -1106,6 +1107,9 @@ function RoastContent({
               <p className="text-[11px] font-bold uppercase tracking-widest text-pink-400 mt-3 group-hover:text-pink-300">analyze again →</p>
             </Link>
           </div>
+          {/* Email capture CTA */}
+          <EmailCapture />
+
           {history.length > 0 && (
             <div className="text-center pt-1">
               <Link
