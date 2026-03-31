@@ -1076,7 +1076,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                 .join('\n');
               audioContext = `\n\nAUDIO TRANSCRIPT:\n${safeTranscript}\n\nSPEECH SEGMENTS (with timestamps):\n${segmentLines}\n\nAUDIO STRUCTURE: ${audioChars.hasSpeech ? 'Voice detected' : 'No clear voice'} | ${audioChars.hasMusic ? 'Music/background audio detected' : 'No background music'}${detectedSoundNote}\n\nNow analyze the ACTUAL audio content above. Reference specific words/phrases the creator said. Quote them. If the transcript is empty, note that the video appears to have no speech.`;
             } else if (dimension === 'audio') {
-              audioContext = `\n\nNo audio transcript available — transcription was unavailable or no speech was detected. Analyze based on visual cues only and note that audio analysis was limited.${detectedSoundNote}`;
+              // No transcript — build the richest possible audio context from ffmpeg analysis.
+              // This gives the audio agent meaningful signal even without a transcription key.
+              const pacingNote = audioChars.pacingHint
+                ? `Estimated speaking pace: ${audioChars.pacingHint} (inferred from silence gap frequency).`
+                : '';
+              const volumeNote = (audioChars.meanVolumeDB != null && audioChars.maxVolumeDB != null)
+                ? `Volume: mean ${audioChars.meanVolumeDB.toFixed(1)} dBFS, peak ${audioChars.maxVolumeDB.toFixed(1)} dBFS. ${audioChars.maxVolumeDB > -1 ? 'WARNING: audio may be clipping.' : audioChars.meanVolumeDB < -25 ? 'Audio is quiet — listener may need to turn up volume.' : 'Volume levels appear normal.'}`
+                : '';
+              const silenceNote = audioChars.silenceGapCount != null && audioChars.durationSec != null
+                ? `Detected ${audioChars.silenceGapCount} silence gaps over ${audioChars.durationSec.toFixed(1)}s of audio.`
+                : '';
+              const structureNote = [
+                audioChars.hasSpeech ? 'Voice/speech detected in audio track.' : 'No clear speech detected — may be music-only or silent content.',
+                audioChars.hasMusic ? 'Background music/audio detected.' : 'No continuous background music detected.',
+                pacingNote,
+                volumeNote,
+                silenceNote,
+              ].filter(Boolean).join(' ');
+              audioContext = `\n\nNo audio transcript available (no OPENAI_API_KEY or ASSEMBLYAI_API_KEY configured).\n\nAUDIO SIGNAL ANALYSIS (from ffmpeg waveform detection):\n${structureNote}\n\nAnalyze based on these audio characteristics and visual cues. Note clearly that spoken content could not be transcribed and that a transcript API key would enable deeper analysis.${detectedSoundNote}`;
             } else if (dimension === 'hook' && transcript?.segments?.length) {
               const firstSegment = transcript.segments[0];
               audioContext = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstSegment.text, 500)}". Analyze whether this opening line is a strong hook.`;

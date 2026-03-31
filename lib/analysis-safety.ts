@@ -5,6 +5,17 @@ const LEAK_PATTERNS = [
   /\b(return only valid json|valid json|json schema|markdown code block)\b/i,
   /\b(anthropic|claude-sonnet|assistant role|user role)\b/i,
   /\b(stay in your lane|not your job|your job and only your job|tone rules)\b/i,
+  // Agent prompt template fragments that can bleed through if the model echoes its own instructions
+  /\bScore\s+0[-–]100\b/i,
+  /\bReturn\s+ONLY\s+valid\s+JSON\b/i,
+  /\bno\s+markdown\b.*?\bjson\b/i,
+  /\b(roastText|improvementTip|viralPotential|biggestBlocker|actionPlan)\s*:/i,
+  /\b(max_tokens|top_p|temperature|model\s*=\s*['"])\b/i,
+  /\bNOT YOUR JOB\b/i,
+  /\bEXAMPLE OF GREAT FEEDBACK\b/i,
+  /\bHOOK-FIRST OVERRIDE\b/i,
+  /\bTONE\s*—\s*THIS IS MANDATORY\b/i,
+  /\bCROSS-AGENT COHERENCE\b/i,
 ];
 
 const JSON_WRAPPER = /```(?:json)?|```/gi;

@@ -27,19 +27,28 @@ export function buildFramePlan(durationSec: number, numFrames: number = 8): Plan
 
   const desiredFrames = Math.max(4, numFrames);
   const openingWindow = Math.min(Math.max(durationSec * 0.35, 2.5), 4);
+  // Reserve one guaranteed sub-0.15s slot for title cards and opening text hooks.
+  // Many creators place their strongest on-screen text hook in the very first frame
+  // (0.03-0.12s) which evenly-spaced sampling consistently misses. This slot anchors
+  // the opening sample to the first meaningful video frame before any other logic runs.
+  const FIRST_FRAME_TS = Math.min(0.05, durationSec * 0.01);
+  // Remaining opening slots after the first-frame anchor
   const openingCount = Math.min(4, Math.max(3, Math.ceil(desiredFrames / 2)));
-  const storyCount = Math.max(0, desiredFrames - openingCount);
+  const storyCount = Math.max(0, desiredFrames - openingCount - 1); // -1 for FIRST_FRAME_TS
   const timestamps = new Map<number, PlannedFrame>();
 
-  const pushFrame = (rawTimestamp: number, slot: 'opening' | 'story') => {
-    const clamped = Math.max(0.05, Math.min(durationSec - 0.05, rawTimestamp));
+  const pushFrame = (rawTimestamp: number, slot: 'opening' | 'story', forcedLabel?: string) => {
+    const clamped = Math.max(0.03, Math.min(durationSec - 0.05, rawTimestamp));
     const timestampSec = Number(clamped.toFixed(2));
     if (timestamps.has(timestampSec)) return;
-    const label = slot === 'opening'
+    const label = forcedLabel ?? (slot === 'opening'
       ? `Opening frame at ${timestampSec.toFixed(2)}s`
-      : `Story frame at ${timestampSec.toFixed(2)}s`;
+      : `Story frame at ${timestampSec.toFixed(2)}s`);
     timestamps.set(timestampSec, { timestampSec, slot, label });
   };
+
+  // Guaranteed first-frame anchor for title cards / opening text hooks
+  pushFrame(FIRST_FRAME_TS, 'opening', `First-frame anchor at ${FIRST_FRAME_TS.toFixed(2)}s (title-card / text-hook sample)`);
 
   for (let i = 0; i < openingCount; i++) {
     const raw = openingCount === 1
