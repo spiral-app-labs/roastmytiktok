@@ -7,6 +7,20 @@ import {
   hasBypassAccess,
 } from '@/lib/bypass';
 
+// Routes that require auth (bypass cookie OR Supabase session)
+const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/settings', '/history', '/account'];
+
+function hasSupabaseSession(request: NextRequest): boolean {
+  return request.cookies.getAll().some(
+    (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
+  );
+}
+
+function isAuthenticated(request: NextRequest): boolean {
+  return hasBypassAccess(request.cookies.get(BYPASS_COOKIE_NAME)?.value)
+    || hasSupabaseSession(request);
+}
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const bypassed = hasBypassAccess(request.cookies.get(BYPASS_COOKIE_NAME)?.value);
@@ -30,6 +44,19 @@ export function proxy(request: NextRequest) {
     }
 
     return NextResponse.next();
+  }
+
+  // Protected routes: require bypass OR Supabase auth
+  const isProtected = AUTH_REQUIRED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
+  );
+
+  if (isProtected && !isAuthenticated(request)) {
+    const url = request.nextUrl.clone();
+    url.pathname = BYPASS_ENTRY_PATH;
+    url.search = '';
+    url.searchParams.set('next', pathname + search);
+    return NextResponse.redirect(url);
   }
 
   if (bypassed) {
