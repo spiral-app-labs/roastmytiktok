@@ -44,6 +44,18 @@ const FAQ = [
     q: `Is there a free trial for Pro?`,
     a: `Yes — there is still a 7-day trial before the subscription kicks in.`,
   },
+  {
+    q: `What's the difference between free and paid?`,
+    a: `Free gets you a full roast with all 6 agents, a score, and actionable fixes. Paid plans unlock unlimited roasts, account-level analysis, priority processing, and export reports.`,
+  },
+  {
+    q: `Will this actually help me grow?`,
+    a: `We focus on the first 2-3 seconds — the hook — because that's what TikTok's algorithm tests first. Fix the hook, and the algorithm gives you more distribution. Creators who apply the reshoot plan typically see 5-40x improvement on their next video.`,
+  },
+  {
+    q: `How is this different from other TikTok analytics tools?`,
+    a: `Most tools show you what happened (views, likes, retention). We show you why it happened and what to change. Six specialized AI agents give you a specific diagnosis and a reshoot plan — not just charts.`,
+  },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {
@@ -160,17 +172,57 @@ export default function PricingPage() {
       </motion.div>
 
       {/* Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-20">
-        {/* Monthly */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-5xl mb-20">
+        {/* Free */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-8 flex flex-col"
+          className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-7 flex flex-col"
+        >
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-zinc-300 mb-1">Free</h2>
+            <p className="text-zinc-500 text-sm">Try a full roast, no card required</p>
+          </div>
+
+          <div className="mb-8">
+            <span className="text-5xl font-bold text-white">$0</span>
+            <span className="text-zinc-500 text-sm ml-2">forever</span>
+          </div>
+
+          <Link
+            href="/dashboard"
+            className="block text-center py-3 px-6 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all mb-8"
+          >
+            Get Started Free
+          </Link>
+
+          <div className="space-y-3 flex-1">
+            <p className="text-xs text-zinc-600 uppercase tracking-wider font-medium mb-2">Included</p>
+            {[
+              { icon: '🎬', text: 'Full video upload + roast' },
+              { icon: '📊', text: 'Score, verdict, and all 6 agents' },
+              { icon: '🎣', text: 'Hook rewrites + reshoot plan' },
+              { icon: '📎', text: 'Limited to 3 roasts' },
+            ].map((f) => (
+              <li key={f.text} className="flex items-start gap-2.5 text-sm text-zinc-400 list-none">
+                <span className="mt-0.5 shrink-0">{f.icon}</span>
+                {f.text}
+              </li>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Monthly */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-7 flex flex-col"
         >
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-zinc-300 mb-1">Monthly</h2>
-            <p className="text-zinc-500 text-sm">Full access with the most flexibility</p>
+            <p className="text-zinc-500 text-sm">Unlimited roasts, cancel anytime</p>
           </div>
 
           <div className="mb-8">
@@ -186,7 +238,7 @@ export default function PricingPage() {
           </Link>
 
           <div className="space-y-3 flex-1">
-            <p className="text-xs text-zinc-600 uppercase tracking-wider font-medium mb-2">Included</p>
+            <p className="text-xs text-zinc-600 uppercase tracking-wider font-medium mb-2">Everything in Free, plus</p>
             {FREE_FEATURES.map((f) => (
               <li key={f.text} className="flex items-start gap-2.5 text-sm text-zinc-400 list-none">
                 <span className="mt-0.5 shrink-0">{f.icon}</span>
@@ -200,8 +252,8 @@ export default function PricingPage() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="relative bg-zinc-900/60 border border-orange-500/30 rounded-2xl p-8 flex flex-col card-glow"
+          transition={{ delay: 0.25 }}
+          className="relative bg-zinc-900/60 border border-orange-500/30 rounded-2xl p-7 flex flex-col card-glow"
         >
           <div className="absolute -top-3 left-6 text-xs font-semibold px-3 py-1 rounded-full fire-gradient text-white shadow-lg">
             Best Value
@@ -209,7 +261,7 @@ export default function PricingPage() {
 
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-white mb-1">Yearly</h2>
-            <p className="text-zinc-500 text-sm">Same full access, lower effective monthly cost</p>
+            <p className="text-zinc-500 text-sm">Save 20% — best for serious creators</p>
           </div>
 
           <div className="mb-1">
@@ -248,7 +300,7 @@ export default function PricingPage() {
           >
             Start Yearly →
           </Link>
-          <p className="text-center text-xs text-zinc-500 mb-8">Includes full roast access from day one</p>
+          <p className="text-center text-xs text-zinc-500 mb-8">7-day free trial included</p>
 
           <div className="space-y-3 flex-1">
             <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-2">Everything in Monthly, plus</p>
@@ -267,26 +319,32 @@ export default function PricingPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
-        className="w-full max-w-3xl mb-20 bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6"
+        className="w-full max-w-4xl mb-20 bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6"
       >
         <h3 className="text-center text-sm font-semibold text-zinc-300 mb-6 uppercase tracking-wider">
-          Monthly vs Yearly at a glance
+          Compare plans at a glance
         </h3>
-        <div className="grid grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-4 gap-3 text-sm">
           <div className="text-zinc-500 font-medium"></div>
+          <div className="text-center text-zinc-500 font-medium">Free</div>
           <div className="text-center text-zinc-400 font-medium">Monthly</div>
           <div className="text-center text-white font-semibold">Yearly</div>
           {[
-            [`Full video uploads`, `✓`, `✓`],
-            [`Full agent breakdowns`, `✓`, `✓`],
-            [`Saved history`, `✓`, `✓`],
-            [`Billing`, `Month-to-month`, `Annual`],
-            [`Effective monthly price`, `$${monthlyPrice.toFixed(2)}`, `$${yearlyMonthly.toFixed(2)}`],
-          ].map(([feature, free, pro]) => (
+            [`Full agent breakdowns`, `✓`, `✓`, `✓`],
+            [`Hook rewrites`, `✓`, `✓`, `✓`],
+            [`Reshoot plan`, `✓`, `✓`, `✓`],
+            [`Roast limit`, `3 total`, `Unlimited`, `Unlimited`],
+            [`Saved history`, `✓`, `✓`, `✓`],
+            [`Account analysis`, `—`, `✓`, `✓`],
+            [`Priority processing`, `—`, `✓`, `✓`],
+            [`Export reports`, `—`, `—`, `✓`],
+            [`Price`, `$0`, `$${monthlyPrice.toFixed(2)}/mo`, `$${yearlyMonthly.toFixed(2)}/mo`],
+          ].map(([feature, free, monthly, yearly]) => (
             <div key={feature} className="contents">
               <div className="text-zinc-400 py-2 border-t border-zinc-800/50">{feature}</div>
-              <div className="text-center text-zinc-500 py-2 border-t border-zinc-800/50">{free}</div>
-              <div className="text-center py-2 border-t border-zinc-800/50 text-orange-400 font-medium">{pro}</div>
+              <div className="text-center text-zinc-600 py-2 border-t border-zinc-800/50">{free}</div>
+              <div className="text-center text-zinc-500 py-2 border-t border-zinc-800/50">{monthly}</div>
+              <div className="text-center py-2 border-t border-zinc-800/50 text-orange-400 font-medium">{yearly}</div>
             </div>
           ))}
         </div>
@@ -332,15 +390,25 @@ export default function PricingPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="text-center"
+        className="text-center max-w-lg mx-auto"
       >
-        <p className="text-zinc-500 text-sm mb-3">Every subscription includes ratings, roasts, fixes, and uploads. Cancel anytime.</p>
-        <Link
-          href="/login"
-          className="inline-block py-4 px-10 rounded-xl font-bold fire-gradient text-white hover:opacity-90 transition-opacity text-base shadow-lg shadow-orange-500/20"
-        >
-          Start Your Subscription →
-        </Link>
+        <h3 className="text-2xl font-bold text-white mb-2">Ready to break past 200 views?</h3>
+        <p className="text-zinc-500 text-sm mb-6">Start free — no credit card required. Upgrade when you&apos;re ready for unlimited roasts.</p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/dashboard"
+            className="inline-block py-4 px-10 rounded-xl font-bold fire-gradient text-white hover:opacity-90 transition-opacity text-base shadow-lg shadow-orange-500/20"
+          >
+            Try Free Roast →
+          </Link>
+          <Link
+            href="/login"
+            className="inline-block py-4 px-10 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all text-base"
+          >
+            Start Subscription
+          </Link>
+        </div>
+        <p className="text-zinc-600 text-xs mt-4">Cancel anytime. 7-day trial on yearly plans.</p>
       </motion.div>
     </main>
   );
