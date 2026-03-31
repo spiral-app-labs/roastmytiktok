@@ -37,7 +37,7 @@ export default function CalendarPage() {
           className="flex flex-col sm:flex-row gap-3 justify-center pt-4 pb-8"
         >
           <Link
-            href="/dashboard"
+            href="/"
             className="bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold px-8 py-3 rounded-xl hover:opacity-90 transition-opacity text-center shadow-lg shadow-orange-500/25"
           >
             Roast a Video

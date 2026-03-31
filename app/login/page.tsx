@@ -9,6 +9,9 @@ import { motion } from 'framer-motion'
 function LoginForm() {
   const params = useSearchParams()
   const redirect = params.get('redirect') || '/dashboard'
+  const intent = params.get('intent')
+  const plan = params.get('plan')
+  const isSubscribeIntent = intent === 'subscribe'
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
@@ -78,8 +81,16 @@ function LoginForm() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 backdrop-blur-sm p-8 shadow-2xl shadow-black/50"
         >
+          {isSubscribeIntent && (
+            <div className="mb-5 px-4 py-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-center">
+              <p className="text-sm font-semibold text-orange-400">
+                {plan === 'yearly' ? '🔥 Yearly plan — best value' : '🔥 Monthly plan — unlimited roasts'}
+              </p>
+              <p className="text-xs text-zinc-400 mt-1">Sign in first, then complete your subscription</p>
+            </div>
+          )}
           <h1 className="text-xl font-bold text-white text-center mb-6">
-            Sign in to continue
+            {isSubscribeIntent ? 'Sign in to subscribe' : 'Sign in to continue'}
           </h1>
 
           {error && (
