@@ -265,46 +265,76 @@ function RoastContent({
 
         {/* ========== SCORE HERO ========== */}
         <div id="score-hero" className="text-center mb-10 scroll-mt-20">
+          {/* Premium score card with gradient border */}
           <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 120, damping: 16, delay: 0.15 }}
-            className="relative inline-block mb-5"
-          >
-            <ScoreRing score={roast.overallScore} size={180} showGrade={getLetterGrade(roast.overallScore)} />
-          </motion.div>
-
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.4 }}
-            className={`text-3xl sm:text-4xl font-bold mb-2 ${
-              roast.overallScore >= 80 ? 'text-green-400' :
-              roast.overallScore >= 60 ? 'text-yellow-400' :
-              roast.overallScore >= 40 ? 'text-orange-400' :
-              'text-red-400'
-            }`}
+            transition={{ delay: 0.15, duration: 0.5 }}
+            className="relative max-w-2xl mx-auto rounded-[28px] p-px bg-gradient-to-br from-orange-500/30 via-zinc-800/50 to-pink-500/30 mb-8"
           >
-            {roast.overallScore} <span className="text-zinc-600 text-lg font-medium">/ 100</span>
-          </motion.p>
+            <div className="rounded-[27px] bg-zinc-950/90 backdrop-blur-xl px-6 py-8 sm:px-10 sm:py-10">
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 120, damping: 16, delay: 0.25 }}
+                className="relative inline-block mb-4"
+              >
+                <ScoreRing score={roast.overallScore} size={180} showGrade={getLetterGrade(roast.overallScore)} />
+              </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.8, duration: 0.3 }}
-            className="mb-6"
-          >
-            <span className={`inline-block text-sm font-bold px-5 py-2 rounded-full ${
-              roast.overallScore >= 80 ? 'bg-green-500/15 text-green-400 border border-green-500/25' :
-              roast.overallScore >= 60 ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/25' :
-              roast.overallScore >= 40 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/25' :
-              'bg-red-500/15 text-red-400 border border-red-500/25'
-            }`}>
-              {roast.overallScore >= 80 ? 'Actually decent' :
-               roast.overallScore >= 60 ? 'Room for improvement' :
-               roast.overallScore >= 40 ? 'Needs serious work' :
-               'We need to talk'}
-            </span>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.4 }}
+                className={`text-3xl sm:text-4xl font-bold mb-2 ${
+                  roast.overallScore >= 80 ? 'text-green-400' :
+                  roast.overallScore >= 60 ? 'text-yellow-400' :
+                  roast.overallScore >= 40 ? 'text-orange-400' :
+                  'text-red-400'
+                }`}
+              >
+                {roast.overallScore} <span className="text-zinc-600 text-lg font-medium">/ 100</span>
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.8, duration: 0.3 }}
+                className="mb-4"
+              >
+                <span className={`inline-block text-sm font-bold px-5 py-2 rounded-full ${
+                  roast.overallScore >= 80 ? 'bg-green-500/15 text-green-400 border border-green-500/25' :
+                  roast.overallScore >= 60 ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/25' :
+                  roast.overallScore >= 40 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/25' :
+                  'bg-red-500/15 text-red-400 border border-red-500/25'
+                }`}>
+                  {roast.overallScore >= 80 ? 'Actually decent' :
+                   roast.overallScore >= 60 ? 'Room for improvement' :
+                   roast.overallScore >= 40 ? 'Needs serious work' :
+                   'We need to talk'}
+                </span>
+              </motion.div>
+
+              {/* Agent score strip — scannable at-a-glance */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9 }}
+                className="flex flex-wrap items-center justify-center gap-2 pt-4 border-t border-zinc-800/60"
+              >
+                {roast.agents.map((a) => {
+                  const agent = AGENTS.find(ag => ag.key === a.agent);
+                  return (
+                    <div key={a.agent} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 border border-zinc-800/60 text-xs">
+                      <span>{agent?.emoji}</span>
+                      <span className={`font-bold ${a.score >= 70 ? 'text-green-400' : a.score >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                        {a.score}
+                      </span>
+                    </div>
+                  );
+                })}
+              </motion.div>
+            </div>
           </motion.div>
 
           {/* Verdict card */}

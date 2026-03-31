@@ -213,44 +213,125 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Main content: two-column on desktop, stacked on mobile */}
-        <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
-          <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+        {/* Above-fold hero — unmissable headline + URL paste field */}
+        <div className="relative z-10 px-4 pt-8 pb-12 sm:pt-12 sm:pb-16 flex flex-col items-center text-center">
+          {/* Social proof bar */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/80 border border-zinc-700/50 backdrop-blur-sm mb-6"
+          >
+            <div className="flex -space-x-1">
+              {['🧑', '👩', '🧑💻'].map((e, i) => (
+                <span key={i} className="text-base">{e}</span>
+              ))}
+            </div>
+            <span className="text-zinc-300 text-sm font-medium">
+              <span className="text-orange-400 font-bold">2,847</span> videos roasted &middot; <span className="text-orange-400 font-bold">847</span> creators past 200 views
+            </span>
+          </motion.div>
 
-            {/* Left: Hero + features */}
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight mb-4"
+          >
+            stuck at{' '}
+            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
+              200 views
+            </span>
+            {' '}on tiktok?
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-xl mb-8"
+          >
+            paste your tiktok link. get a brutally honest roast, hook rewrites, and a reshoot plan you can film today.
+          </motion.p>
+
+          {/* Prominent URL paste field */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="w-full max-w-xl mb-6"
+          >
+            <form onSubmit={handleSubmit} className="relative">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter invite code to get started"
+                    aria-label="Beta invite code"
+                    className="w-full bg-zinc-900/80 border-2 border-zinc-700/60 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 transition-all text-base"
+                  />
+                </div>
+                <GradientButton
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="sm:px-8 whitespace-nowrap"
+                  disabled={loading || !password}
+                  loading={loading}
+                >
+                  {loading ? 'Verifying...' : 'Get Roasted 🔥'}
+                </GradientButton>
+              </div>
+              <AnimatePresence mode="wait">
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="text-red-400 text-sm text-center mt-3"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </form>
+          </motion.div>
+
+          {/* What you get — inline */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35 }}
+            className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-zinc-500 mb-8"
+          >
+            {[
+              { icon: '🎣', text: 'Hook rewrites' },
+              { icon: '🎬', text: 'Reshoot plan' },
+              { icon: '⏱️', text: 'Hold-strength read' },
+              { icon: '📊', text: 'Score + grade' },
+            ].map((f) => (
+              <span key={f.text} className="flex items-center gap-1.5">
+                <span>{f.icon}</span>
+                <span>{f.text}</span>
+              </span>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Below-fold content */}
+        <div className="relative z-10 flex-1 px-4 pb-16">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+
+            {/* Left: Features + agents + success stories */}
             <motion.div
               initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
+              transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
               className="space-y-8"
             >
-              {/* Social proof bar */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/80 border border-zinc-700/50 backdrop-blur-sm">
-                <div className="flex -space-x-1">
-                  {['🧑', '👩', '🧑💻'].map((e, i) => (
-                    <span key={i} className="text-base">{e}</span>
-                  ))}
-                </div>
-                <span className="text-zinc-300 text-sm font-medium">
-                  <span className="text-orange-400 font-bold">2,847</span> videos roasted &middot; <span className="text-orange-400 font-bold">847</span> creators past 200 views this week
-                </span>
-              </div>
-
-              {/* Headline */}
-              <div className="space-y-3">
-                <h1 className="text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight">
-                  stuck at{' '}
-                  <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
-                    200 views
-                  </span>
-                  <br />
-                  on tiktok?
-                </h1>
-                <p className="text-zinc-400 text-lg leading-relaxed max-w-md">
-                  roastmytiktok shows why your opening dies, rewrites the hook, and gives you a reshoot plan you can film today.
-                </p>
-              </div>
-
               {/* Feature highlights */}
               <div id="how-it-works" className="grid grid-cols-1 sm:grid-cols-2 gap-3 scroll-mt-28">
                 {FEATURES.map((f) => (
@@ -303,7 +384,15 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+            </motion.div>
 
+            {/* Right: Hook school + testimonials */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
+              className="space-y-5"
+            >
               <GlassCard variant="surface" className="p-5 lg:p-6 border border-orange-500/20 bg-gradient-to-br from-zinc-900/90 to-zinc-950/80">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
@@ -331,7 +420,7 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {HOOK_EXAMPLES.map((example, idx) => (
+                  {HOOK_EXAMPLES.slice(0, 4).map((example, idx) => (
                     <div key={`${example.type}-${idx}`} className="rounded-xl border border-zinc-800 bg-black/20 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">{example.type}</p>
                       <div className="space-y-2 text-sm">
@@ -346,86 +435,6 @@ export default function Home() {
                       </div>
                     </div>
                   ))}
-                </div>
-              </GlassCard>
-            </motion.div>
-
-            {/* Right: Password gate card */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
-              className="space-y-5"
-            >
-              {/* Main card */}
-              <GlassCard variant="highlighted" className="relative p-8 shadow-2xl shadow-black/50">
-                {/* Glow */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-orange-500/5 to-pink-500/5 pointer-events-none" />
-
-                <div className="relative space-y-6">
-                  <div className="text-center space-y-2">
-                    <div className="text-4xl">🔥</div>
-                    <h2 className="text-2xl font-black text-white">Break Past 200 Views</h2>
-                    <p className="text-zinc-400 text-sm">
-                      your videos aren&apos;t bad — your opener is killing them before they get a chance. find out why and fix it today.
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="relative">
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter invite code"
-                        aria-label="Beta invite code"
-                        className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl px-4 py-3.5 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all text-sm"
-                      />
-                    </div>
-
-                    <AnimatePresence mode="wait">
-                      {error && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          className="text-red-400 text-sm text-center"
-                        >
-                          {error}
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-
-                    <GradientButton
-                      type="submit"
-                      variant="primary"
-                      size="lg"
-                      className="w-full"
-                      disabled={loading || !password}
-                      loading={loading}
-                    >
-                      {loading ? 'Verifying...' : 'Get Roasted →'}
-                    </GradientButton>
-                  </form>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-zinc-800" />
-                    <span className="text-zinc-600 text-xs">what to expect</span>
-                    <div className="flex-1 h-px bg-zinc-800" />
-                  </div>
-
-                  <div className="space-y-2">
-                    {[
-                      'see exactly which hook type you used and why it leaks',
-                      'get 3 stronger rewrites with camera, timing, and text direction',
-                      'walk away with a reshoot plan you can film in 10 minutes',
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-2.5 text-xs text-zinc-400">
-                        <span className="text-orange-400 font-bold">✓</span>
-                        {item}
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </GlassCard>
 
@@ -458,18 +467,18 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-stretch">
-      <div className="max-w-3xl mx-auto w-full px-4 pt-6 space-y-4">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-700/50 text-xs text-zinc-400 font-medium mb-1">
+      <div className="max-w-3xl mx-auto w-full px-4 pt-8 sm:pt-10 space-y-5">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-700/50 text-xs text-zinc-400 font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
             6 AI agents ready to roast
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">
-            Break past{' '}
-            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">200 views</span>
+          <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+            Stuck at{' '}
+            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">200 views</span>?
           </h1>
-          <p className="text-zinc-400 text-sm max-w-md mx-auto">
-            Upload a TikTok or drop a link. Get a brutally honest roast, hook rewrites, and a reshoot plan you can film today.
+          <p className="text-zinc-400 text-base max-w-lg mx-auto">
+            Upload a TikTok or paste a link. Get a brutally honest roast, hook rewrites, and a reshoot plan you can film today.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-zinc-500">

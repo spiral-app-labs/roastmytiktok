@@ -75,13 +75,22 @@ function VideoHistoryCard({ entry, index }: { entry: HistoryEntry; index: number
             <span>{entry.source === 'upload' ? '📎 Upload' : '🔗 URL'}</span>
           </div>
 
-          {/* CTA */}
-          <div className="flex items-center justify-end pt-3 border-t border-zinc-800/40">
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-3 border-t border-zinc-800/40">
             <span className="text-xs font-semibold text-orange-400 group-hover:text-orange-300 transition-colors flex items-center gap-1">
               View Roast
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="transition-transform group-hover:translate-x-0.5">
                 <path d="M2.5 6h7m0 0L6.5 3m3 3L6.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
+            </span>
+            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
+              entry.overallScore >= 70
+                ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                : entry.overallScore >= 50
+                  ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+            }`}>
+              {entry.overallScore >= 70 ? 'strong' : entry.overallScore >= 50 ? 'fixable' : 'needs work'}
             </span>
           </div>
         </GlassCard>
@@ -158,6 +167,33 @@ export default function HistoryPage() {
           </motion.div>
         )}
 
+        {/* Summary stats bar */}
+        {!loading && history.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"
+          >
+            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
+              <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Total</p>
+              <p className="text-lg font-bold text-white">{history.length}</p>
+            </div>
+            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
+              <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Average</p>
+              <p className="text-lg font-bold text-orange-400">{Math.round(history.reduce((s, h) => s + h.overallScore, 0) / history.length)}</p>
+            </div>
+            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
+              <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Best</p>
+              <p className="text-lg font-bold text-green-400">{Math.max(...history.map(h => h.overallScore))}</p>
+            </div>
+            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
+              <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Needs Work</p>
+              <p className="text-lg font-bold text-red-400">{history.filter(h => h.overallScore < 50).length}</p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Video grid */}
         {!loading && history.length > 0 && (
           <>
@@ -172,7 +208,7 @@ export default function HistoryPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="mt-10 flex items-center justify-center gap-6"
+              className="mt-10 flex flex-wrap items-center justify-center gap-4 sm:gap-6"
             >
               {history.length >= 2 && (
                 <Link
@@ -180,6 +216,14 @@ export default function HistoryPage() {
                   className="inline-flex items-center gap-2 text-sm font-semibold text-orange-400 hover:text-orange-300 transition-colors"
                 >
                   ⚔️ Compare two videos
+                </Link>
+              )}
+              {history.length >= 3 && (
+                <Link
+                  href="/analyze-account"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  📊 Analyze account patterns
                 </Link>
               )}
               <Link
