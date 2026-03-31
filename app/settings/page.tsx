@@ -1,9 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { createClient } from "@/lib/supabase/client";
+import type { DebugLevel } from "@/lib/debug-types";
+
+const ADMIN_EMAILS = ["ethan@ethantalreja.com", "ethan@spiralapplabs.com"];
+function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
+}
+
+const DEBUG_LEVELS: { value: DebugLevel; label: string; description: string }[] = [
+  { value: "off", label: "Off", description: "No debug data collected." },
+  { value: "simple", label: "Simple", description: "Agent scores + top finding per agent + video meta summary." },
+  { value: "complex", label: "Complex", description: "All agent results, niche detection, hook summary, frame metadata." },
+  { value: "extremely_verbose", label: "Extremely Verbose", description: "Everything in Complex + raw AI responses, transcript, errors, all timings." },
+];
 
 // ─── Danger Modal ─────────────────────────────────────────────────────────────
 
@@ -74,6 +89,37 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 
 export default function SettingsPage() {
   const [dangerModal, setDangerModal] = useState<null | "delete">(null);
+
+  // Auth + admin state
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [debugLevel, setDebugLevel] = useState<DebugLevel>("off");
+  const [debugSaving, setDebugSaving] = useState(false);
+  const [debugSaved, setDebugSaved] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      setUserEmail(user.email ?? null);
+      const stored = user.user_metadata?.debug_level as string | undefined;
+      const valid: DebugLevel[] = ["off", "simple", "complex", "extremely_verbose"];
+      if (stored && valid.includes(stored as DebugLevel)) {
+        setDebugLevel(stored as DebugLevel);
+      }
+    });
+  }, []);
+
+  async function saveDebugLevel(level: DebugLevel) {
+    setDebugSaving(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.updateUser({ data: { debug_level: level } });
+      setDebugLevel(level);
+      setDebugSaved(true);
+      setTimeout(() => setDebugSaved(false), 2500);
+    } catch { /* ignore */ }
+    setDebugSaving(false);
+  }
 
   // Subscription (wired to Stripe billing portal)
   const plan = "Free";
@@ -197,6 +243,41 @@ export default function SettingsPage() {
                 )}
               </GlassCard>
             </motion.div>
+
+            {/* ── Admin: Debug Mode (admin-only) ─────────────────────────── */}
+            {isAdminEmail(userEmail) && (
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.05 }}>
+                <div className="rounded-2xl border border-green-900/40 bg-green-950/10 p-6">
+                  <SectionHeader
+                    title="Debug Mode"
+                    subtitle="Admin only. Controls the debug data level attached to your analyses."
+                  />
+                  <div className="space-y-3">
+                    {DEBUG_LEVELS.map((opt) => (
+                      <label key={opt.value} className="flex items-start gap-3 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="debug_level"
+                          value={opt.value}
+                          checked={debugLevel === opt.value}
+                          onChange={() => saveDebugLevel(opt.value)}
+                          disabled={debugSaving}
+                          className="mt-1 accent-green-500"
+                        />
+                        <div>
+                          <span className="text-sm font-semibold text-white group-hover:text-green-300 transition-colors">
+                            {opt.label}
+                          </span>
+                          <p className="text-xs text-zinc-500">{opt.description}</p>
+                        </div>
+                      </label>
+                    ))}
+                    {debugSaving && <p className="text-xs text-zinc-500 mt-2">Saving…</p>}
+                    {debugSaved && <p className="text-xs text-green-500 mt-2">Saved.</p>}
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* ── 2. Danger Zone ─────────────────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.1 }}>
