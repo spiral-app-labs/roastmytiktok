@@ -59,29 +59,19 @@ const FEATURES = [
 
 const HOOK_EXAMPLES = [
   {
-    type: 'Visual hook',
+    type: 'Visual + motion',
     strong: 'Open on the finished result, a fast zoom, or a dramatic before/after in frame 1.',
     weak: 'Start with a static selfie and a dead stare while you get into position.',
   },
   {
-    type: 'Spoken hook',
-    strong: '"this mistake is why your videos die at 300 views."',
-    weak: '"hey guys, so today i wanted to talk about..."',
+    type: 'Spoken curiosity',
+    strong: '“this mistake is why your videos die at 300 views.”',
+    weak: '“hey guys, so today i wanted to talk about...”',
   },
   {
-    type: 'Text hook (on-screen)',
-    strong: 'Bold text in frame 1: "3 things that kill retention instantly" — readable on mute.',
-    weak: 'Tiny text appears at 0:03, after the scroll already happened.',
-  },
-  {
-    type: 'Motion hook',
-    strong: 'Something moves in the first half-second — jump cut, zoom, fast pan, or action already in progress.',
-    weak: 'Opener settles in slowly while you adjust the camera or walk into frame.',
-  },
-  {
-    type: 'Curiosity hook',
-    strong: 'Name the surprising outcome, unexpected take, or payoff gap before you explain anything.',
-    weak: 'Start with context and backstory — the payoff is buried behind a warm-up.',
+    type: 'On-screen text',
+    strong: 'Big text in frame 1: “3 things that kill retention instantly”',
+    weak: 'Tiny text appears at 0:03 after the scroll already happened.',
   },
   {
     type: 'Attractiveness / pattern interrupt',
@@ -90,7 +80,7 @@ const HOOK_EXAMPLES = [
   },
 ]
 
-// Particle positions (stable, SSR-safe - generated once)
+// Particle positions (stable, SSR-safe — generated once)
 const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   id: i,
   x: (i * 37 + 11) % 100,
