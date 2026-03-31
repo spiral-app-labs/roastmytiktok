@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
-import { getFirstGlanceChecks, getHoldAssessment, getHookRewriteWorkflow, getHookTypeLenses, getHookWorkshop, getReshootPlanner, getReshootTakes } from '@/lib/hook-help';
+import { getDetectedHookType, getFirstGlanceChecks, getHoldAssessment, getHookRewriteWorkflow, getHookTypeLenses, getHookWorkshop, getReshootPlanner, getReshootTakes } from '@/lib/hook-help';
 import { getPersonalizedHookPatterns } from '@/lib/viral-hooks';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
@@ -150,6 +150,7 @@ function RoastContent({
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
   const isHookWeak = roast.analysisMode === 'hook-first' || roast.hookSummary?.strength === 'weak';
   const hookWorkshop = getHookWorkshop(roast);
+  const detectedHookType = getDetectedHookType(roast);
   const hookTypeLenses = getHookTypeLenses(roast);
   const hookRewriteWorkflow = getHookRewriteWorkflow(roast);
   const reshootPlanner = getReshootPlanner(roast);
@@ -612,6 +613,17 @@ function RoastContent({
                 <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">current opener</p>
                 <p className="text-sm text-zinc-200">{hookWorkshop.openerLine}</p>
               </div>
+              <div className={`rounded-xl border p-3 ${detectedHookType.type !== 'none' ? 'border-indigo-500/20 bg-indigo-500/[0.06]' : 'border-zinc-700/40 bg-zinc-950/40'}`}>
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-indigo-300">detected hook type</p>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${detectedHookType.confidence === 'likely' ? 'text-emerald-300' : detectedHookType.confidence === 'possible' ? 'text-yellow-300' : 'text-zinc-500'}`}>
+                    {detectedHookType.confidence}
+                  </span>
+                </div>
+                <p className="text-sm font-semibold text-zinc-100">{detectedHookType.label}</p>
+                <p className="text-xs text-zinc-400 mt-1">{detectedHookType.explanation}</p>
+                <p className="text-xs text-orange-200 mt-2"><span className="text-orange-400">upgrade:</span> {detectedHookType.upgrade}</p>
+              </div>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">why it is leaking</p>
                 <ul className="space-y-1.5">
@@ -748,6 +760,7 @@ function RoastContent({
               </div>
             </div>
             <p className="text-sm text-zinc-300">{holdAssessment.summary}</p>
+            <p className="mt-2 text-[11px] text-zinc-500 italic">this is a qualitative read based on what we can see in the opening beats, not a watch-time prediction. no tool can tell you your exact retention curve from a video file.</p>
             <ul className="mt-3 space-y-1.5">
               {holdAssessment.reasons.map((reason, index) => (
                 <li key={index} className="flex gap-2 text-sm text-zinc-300">
@@ -823,6 +836,14 @@ function RoastContent({
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">visual</p>
                       <p className="mt-1 text-xs text-zinc-300">{take.visual}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">camera / framing</p>
+                      <p className="mt-1 text-xs text-zinc-300">{take.cameraNote}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">timing</p>
+                      <p className="mt-1 text-xs text-blue-200/80">{take.timing}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">text overlay</p>
