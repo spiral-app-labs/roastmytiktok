@@ -378,6 +378,7 @@ export default function Home() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter invite code"
+                        aria-label="Beta invite code"
                         className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-xl px-4 py-3.5 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all text-sm"
                       />
                     </div>

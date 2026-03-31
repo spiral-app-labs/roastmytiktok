@@ -20,9 +20,17 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased dark">
       <body className="min-h-full flex flex-col bg-[#0a0a0a] text-white">
         <Providers>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-orange-500 focus:px-4 focus:py-2 focus:text-white focus:text-sm focus:font-semibold focus:outline-none"
+        >
+          Skip to main content
+        </a>
         <AppNav />
+        <div id="main-content">
         {children}
-        <footer className="mt-auto border-t border-zinc-900 px-6 py-4 flex items-center justify-between text-xs text-zinc-500">
+        </div>
+        <footer aria-label="Site footer" className="mt-auto border-t border-zinc-900 px-6 py-4 flex items-center justify-between text-xs text-zinc-500">
           <span>© {new Date().getFullYear()} Spiral App Labs</span>
           <div className="flex items-center gap-4">
             <Link href="/terms" className="hover:text-orange-400 transition-colors">
