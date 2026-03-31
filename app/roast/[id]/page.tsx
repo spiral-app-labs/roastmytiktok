@@ -15,6 +15,7 @@ import { AGENTS } from '@/lib/agents';
 import Link from 'next/link';
 import { ScriptGenerator } from '@/components/ScriptGenerator';
 import { HookHierarchyDiagram, HookExamplesBank, HookExplainerBanner, EducationalTooltip } from '@/components/HookEducation';
+import { useToast } from '@/components/ui';
 
 function getLetterGrade(score: number): string {
   if (score >= 90) return 'A+';
@@ -34,12 +35,14 @@ export default function RoastPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
 
   const handleCopyLink = useCallback(async () => {
     const url = `${window.location.origin}/roast/${id}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
+      toast('Link copied to clipboard', 'success');
       setTimeout(() => setCopied(false), 2000);
     } catch {
       const el = document.createElement('input');
@@ -49,9 +52,10 @@ export default function RoastPage() {
       document.execCommand('copy');
       document.body.removeChild(el);
       setCopied(true);
+      toast('Link copied to clipboard', 'success');
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [id]);
+  }, [id, toast]);
 
   const handleShareOnX = useCallback((score: number) => {
     const url = `${window.location.origin}/roast/${id}`;
