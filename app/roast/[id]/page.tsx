@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
-import { getFirstGlanceChecks, getHoldAssessment, getHookRewriteWorkflow, getHookWorkshop, getReshootPlanner, getReshootTakes } from '@/lib/hook-help';
+import { getFirstGlanceChecks, getHoldAssessment, getHookRewriteWorkflow, getHookTypeLenses, getHookWorkshop, getReshootPlanner, getReshootTakes } from '@/lib/hook-help';
 import { getPersonalizedHookPatterns } from '@/lib/viral-hooks';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
@@ -150,6 +150,7 @@ function RoastContent({
   const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
   const isHookWeak = roast.analysisMode === 'hook-first' || roast.hookSummary?.strength === 'weak';
   const hookWorkshop = getHookWorkshop(roast);
+  const hookTypeLenses = getHookTypeLenses(roast);
   const hookRewriteWorkflow = getHookRewriteWorkflow(roast);
   const reshootPlanner = getReshootPlanner(roast);
   const reshootTakes = getReshootTakes(roast);
@@ -634,6 +635,35 @@ function RoastContent({
                   ))}
                 </div>
               </div>
+              {/* Hook anatomy / type lenses — educational layer */}
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">hook anatomy</p>
+                    <p className="text-xs text-zinc-400 mt-1">great hooks stack multiple levers: visual, spoken, text, motion, curiosity, and attractiveness. here&apos;s how yours scores on each.</p>
+                  </div>
+                  <span className="rounded-full border border-zinc-700 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 shrink-0">
+                    teachable layer
+                  </span>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {hookTypeLenses.map((lens) => (
+                    <div key={lens.key} className="rounded-xl border border-zinc-800 bg-black/20 p-3">
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <p className="text-sm font-semibold text-zinc-100">{lens.label}</p>
+                        <span className={`text-[11px] font-bold uppercase tracking-widest shrink-0 ${lens.status === 'working' ? 'text-emerald-300' : 'text-red-300'}`}>
+                          {lens.score}/100 · {lens.status === 'working' ? 'working' : 'needs work'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-500">{lens.whatItMeans}</p>
+                      <p className="mt-2 text-xs text-zinc-300">{lens.note}</p>
+                      <p className="mt-2 text-xs text-orange-200"><span className="text-orange-400">upgrade:</span> {lens.fix}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-zinc-500 italic">if these opening levers are weak, CTA, caption, and distribution advice become secondary — viewers never stay long enough to feel the payoff.</p>
+              </div>
+
               <div className="rounded-2xl border border-orange-500/15 bg-zinc-950/40 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -933,6 +963,37 @@ function RoastContent({
                     View full history &rarr;
                   </Link>
                 </motion.div>
+              )}
+
+              {/* Detected Sound chip — shown when we extracted real sound data from the TikTok URL */}
+              {roast.detectedSound && (
+                <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.05] p-4 flex items-start gap-3">
+                  <span className="text-lg mt-0.5">🎵</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-1">sound used in this video</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-white truncate">{roast.detectedSound.name}</p>
+                      {roast.detectedSound.isOriginal ? (
+                        <span className="rounded-full border border-sky-500/30 text-sky-300 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">original audio</span>
+                      ) : (
+                        <span className="rounded-full border border-violet-500/30 text-violet-300 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">licensed sound</span>
+                      )}
+                    </div>
+                    {roast.detectedSound.author && !roast.detectedSound.isOriginal && (
+                      <p className="text-xs text-zinc-500 mt-0.5">by {roast.detectedSound.author}</p>
+                    )}
+                    {roast.detectedSound.soundUrl && (
+                      <a
+                        href={roast.detectedSound.soundUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-1 inline-block"
+                      >
+                        view on TikTok →
+                      </a>
+                    )}
+                  </div>
+                </div>
               )}
 
               {/* Agent cards grid */}
