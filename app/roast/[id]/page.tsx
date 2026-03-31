@@ -17,6 +17,7 @@ import dynamic from 'next/dynamic';
 
 const ScriptGenerator = dynamic(() => import('@/components/ScriptGenerator').then(m => m.ScriptGenerator), { ssr: false });
 import { HookHierarchyDiagram, HookExamplesBank, HookExplainerBanner, EducationalTooltip } from '@/components/HookEducation';
+import { EmailCapture } from '@/components/EmailCapture';
 import { useToast } from '@/components/ui';
 
 function getLetterGrade(score: number): string {
@@ -462,7 +463,7 @@ function RoastContent({
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                  <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                   </svg>
                   <span>Copy Link</span>
@@ -473,7 +474,7 @@ function RoastContent({
               onClick={() => handleShareOnX(roast.overallScore)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black border border-zinc-700 text-white text-sm font-semibold hover:border-white/30 hover:bg-zinc-900 transition-all"
             >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.741l7.733-8.835L1.254 2.25H8.08l4.258 5.63L18.245 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
               <span>Share on X</span>
@@ -1106,6 +1107,9 @@ function RoastContent({
               <p className="text-[11px] font-bold uppercase tracking-widest text-pink-400 mt-3 group-hover:text-pink-300">analyze again →</p>
             </Link>
           </div>
+          {/* Email capture CTA */}
+          <EmailCapture />
+
           {history.length > 0 && (
             <div className="text-center pt-1">
               <Link

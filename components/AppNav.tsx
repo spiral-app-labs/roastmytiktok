@@ -77,7 +77,7 @@ export default function AppNav() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/5 bg-[#0b0908]/80 backdrop-blur-xl">
+    <nav aria-label="Main navigation" className="sticky top-0 z-50 border-b border-white/5 bg-[#0b0908]/80 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link href={showAppNav ? '/dashboard' : '/'} className="flex items-center gap-3">
           <span className="text-2xl">🔥</span>
