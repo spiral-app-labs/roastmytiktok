@@ -1,0 +1,16 @@
+{
+  "name": "Roast My TikTok",
+  "short_name": "RoastMyTikTok",
+  "description": "6 AI agents roast your TikTok — hook rewrites, reshoot plans, and brutally honest scores.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#fb923c",
+  "icons": [
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

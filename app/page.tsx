@@ -411,12 +411,31 @@ export default function Home() {
   return (
     <div className="flex flex-col items-stretch">
       <div className="max-w-3xl mx-auto w-full px-4 pt-6 space-y-4">
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-700/50 text-xs text-zinc-400 font-medium mb-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+            6 AI agents ready to roast
+          </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white">
             Break past{' '}
             <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">200 views</span>
           </h1>
-          <p className="text-zinc-400 text-sm">Upload a TikTok. Get a brutally honest roast and a reshoot plan you can film today.</p>
+          <p className="text-zinc-400 text-sm max-w-md mx-auto">
+            Upload a TikTok or drop a link. Get a brutally honest roast, hook rewrites, and a reshoot plan you can film today.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-zinc-500">
+          {[
+            { icon: '🎣', text: 'Hook rewrites' },
+            { icon: '🎬', text: 'Reshoot plan' },
+            { icon: '⏱️', text: 'Hold-strength read' },
+            { icon: '📊', text: 'Score + grade' },
+          ].map((f) => (
+            <span key={f.text} className="flex items-center gap-1.5">
+              <span>{f.icon}</span>
+              <span>{f.text}</span>
+            </span>
+          ))}
         </div>
         <AccountCTA />
       </div>
