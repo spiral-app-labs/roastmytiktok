@@ -112,6 +112,7 @@ export default function AnalyzePage() {
     let overallScore = 0;
     let verdict = '';
     let viralPotential = 0;
+    let nichePercentile = '';
     let biggestBlocker = '';
     let nextSteps: string[] = [];
     let actionPlan: RoastResult['actionPlan'] = [];
@@ -150,6 +151,7 @@ export default function AnalyzePage() {
           overallScore = data.overallScore;
           verdict = data.verdict;
           viralPotential = data.viralPotential ?? 0;
+          nichePercentile = data.nichePercentile ?? '';
           biggestBlocker = data.biggestBlocker ?? '';
           nextSteps = data.nextSteps ?? [];
           actionPlan = data.actionPlan ?? [];
@@ -167,6 +169,7 @@ export default function AnalyzePage() {
             overallScore,
             verdict,
             viralPotential,
+            ...(nichePercentile ? { nichePercentile } : {}),
             biggestBlocker,
             nextSteps,
             actionPlan,
