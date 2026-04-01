@@ -87,27 +87,93 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const NICHE_CATEGORIES = [
+  "fitness", "cooking", "comedy", "beauty", "business",
+  "education", "tech", "lifestyle", "fashion", "travel",
+  "health", "music", "gaming", "pets", "other",
+];
+
 export default function SettingsPage() {
   const [dangerModal, setDangerModal] = useState<null | "delete">(null);
 
   // Auth + admin state
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [debugLevel, setDebugLevel] = useState<DebugLevel>("off");
   const [debugSaving, setDebugSaving] = useState(false);
   const [debugSaved, setDebugSaved] = useState(false);
+
+  // Niche state
+  const [nicheCategory, setNicheCategory] = useState("");
+  const [creatorInput, setCreatorInput] = useState("");
+  const [inspirationCreators, setInspirationCreators] = useState<string[]>([]);
+  const [nicheAnalyzing, setNicheAnalyzing] = useState(false);
+  const [nichePatterns, setNichePatterns] = useState<Record<string, unknown> | null>(null);
+  const [nicheError, setNicheError] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       setUserEmail(user.email ?? null);
+      setUserId(user.id);
       const stored = user.user_metadata?.debug_level as string | undefined;
       const valid: DebugLevel[] = ["off", "simple", "complex", "extremely_verbose"];
       if (stored && valid.includes(stored as DebugLevel)) {
         setDebugLevel(stored as DebugLevel);
       }
+      // Load niche profile from metadata
+      const savedNiche = user.user_metadata?.niche_category;
+      const savedCreators = user.user_metadata?.inspiration_creators;
+      if (savedNiche) setNicheCategory(savedNiche);
+      if (savedCreators && Array.isArray(savedCreators)) setInspirationCreators(savedCreators);
     });
   }, []);
+
+  const addCreator = () => {
+    const handle = creatorInput.trim().replace(/^@/, "");
+    if (handle && !inspirationCreators.includes(handle)) {
+      setInspirationCreators(prev => [...prev, handle]);
+      setCreatorInput("");
+    }
+  };
+
+  const removeCreator = (handle: string) => {
+    setInspirationCreators(prev => prev.filter(c => c !== handle));
+  };
+
+  async function analyzeNiche() {
+    if (!nicheCategory) return;
+    setNicheAnalyzing(true);
+    setNicheError(null);
+    try {
+      // Save to user metadata
+      const supabase = createClient();
+      await supabase.auth.updateUser({
+        data: { niche_category: nicheCategory, inspiration_creators: inspirationCreators },
+      });
+
+      const res = await fetch("/api/niche/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          niche_category: nicheCategory,
+          inspiration_creators: inspirationCreators,
+          user_id: userId,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Analysis failed");
+      }
+      const data = await res.json();
+      setNichePatterns(data.patterns);
+    } catch (err) {
+      setNicheError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setNicheAnalyzing(false);
+    }
+  }
 
   async function saveDebugLevel(level: DebugLevel) {
     setDebugSaving(true);
@@ -240,6 +306,103 @@ export default function SettingsPage() {
                     <Link href="/pricing" className="text-orange-400 hover:underline">View all plans</Link>
                     {" "}to unlock unlimited roasts, priority processing, and account-level analysis.
                   </p>
+                )}
+              </GlassCard>
+            </motion.div>
+
+            {/* ── 1.5. Your Niche ─────────────────────────────────────── */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.07 }}>
+              <GlassCard variant="surface" className="p-6">
+                <SectionHeader title="Your Niche" subtitle="Set your niche and inspiration creators for smarter script generation." />
+
+                {/* Category */}
+                <div className="mb-5">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Category</label>
+                  <select
+                    value={nicheCategory}
+                    onChange={(e) => setNicheCategory(e.target.value)}
+                    className="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:border-orange-500/40 focus:outline-none transition-colors capitalize"
+                  >
+                    <option value="">Select your niche...</option>
+                    {NICHE_CATEGORIES.map((n) => (
+                      <option key={n} value={n} className="capitalize">{n}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Inspiration Creators */}
+                <div className="mb-5">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Inspiration Creators</label>
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={creatorInput}
+                      onChange={(e) => setCreatorInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCreator())}
+                      placeholder="@username"
+                      className="flex-1 bg-zinc-900/80 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-orange-500/40 focus:outline-none transition-colors"
+                    />
+                    <button
+                      onClick={addCreator}
+                      className="rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {inspirationCreators.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {inspirationCreators.map((handle) => (
+                        <span
+                          key={handle}
+                          className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700"
+                        >
+                          @{handle}
+                          <button
+                            onClick={() => removeCreator(handle)}
+                            className="text-zinc-600 hover:text-red-400 transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Analyze Button */}
+                <button
+                  onClick={analyzeNiche}
+                  disabled={!nicheCategory || nicheAnalyzing}
+                  className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                    nicheAnalyzing
+                      ? "bg-zinc-800 text-zinc-500 cursor-wait"
+                      : nicheCategory
+                      ? "bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow shadow-orange-500/20 hover:opacity-90"
+                      : "bg-zinc-800 text-zinc-600 cursor-not-allowed"
+                  }`}
+                >
+                  {nicheAnalyzing ? "Analyzing..." : "Analyze Niche"}
+                </button>
+
+                {nicheError && (
+                  <p className="text-xs text-red-400 mt-2">{nicheError}</p>
+                )}
+
+                {/* Patterns Summary */}
+                {nichePatterns && (
+                  <div className="mt-5 space-y-3">
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Extracted Patterns</p>
+                    {Object.entries(nichePatterns).slice(0, 4).map(([key, value]) => (
+                      <div key={key} className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-3">
+                        <p className="text-xs font-semibold text-zinc-300 capitalize mb-1">
+                          {key.replace(/_/g, " ")}
+                        </p>
+                        <p className="text-xs text-zinc-500 line-clamp-3">
+                          {typeof value === "object" ? JSON.stringify(value, null, 0).slice(0, 200) : String(value)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </GlassCard>
             </motion.div>
