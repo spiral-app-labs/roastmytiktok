@@ -146,7 +146,13 @@ ROAST RULES — non-negotiable:
 - Always include at least one concrete replacement hook line, shot idea, or text-overlay rewrite.
 ` + buildExampleFeedbackBlock('hook') + `
 
-Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+MANDATORY SPECIFICITY FOR HOOK AGENT:
+- Name the EXACT frame (e.g., "Frame 1 shows...") and describe what you see in it: expression, pose, lighting, text overlay, background.
+- If a transcript is provided, quote the creator's first spoken words verbatim and critique them.
+- Your suggested replacement hook must use the creator's ACTUAL topic/niche — not a generic template.
+- Score justification must cite 2-3 strongest evidence points from what you observed.
+
+Score 0-100 (use the full range — a truly awful hook is 10-20, not 45). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   visual: {
     name: 'Visual Agent',
@@ -187,7 +193,13 @@ ROAST RULES — non-negotiable:
 - Not "clean your background" but "that [specific object] behind you is distracting — move it out of frame or switch to a plain wall."
 ` + buildExampleFeedbackBlock('visual') + `
 
-Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+MANDATORY SPECIFICITY FOR VISUAL AGENT:
+- Reference at least 2 specific frames by label (e.g., "In Frame 2...") and describe exactly what you see: lighting direction, background objects, framing, colors.
+- Identify the video format (talking head, tutorial, POV, etc.) from what you observe and judge against THAT format's standard.
+- Every visual critique must name the specific object, shadow, color, or framing issue — and the exact fix with positioning ("camera-left", "upper third", etc.).
+- Score justification must cite 2-3 strongest visual evidence points.
+
+Score 0-100 (use the full range — a truly unwatchable visual setup is 10-20, not 45). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   caption: {
     name: 'Caption Agent',
@@ -251,7 +263,14 @@ ROAST RULES — non-negotiable:
 - Funny because accurate. If their text game is strong, LEAD with the praise and say which tier.
 ` + buildExampleFeedbackBlock('caption') + `
 
-Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+MANDATORY SPECIFICITY FOR CAPTION AGENT:
+- Reference specific frames where you can (or cannot) see text. Quote the exact text visible on screen if readable.
+- If transcript is available, note the timing gap between first spoken word and first caption appearance.
+- Describe the actual font style, color, size, and position you observe — not generic advice.
+- For contrast issues, name the specific text color AND background color you see.
+- Score justification must cite 2-3 strongest evidence points about the actual captions.
+
+Score 0-100 (use the full range — no captions at all on a talking head is 5-15, not 40). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   audio: {
     name: 'Audio Agent',
@@ -299,7 +318,14 @@ ROAST RULES — non-negotiable:
 - Not "voice is too quiet" but "your voice is at maybe 40% of the mix — boost it to 80% voice / 20% music in your editor."
 ` + buildExampleFeedbackBlock('audio') + `
 
-Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+MANDATORY SPECIFICITY FOR AUDIO AGENT:
+- If transcript is provided, quote at least 2 specific phrases the creator said and critique delivery, pacing, or word choice.
+- Identify the sound strategy (trending, original, hybrid) and name the specific sound if detected.
+- Reference specific moments where audio quality changes (e.g., "around the 0:15 mark, background noise increases").
+- For speech pacing, estimate words-per-minute if transcript with timestamps is available.
+- Score justification must cite 2-3 strongest audio evidence points.
+
+Score 0-100 (use the full range — inaudible speech with zero strategy is 10-20, not 45). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   algorithm: {
     name: 'Algorithm Agent',
@@ -407,7 +433,14 @@ ROAST RULES — non-negotiable:
 - Write like you're texting. Funny because accurate.
 ` + buildExampleFeedbackBlock('algorithm') + `
 
-Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+MANDATORY SPECIFICITY FOR ALGORITHM AGENT:
+- List EVERY hashtag from the video by name and grade each one individually (too broad, niche-appropriate, too narrow, trending, or banned).
+- Suggest 3-5 specific replacement hashtags for their detected niche — not generic advice.
+- Predict which distribution phase (1-4) this video would stall at and name the specific signal that kills it.
+- Reference actual content from the video when predicting engagement patterns (e.g., "you asked '[quote]' which is weak comment bait because...").
+- Score justification must cite 2-3 strongest evidence points about algorithmic potential.
+
+Score 0-100 (use the full range — zero hashtag strategy with no engagement bait is 10-20, not 45). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   authenticity: {
     name: 'Authenticity Agent',
@@ -462,7 +495,14 @@ ROAST RULES — non-negotiable:
 - If the creator has genuine personality but rough production, acknowledge that personality > polish for building an audience.
 ` + buildExampleFeedbackBlock('authenticity') + `
 
-Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+MANDATORY SPECIFICITY FOR AUTHENTICITY AGENT:
+- Describe the creator's specific delivery style from what you observe: tone, energy, eye contact, body language, facial expressions in specific frames.
+- If transcript is available, quote specific phrases that sound natural vs. performative.
+- Identify their niche from the content and explain whether the algorithm can categorize them based on what you see.
+- Reference specific moments where authenticity shines or breaks (e.g., "In Frame 4, your expression shifts from natural to 'content creator face' — that's where the connection drops").
+- Score justification must cite 2-3 strongest evidence points about authenticity.
+
+Score 0-100 (use the full range — completely fake, performative delivery is 10-20, not 45). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   conversion: {
     name: 'Conversion Agent',
@@ -534,7 +574,14 @@ ROAST RULES — non-negotiable:
 - Be funny because you're RIGHT. Write like you're texting.
 ` + buildExampleFeedbackBlock('conversion') + `
 
-Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+MANDATORY SPECIFICITY FOR CONVERSION AGENT:
+- Identify the exact CTA used (quote it verbatim if spoken or visible) or note its absence.
+- If there's a CTA, name its type (soft/hard), placement (end/mid/caption/on-screen/pinned), and grade the content-CTA match.
+- Write the EXACT replacement CTA and comment bait tailored to their specific content and niche. Use their topic, not a template.
+- Reference specific moments where conversion opportunity was missed (e.g., "At the end of your video you just stop — no CTA, no question, nothing").
+- Score justification must cite 2-3 strongest evidence points about conversion potential.
+
+Score 0-100 (use the full range — zero CTA with no engagement hook is 10-20, not 45). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   accessibility: {
     name: 'Accessibility Agent',
@@ -579,7 +626,14 @@ ROAST RULES — non-negotiable:
 - Be funny because you're RIGHT. Write like you're texting.
 ` + buildExampleFeedbackBlock('accessibility') + `
 
-Score 0-100. Return ONLY valid JSON (no markdown): {"score": number, "roastText": string, "findings": string[], "improvementTip": string}`,
+MANDATORY SPECIFICITY FOR ACCESSIBILITY AGENT:
+- Reference specific frames where captions are present or absent. If visible, describe their style, size, color, and position.
+- Note whether text is in TikTok's danger zones (bottom 20%, right 15%) based on what you see in the frames.
+- Estimate contrast ratio from the actual colors you observe (e.g., "white text on light beige background is ~2:1").
+- Grade sound-off comprehension: would this specific video make sense with mute? Reference what visual elements carry (or fail to carry) the message.
+- Score justification must cite 2-3 strongest evidence points about accessibility.
+
+Score 0-100 (use the full range — no captions, no text, audio-dependent is 5-15, not 40). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
 };
 
@@ -610,6 +664,32 @@ SPECIFICITY — non-negotiable:
 - Bad: "use trending sounds." Good: "your niche is blowing up with [specific sound/format] right now — try that instead of original audio for your next post."
 - If you can't be specific because you can't see the detail clearly, say that honestly instead of guessing.`;
 
+const VIDEO_GROUNDING_RULES = `
+
+VIDEO-GROUNDING — YOUR FEEDBACK MUST BE IMPOSSIBLE TO COPY-PASTE ONTO ANOTHER VIDEO:
+
+ANTI-GENERIC GUARDRAIL (read this twice):
+Your feedback must be impossible to apply to any other video. If someone could copy-paste your feedback onto a different video and it would still make sense, you have FAILED. Every sentence must be anchored to something you actually observed in THIS specific video.
+
+MANDATORY EVIDENCE REQUIREMENTS:
+1. Reference at least 2 specific moments from the actual video content. Use frame labels (e.g., "In Frame 3 at ~0:04..."), timestamps, or visual descriptions.
+2. Quote exact words spoken or visible text when available. If transcript is provided, pull direct quotes. If text is on screen, quote it verbatim.
+3. Describe specific visual elements you see in the frames: colors, objects, positioning, expressions, clothing, backgrounds, text overlays. Not "your background is messy" but "the stack of Amazon boxes behind your left shoulder is pulling focus."
+4. Every criticism must include a concrete 'do this instead' with a SPECIFIC rewrite or suggestion based on THEIR content. Not "try a better hook" but "replace your opening line '[their actual words]' with '[your specific rewrite for their topic]'."
+
+NICHE-AWARE CALIBRATION:
+You will receive detected niche data below. USE IT. A cooking tutorial should be judged differently than a comedy skit. Reference niche-specific benchmarks when scoring. Example: "For [detected niche] content, the benchmark for [this dimension] is [X], and your video [exceeds/falls short] because [specific reason]."
+
+SCORING CALIBRATION:
+- Use the FULL 0-100 range. A genuinely terrible performance in your dimension should score 10-20, not 45.
+- A mediocre performance is 35-50. Average is 50-60. Good is 65-80. Great is 80-90. Exceptional is 90+.
+- Do NOT compress scores into the 40-70 range. Be brave with low scores when warranted and generous with high scores when earned.
+
+ROAST PERSONALITY:
+- Reference actual content from the video in the roast. Generic roasts are lazy.
+- The best roasts are funny because they're ACCURATE. "Your opening line 'hey guys so today...' has the energy of a substitute teacher on a Friday" hits harder than "your hook is weak."
+- If the transcript or frames give you material, USE IT in the roast. Quote their words back at them. Describe what you see.`;
+
 const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility'];
 const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
   hook: 0.5,
@@ -623,14 +703,14 @@ const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
 };
 
 const DIMENSION_WEIGHTS: Record<DimensionKey, number> = {
-  hook: 0.21,
-  visual: 0.16,
-  caption: 0.09,
-  audio: 0.13,
-  algorithm: 0.13,
+  hook: 0.25,
+  visual: 0.15,
+  caption: 0.10,
+  audio: 0.10,
+  algorithm: 0.15,
   authenticity: 0.10,
   conversion: 0.10,
-  accessibility: 0.08,
+  accessibility: 0.05,
 };
 
 // When the hook is weak, conversion/caption/accessibility are near-irrelevant —
@@ -649,6 +729,14 @@ const HOOK_FIRST_WEIGHTS: Record<DimensionKey, number> = {
 
 const LATE_STAGE_DIMENSIONS: DimensionKey[] = ['conversion', 'caption', 'accessibility'];
 
+interface AgentResult {
+  score: number;
+  roastText: string;
+  findings: string[];
+  improvementTip: string;
+  scoreJustification: string[];
+}
+
 // Threshold raised from 55 → 60 so more videos trigger hook-first mode.
 // A score of 55-59 was previously "mixed" but in practice those videos still
 // have a broken opening — they need the same "fix hook first" messaging.
@@ -663,7 +751,7 @@ function getDimensionWeights(hookScore: number | undefined): Record<DimensionKey
   return classifyHookStrength(hookScore) === 'weak' ? HOOK_FIRST_WEIGHTS : DIMENSION_WEIGHTS;
 }
 
-function buildHookPriorityContext(dimension: DimensionKey, hookResult?: { score: number; roastText: string; findings: string[]; improvementTip: string }): string {
+function buildHookPriorityContext(dimension: DimensionKey, hookResult?: AgentResult): string {
   if (!hookResult || dimension === 'hook') return '';
 
   const hookStrength = classifyHookStrength(hookResult.score);
@@ -701,7 +789,7 @@ HOOK-FIRST CONTEXT: Hook Agent scored this video ${hookResult.score}/100 (STRONG
 HOOK-FIRST CONTEXT: Hook Agent scored this video ${hookResult.score}/100 (MIXED). The opener has potential but is not fully earning the hold. Diagnose your lane, but where relevant, note whether your issue is compounding a hook that almost works.`;
 }
 
-function buildHookSummary(hookResult: { score: number; roastText: string; findings: string[]; improvementTip: string }) {
+function buildHookSummary(hookResult: AgentResult) {
   const strength = classifyHookStrength(hookResult.score);
   const firstFinding = hookResult.findings[0] || 'The opening is not doing enough work.';
   const headline = strength === 'weak'
@@ -737,7 +825,7 @@ function buildHookSummary(hookResult: { score: number; roastText: string; findin
   };
 }
 
-function parseAgentResponse(text: string, dimension: DimensionKey): { score: number; roastText: string; findings: string[]; improvementTip: string } {
+function parseAgentResponse(text: string, dimension: DimensionKey): AgentResult {
   // Try to extract JSON from the response (handle markdown code blocks)
   let jsonStr = text;
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -751,12 +839,15 @@ function parseAgentResponse(text: string, dimension: DimensionKey): { score: num
   }
 
   const parsed = JSON.parse(jsonStr);
-  return sanitizeAgentResult({
-    score: Math.max(0, Math.min(100, Math.round(parsed.score))),
-    roastText: parsed.roastText || 'No roast text generated.',
-    findings: Array.isArray(parsed.findings) ? parsed.findings : [],
-    improvementTip: parsed.improvementTip || 'Try harder next time.',
-  }, dimension);
+  return {
+    ...sanitizeAgentResult({
+      score: Math.max(0, Math.min(100, Math.round(parsed.score))),
+      roastText: parsed.roastText || 'No roast text generated.',
+      findings: Array.isArray(parsed.findings) ? parsed.findings : [],
+      improvementTip: parsed.improvementTip || 'Try harder next time.',
+    }, dimension),
+    scoreJustification: Array.isArray(parsed.scoreJustification) ? parsed.scoreJustification : [],
+  };
 }
 
 interface ViralPattern {
@@ -1000,7 +1091,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           }
         }
 
-        const agentResults: Record<string, { score: number; roastText: string; findings: string[]; improvementTip: string }> = {};
+        const agentResults: Record<string, AgentResult> = {};
         const trendingCtx = await trendingContextPromise;
         const chronicIssues = await chronicIssuesPromise;
         const viralPatterns = await viralPatternsPromise;
@@ -1109,8 +1200,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               ? captionQualityContext
               : '';
             const fullPrompt = truncateForTokenLimit(
-              prompt + TONE_RULES + hookContext + hookPriorityContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext,
-              12000,
+              prompt + TONE_RULES + VIDEO_GROUNDING_RULES + hookContext + hookPriorityContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext,
+              14000,
             );
 
             // Retry agent call up to 2 times on transient failures
@@ -1164,6 +1255,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               roastText: `${name} encountered an error analyzing this dimension. Consider yourself lucky.`,
               findings: ['Analysis error — could not fully evaluate this dimension'],
               improvementTip: 'Try uploading again for a complete analysis.',
+              scoreJustification: ['Analysis error — score is a placeholder'],
             };
             agentResults[dimension] = fallback;
             send({
@@ -1324,6 +1416,7 @@ Rules:
             roastText: agentResults[dim].roastText,
             findings: agentResults[dim].findings,
             improvementTip: agentResults[dim].improvementTip,
+            scoreJustification: agentResults[dim].scoreJustification,
             timestamp_seconds: AGENT_TIMESTAMPS[dim],
           })),
           niche: {
