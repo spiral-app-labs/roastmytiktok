@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { SavedScript, getScripts, deleteScript } from '@/lib/script-history';
+import { SavedScript, getScripts, deleteScript, ScriptSource } from '@/lib/script-history';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GeneratedScript } from '@/app/api/generate-script/route';
 
@@ -65,6 +65,19 @@ function ScriptPreview({ script }: { script: GeneratedScript }) {
   );
 }
 
+function SourceBadge({ source }: { source?: ScriptSource }) {
+  const config = {
+    created: { label: 'Created', class: 'bg-blue-500/20 text-blue-400' },
+    improved: { label: 'Improved', class: 'bg-purple-500/20 text-purple-400' },
+    roast: { label: 'Post-Roast', class: 'bg-orange-500/20 text-orange-400' },
+  };
+  const s = source || 'roast';
+  const c = config[s] || config.roast;
+  return (
+    <span className={`text-xs px-1.5 py-0.5 rounded-full ${c.class}`}>{c.label}</span>
+  );
+}
+
 function ScriptCard({ saved, onDelete }: { saved: SavedScript; onDelete: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -121,7 +134,8 @@ function ScriptCard({ saved, onDelete }: { saved: SavedScript; onDelete: (id: st
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm">✨</span>
-              <p className="text-sm font-semibold text-white truncate">{shortUrl}</p>
+              <p className="text-sm font-semibold text-white truncate">{saved.topic || shortUrl}</p>
+              <SourceBadge source={saved.source} />
             </div>
             <div className="flex items-center gap-3">
               <p className="text-xs text-zinc-600">{formatDate(saved.generatedAt)}</p>
@@ -220,9 +234,17 @@ export default function ScriptsPage() {
               <span className="text-3xl">📜</span>
               <h1 className="text-2xl font-bold text-white">Script History</h1>
             </div>
-            <Link href="/" className="text-sm text-zinc-500 hover:text-orange-400 transition-colors">
-              ← New Roast
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/scripts/create"
+                className="inline-flex items-center gap-1.5 fire-gradient text-white font-semibold px-4 py-2 rounded-xl text-sm hover:opacity-90 transition-opacity"
+              >
+                ✍️ Create New Script
+              </Link>
+              <Link href="/" className="text-sm text-zinc-500 hover:text-orange-400 transition-colors">
+                ← New Roast
+              </Link>
+            </div>
           </div>
           <p className="text-zinc-500 text-sm ml-12">
             {scripts.length > 0
@@ -240,14 +262,22 @@ export default function ScriptsPage() {
             <div className="text-5xl mb-4">✨</div>
             <h2 className="text-lg font-semibold text-zinc-300 mb-2">No scripts yet</h2>
             <p className="text-sm text-zinc-600 mb-6">
-              Get a roast first, then generate an improved script from the results page.
+              Create a script from scratch or get a roast and generate an improved version.
             </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity"
-            >
-              🔥 Roast My TikTok
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+              <Link
+                href="/scripts/create"
+                className="inline-flex items-center gap-2 fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity"
+              >
+                ✍️ Create New Script
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-200 font-semibold px-6 py-3 rounded-xl border border-zinc-700 hover:border-zinc-500 transition-all"
+              >
+                🔥 Roast My TikTok
+              </Link>
+            </div>
           </motion.div>
         ) : (
           <div className="space-y-4">

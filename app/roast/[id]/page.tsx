@@ -1091,6 +1091,37 @@ function RoastContent({
           </CollapsibleSection>
         </motion.div>
 
+        {/* Generate Reshoot Script CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2 }}
+          className="mt-10"
+        >
+          <Link
+            href={`/scripts/create?mode=reshoot&roastId=${roast.id}&score=${roast.overallScore}&feedback=${encodeURIComponent(JSON.stringify(roast.agents.map(a => ({ agent: a.agent, findings: a.findings.slice(0, 2), tip: a.improvementTip }))))}`}
+            className="block w-full rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-pink-500/10 p-6 hover:border-orange-500/50 transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 flex items-center justify-center text-2xl shrink-0">
+                ✍️
+              </div>
+              <div className="flex-1">
+                <p className="text-lg font-bold text-white group-hover:text-orange-200 transition-colors">Generate Reshoot Script</p>
+                <p className="text-sm text-zinc-400 mt-0.5">Auto-feeds all agent feedback into Script Studio to create a complete fix-it script</p>
+              </div>
+              <span className="text-zinc-500 group-hover:text-orange-400 transition-colors text-lg">→</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {roast.agents.filter(a => a.score < 70).map(a => (
+                <span key={a.agent} className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                  {a.agent}: {a.improvementTip?.slice(0, 50)}...
+                </span>
+              ))}
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Bottom CTA — next steps */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -1109,15 +1140,15 @@ function RoastContent({
               <p className="text-xs text-zinc-400 mt-1">Steal a stronger opener you can film today.</p>
               <p className="text-[11px] font-bold uppercase tracking-widest text-orange-400 mt-3 group-hover:text-orange-300">jump to section →</p>
             </a>
-            <a
-              href="#reshoot-planner"
-              className="group rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] p-4 hover:border-blue-500/40 transition-all"
+            <Link
+              href={`/scripts/create?mode=reshoot&roastId=${roast.id}&score=${roast.overallScore}`}
+              className="group rounded-2xl border border-green-500/20 bg-green-500/[0.06] p-4 hover:border-green-500/40 transition-all"
             >
-              <span className="text-xl">🎬</span>
-              <p className="text-sm font-semibold text-white mt-2">Reshoot planner</p>
-              <p className="text-xs text-zinc-400 mt-1">Concrete shot, text, and delivery direction.</p>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-blue-400 mt-3 group-hover:text-blue-300">jump to section →</p>
-            </a>
+              <span className="text-xl">✍️</span>
+              <p className="text-sm font-semibold text-white mt-2">Script Studio</p>
+              <p className="text-xs text-zinc-400 mt-1">Generate a complete reshoot script from your roast.</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-green-400 mt-3 group-hover:text-green-300">create script →</p>
+            </Link>
             <div
               className="group rounded-2xl border border-zinc-700 bg-zinc-900/60 p-4 cursor-pointer hover:border-zinc-500 transition-all"
               onClick={() => handleShareOnX(roast.overallScore)}

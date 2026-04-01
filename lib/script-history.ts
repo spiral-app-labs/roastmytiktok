@@ -1,5 +1,7 @@
 import { GeneratedScript } from '@/app/api/generate-script/route';
 
+export type ScriptSource = 'roast' | 'created' | 'improved';
+
 export interface SavedScript {
   id: string;
   roastId: string;
@@ -7,6 +9,8 @@ export interface SavedScript {
   tiktokUrl: string;
   script: GeneratedScript;
   generatedAt: string;
+  source?: ScriptSource;
+  topic?: string;
 }
 
 const STORAGE_KEY = 'rmt_script_history';
