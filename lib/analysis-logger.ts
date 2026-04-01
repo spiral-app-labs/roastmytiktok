@@ -11,6 +11,7 @@ export type AnalysisStage =
   | 'caption-quality'
   | 'agent'
   | 'verdict'
+  | 'text-extraction'
   | 'supabase-save'
   | 'cleanup';
 

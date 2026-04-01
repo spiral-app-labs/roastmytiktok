@@ -20,21 +20,20 @@ const MIN_FRAME_BYTES = 500;
 /** Maximum time (ms) to allow for a single ffprobe/ffmpeg call. */
 const FFMPEG_TIMEOUT_MS = 15_000;
 
+/**
+ * Fixed opening timestamps for text-hook detection.
+ * These are the critical moments where on-screen text hooks appear:
+ * 0s (title card), 0.5s, 1s, 1.5s, 2s, 3s — dense sampling in the
+ * opening 3 seconds where 63% of attention decisions happen.
+ */
+const OPENING_ANCHORS = [0.05, 0.5, 1.0, 1.5, 2.0, 3.0];
+
 export function buildFramePlan(durationSec: number, numFrames: number = 8): PlannedFrame[] {
   if (!Number.isFinite(durationSec) || durationSec <= 0) {
     throw new Error('Could not determine video duration');
   }
 
   const desiredFrames = Math.max(4, numFrames);
-  const openingWindow = Math.min(Math.max(durationSec * 0.35, 2.5), 4);
-  // Reserve one guaranteed sub-0.15s slot for title cards and opening text hooks.
-  // Many creators place their strongest on-screen text hook in the very first frame
-  // (0.03-0.12s) which evenly-spaced sampling consistently misses. This slot anchors
-  // the opening sample to the first meaningful video frame before any other logic runs.
-  const FIRST_FRAME_TS = Math.min(0.05, durationSec * 0.01);
-  // Remaining opening slots after the first-frame anchor
-  const openingCount = Math.min(4, Math.max(3, Math.ceil(desiredFrames / 2)));
-  const storyCount = Math.max(0, desiredFrames - openingCount - 1); // -1 for FIRST_FRAME_TS
   const timestamps = new Map<number, PlannedFrame>();
 
   const pushFrame = (rawTimestamp: number, slot: 'opening' | 'story', forcedLabel?: string) => {
@@ -47,24 +46,27 @@ export function buildFramePlan(durationSec: number, numFrames: number = 8): Plan
     timestamps.set(timestampSec, { timestampSec, slot, label });
   };
 
-  // Guaranteed first-frame anchor for title cards / opening text hooks
-  pushFrame(FIRST_FRAME_TS, 'opening', `First-frame anchor at ${FIRST_FRAME_TS.toFixed(2)}s (title-card / text-hook sample)`);
-
-  for (let i = 0; i < openingCount; i++) {
-    const raw = openingCount === 1
-      ? Math.min(0.35, durationSec / 2)
-      : 0.15 + (openingWindow - 0.15) * (i / (openingCount - 1));
-    pushFrame(raw, 'opening');
+  // Guaranteed opening anchor frames at 0s, 0.5s, 1s, 1.5s, 2s, 3s
+  // These ensure text hooks, title cards, and on-screen text are always captured
+  for (const anchor of OPENING_ANCHORS) {
+    if (anchor < durationSec) {
+      const label = anchor <= 0.05
+        ? `First-frame anchor at ${anchor.toFixed(2)}s (title-card / text-hook sample)`
+        : `Opening text-detection frame at ${anchor.toFixed(1)}s`;
+      pushFrame(anchor, 'opening', label);
+    }
   }
 
-  if (storyCount > 0) {
-    const remainingWindowStart = Math.min(openingWindow + 0.35, Math.max(durationSec * 0.45, openingWindow));
-    const remainingSpan = Math.max(durationSec - remainingWindowStart, durationSec * 0.2);
+  // Fill remaining slots with story frames from later in the video
+  const storyCount = Math.max(0, desiredFrames - timestamps.size);
+  if (storyCount > 0 && durationSec > 3.5) {
+    const storyStart = Math.min(3.5, durationSec * 0.4);
+    const storySpan = Math.max(durationSec - storyStart - 0.1, durationSec * 0.2);
 
     for (let i = 0; i < storyCount; i++) {
       const raw = storyCount === 1
-        ? remainingWindowStart + remainingSpan / 2
-        : remainingWindowStart + remainingSpan * ((i + 1) / (storyCount + 1));
+        ? storyStart + storySpan / 2
+        : storyStart + storySpan * ((i + 1) / (storyCount + 1));
       pushFrame(raw, 'story');
     }
   }

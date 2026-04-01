@@ -746,6 +746,112 @@ function classifyHookStrength(score: number): 'weak' | 'mixed' | 'strong' {
   return 'strong';
 }
 
+interface OnScreenTextResult {
+  timestampSec: number;
+  label: string;
+  detectedText: string[];
+}
+
+/**
+ * Dedicated text extraction pass: uses Claude Vision to read ALL on-screen text
+ * from the opening frames (0-3s). Runs before agents so text data is available
+ * for the Hook Agent to analyze text hooks separately from spoken hooks.
+ */
+async function extractOnScreenText(
+  anthropic: Anthropic,
+  openingFrames: ExtractedFrame[],
+): Promise<OnScreenTextResult[]> {
+  if (openingFrames.length === 0) return [];
+
+  try {
+    const imageContent = openingFrames.flatMap(frame => ([
+      {
+        type: 'text' as const,
+        text: `Frame at ${frame.timestampSec.toFixed(2)}s (${frame.label}):`,
+      },
+      {
+        type: 'image' as const,
+        source: {
+          type: 'base64' as const,
+          media_type: 'image/jpeg' as const,
+          data: frame.imageBase64,
+        },
+      },
+    ]));
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      messages: [{
+        role: 'user',
+        content: [
+          ...imageContent,
+          {
+            type: 'text',
+            text: `For each frame above, read ALL visible on-screen text — text overlays, captions, stickers, watermarks, title cards, any visible text of any kind. Return ONLY valid JSON (no markdown):
+[
+  {"timestampSec": 0.05, "detectedText": ["text line 1", "text line 2"]},
+  {"timestampSec": 0.5, "detectedText": ["text line 1"]}
+]
+Rules:
+- Include every piece of readable text in each frame
+- If a frame has no text, return an empty array for detectedText
+- Preserve the text exactly as shown (capitalization, emoji, punctuation)
+- Use the timestamp from the frame label`,
+          },
+        ],
+      }],
+    });
+
+    const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+
+    let jsonStr = responseText;
+    const codeBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) jsonStr = codeBlockMatch[1].trim();
+    const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
+    if (arrayMatch) jsonStr = arrayMatch[0];
+
+    const parsed = JSON.parse(jsonStr);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map((entry: { timestampSec: number; detectedText: string[] }) => ({
+      timestampSec: Number(entry.timestampSec) || 0,
+      label: `${(Number(entry.timestampSec) || 0).toFixed(2)}s`,
+      detectedText: Array.isArray(entry.detectedText) ? entry.detectedText.map(String) : [],
+    }));
+  } catch (err) {
+    console.error('[analyze] On-screen text extraction failed:', err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
+/**
+ * Build context string from on-screen text extraction results.
+ */
+function buildOnScreenTextContext(textResults: OnScreenTextResult[], transcript?: TranscriptionResult | null): string {
+  if (textResults.length === 0) return '';
+
+  const hasAnyText = textResults.some(r => r.detectedText.length > 0);
+  if (!hasAnyText) return '';
+
+  const lines = textResults
+    .filter(r => r.detectedText.length > 0)
+    .map(r => `  ${r.timestampSec.toFixed(2)}s: ${r.detectedText.map(t => `"${t}"`).join(', ')}`)
+    .join('\n');
+
+  let context = `\n\nON-SCREEN TEXT DETECTED IN OPENING FRAMES:\n${lines}`;
+
+  // Flag text-hook-only pattern: text in first 3s but no spoken hook
+  const hasTextHook = textResults.some(r => r.timestampSec <= 3 && r.detectedText.length > 0);
+  const hasSpokenHook = transcript?.segments?.some(s => s.start <= 3 && s.text.trim().length > 0) ?? false;
+
+  if (hasTextHook && !hasSpokenHook) {
+    context += `\n\nPATTERN DETECTED: This video uses ON-SCREEN TEXT as the primary hook with NO spoken words in the first 3 seconds. This is a TEXT-FIRST hook — analyze the text overlay content as the hook, not just spoken words. Many viral TikToks use this pattern successfully (text overlay + music/visual). Judge the TEXT hook quality.`;
+  }
+
+  return context;
+}
+
 function getDimensionWeights(hookScore: number | undefined): Record<DimensionKey, number> {
   if (typeof hookScore !== 'number') return DIMENSION_WEIGHTS;
   return classifyHookStrength(hookScore) === 'weak' ? HOOK_FIRST_WEIGHTS : DIMENSION_WEIGHTS;
@@ -1043,7 +1149,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           audioPath = extractAudio(videoPath);
           if (audioPath) {
             logSuccess('audio-extraction', id, { audioPath });
-            const hasTranscriptionKey = !!process.env.OPENAI_API_KEY || !!process.env.ASSEMBLYAI_API_KEY;
+            const hasTranscriptionKey = !!process.env.OPENAI_API_KEY || !!process.env.ASSEMBLYAI_API_KEY || !!process.env.ANTHROPIC_API_KEY;
             if (hasTranscriptionKey) {
               send({ type: 'status', message: 'Transcribing audio...' });
             } else {
@@ -1089,6 +1195,30 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           } catch (err) {
             logFailure('caption-quality', id, err);
           }
+        }
+
+        // Dedicated on-screen text extraction from opening frames (before agents)
+        let onScreenTextResults: OnScreenTextResult[] = [];
+        const openingFrames = frames.filter(f => f.timestampSec <= 3.5);
+        if (openingFrames.length > 0) {
+          try {
+            send({ type: 'status', message: 'Detecting on-screen text in opening frames...' });
+            const textStart = Date.now();
+            onScreenTextResults = await extractOnScreenText(anthropic, openingFrames);
+            const textCount = onScreenTextResults.reduce((sum, r) => sum + r.detectedText.length, 0);
+            logSuccess('text-extraction', id, { frameCount: openingFrames.length, textItems: textCount }, Date.now() - textStart);
+            if (textCount > 0) {
+              send({ type: 'status', message: `Detected ${textCount} text elements in opening frames.` });
+            }
+          } catch (err) {
+            logFailure('text-extraction', id, err);
+          }
+        }
+        const onScreenTextContext = buildOnScreenTextContext(onScreenTextResults, transcript);
+
+        // Build transcript confidence note for status
+        if (transcript && transcript.confidence < 0.5) {
+          send({ type: 'status', message: `Transcript confidence: ${Math.round(transcript.confidence * 100)}% — transcript may be partial or degraded.` });
         }
 
         const agentResults: Record<string, AgentResult> = {};
@@ -1186,12 +1316,29 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                 silenceNote,
               ].filter(Boolean).join(' ');
               audioContext = `\n\nNo audio transcript available (no OPENAI_API_KEY or ASSEMBLYAI_API_KEY configured).\n\nAUDIO SIGNAL ANALYSIS (from ffmpeg waveform detection):\n${structureNote}\n\nAnalyze based on these audio characteristics and visual cues. Note clearly that spoken content could not be transcribed and that a transcript API key would enable deeper analysis.${detectedSoundNote}`;
-            } else if (dimension === 'hook' && transcript?.segments?.length) {
-              const firstSegment = transcript.segments[0];
-              audioContext = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstSegment.text, 500)}". Analyze whether this opening line is a strong hook.`;
+            } else if (dimension === 'hook') {
+              // Hook Agent: first spoken words + on-screen text detection
+              if (transcript?.segments?.length) {
+                const firstSegment = transcript.segments[0];
+                audioContext = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstSegment.text, 500)}". Analyze whether this opening line is a strong hook.`;
+              }
+              // Always append on-screen text context to Hook Agent
+              audioContext += onScreenTextContext;
             } else if (dimension === 'algorithm' && transcript?.text) {
               const words = sanitizePromptInput(transcript.text, 500).split(/\s+/).slice(0, 30).join(' ');
               audioContext = `\n\nThe caption/speech mentions: "${words}". Does this align with trending topics?${detectedSoundNote}`;
+            } else if (dimension === 'authenticity' && transcript?.text) {
+              // Authenticity Agent: full transcript helps judge delivery and personality
+              const safeTranscript = sanitizePromptInput(transcript.text, 2000);
+              audioContext = `\n\nFULL TRANSCRIPT:\n${safeTranscript}\n\nUse the transcript to judge delivery, word choice, and whether the creator sounds authentic or performed. Quote specific phrases as evidence.`;
+            } else if (dimension === 'conversion' && transcript?.text) {
+              // Conversion Agent: transcript helps identify verbal CTAs
+              const safeTranscript = sanitizePromptInput(transcript.text, 1500);
+              audioContext = `\n\nFULL TRANSCRIPT:\n${safeTranscript}\n\nCheck if the creator includes any verbal call-to-action. Quote the CTA if found, or note its absence.`;
+            } else if (dimension === 'caption' && transcript?.text) {
+              // Caption Agent: transcript helps assess caption-speech sync
+              const safeTranscript = sanitizePromptInput(transcript.text, 1500);
+              audioContext = `\n\nSPOKEN TRANSCRIPT (for sync analysis):\n${safeTranscript}`;
             }
 
             const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);
@@ -1427,6 +1574,7 @@ Rules:
           ...(detectedSound ? { detectedSound } : {}),
           ...(transcript?.text ? { audioTranscript: transcript.text } : {}),
           ...(transcript?.segments?.length ? { audioSegments: transcript.segments } : {}),
+          ...(transcript ? { transcriptConfidence: transcript.confidence, transcriptProvider: transcript.provider } : {}),
           metadata: {
             views: 0,
             likes: 0,
