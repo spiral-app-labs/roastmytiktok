@@ -64,6 +64,10 @@ export interface RoastResult {
   };
   audioTranscript?: string;
   audioSegments?: Array<{ start: number; end: number; text: string }>;
+  /** 0-1 confidence score for transcript quality. <0.5 means partial/degraded. */
+  transcriptConfidence?: number;
+  /** Which provider produced the transcript (assemblyai, whisper, or claude-audio fallback). */
+  transcriptProvider?: 'assemblyai' | 'whisper' | 'claude-audio';
   /** Sound detected from the TikTok video URL (Phase 1 — free HTML extraction) */
   detectedSound?: {
     name: string;

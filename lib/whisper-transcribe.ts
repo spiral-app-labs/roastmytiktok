@@ -1,4 +1,5 @@
 import { readFileSync, existsSync, statSync } from 'fs';
+import Anthropic from '@anthropic-ai/sdk';
 
 export interface TranscriptionSegment {
   start: number;
@@ -9,7 +10,9 @@ export interface TranscriptionSegment {
 export interface TranscriptionResult {
   text: string;
   segments: TranscriptionSegment[];
-  provider?: 'assemblyai' | 'whisper';
+  provider?: 'assemblyai' | 'whisper' | 'claude-audio';
+  /** 0-1 confidence score: 1 = full confident transcript, <0.5 = partial/degraded */
+  confidence: number;
 }
 
 /** Whisper API has a 25 MB file size limit. */
@@ -66,6 +69,50 @@ async function fetchWithRetry(
   }
 
   throw lastError instanceof Error ? lastError : new Error('Network request failed');
+}
+
+// ---------------------------------------------------------------------------
+// Confidence scoring
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute a 0-1 confidence score for a transcript based on heuristics:
+ * - Has text at all
+ * - Has timed segments (vs just a blob of text)
+ * - Segment coverage (gaps between segments suggest missed speech)
+ * - Text length relative to expected speech density (~2.5 words/sec)
+ */
+function computeConfidence(text: string, segments: TranscriptionSegment[]): number {
+  if (!text && segments.length === 0) return 0;
+
+  let score = 0;
+
+  // Base: we got text
+  if (text.length > 0) score += 0.3;
+
+  // Timed segments available
+  if (segments.length > 0) score += 0.2;
+
+  // Segment density: more segments = better coverage
+  if (segments.length >= 3) score += 0.15;
+  else if (segments.length >= 1) score += 0.05;
+
+  // Word count heuristic: very short transcripts are suspicious
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  if (wordCount >= 20) score += 0.2;
+  else if (wordCount >= 5) score += 0.1;
+
+  // Segment time coverage: check for large gaps
+  if (segments.length >= 2) {
+    const totalSpan = segments[segments.length - 1].end - segments[0].start;
+    const coveredTime = segments.reduce((sum, s) => sum + (s.end - s.start), 0);
+    const coverage = totalSpan > 0 ? coveredTime / totalSpan : 0;
+    score += coverage * 0.15;
+  } else if (segments.length === 1) {
+    score += 0.05;
+  }
+
+  return Math.min(1, Number(score.toFixed(2)));
 }
 
 // ---------------------------------------------------------------------------
@@ -137,7 +184,7 @@ async function transcribeWithWhisper(
   console.log(
     `[transcribe] Whisper returned ${text.length} chars, ${segments.length} segments`
   );
-  return { text, segments, provider: 'whisper' };
+  return { text, segments, provider: 'whisper', confidence: computeConfidence(text, segments) };
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +228,7 @@ export function parseAssemblyTranscript(json: Record<string, unknown>): Transcri
     text,
     segments,
     provider: 'assemblyai',
+    confidence: computeConfidence(text, segments),
   };
 }
 
@@ -278,12 +326,133 @@ async function transcribeWithAssemblyAI(
 }
 
 // ---------------------------------------------------------------------------
+// Claude Audio fallback
+// ---------------------------------------------------------------------------
+
+/**
+ * Fallback transcription using Claude's audio understanding.
+ * Sends the audio file directly to Claude and asks it to transcribe.
+ * Used when both AssemblyAI and Whisper fail.
+ */
+async function transcribeWithClaude(
+  audioPath: string,
+): Promise<TranscriptionResult | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.warn('[transcribe] ANTHROPIC_API_KEY not set — skipping Claude audio fallback');
+    return null;
+  }
+
+  // Claude audio input supports up to ~25MB
+  const fileSize = statSync(audioPath).size;
+  if (fileSize > 25 * 1024 * 1024) {
+    console.warn(`[transcribe] Audio file too large for Claude audio fallback (${(fileSize / 1024 / 1024).toFixed(1)} MB) — skipping`);
+    return null;
+  }
+
+  console.log('[transcribe] Attempting Claude audio fallback…');
+
+  const fileData = readFileSync(audioPath);
+  const audioBase64 = fileData.toString('base64');
+
+  // Determine media type from file extension
+  const ext = audioPath.split('.').pop()?.toLowerCase();
+  const mediaTypeMap: Record<string, string> = {
+    wav: 'audio/wav',
+    mp3: 'audio/mp3',
+    webm: 'audio/webm',
+    ogg: 'audio/ogg',
+    flac: 'audio/flac',
+    m4a: 'audio/mp4',
+    mp4: 'audio/mp4',
+  };
+  const mediaType = mediaTypeMap[ext ?? ''] ?? 'audio/wav';
+
+  try {
+    const anthropic = new Anthropic({ apiKey });
+    // The Anthropic API supports audio content blocks but the SDK types may lag behind.
+    // Use a type assertion to pass the audio content block.
+    const audioBlock = {
+      type: 'audio',
+      source: {
+        type: 'base64',
+        media_type: mediaType,
+        data: audioBase64,
+      },
+    };
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: [
+          audioBlock as unknown as Anthropic.Messages.ContentBlockParam,
+          {
+            type: 'text',
+            text: `Transcribe all speech in this audio. Return ONLY valid JSON (no markdown):
+{
+  "text": "full transcript as a single string",
+  "segments": [
+    {"start": 0.0, "end": 2.5, "text": "segment text here"}
+  ]
+}
+Rules:
+- Transcribe every spoken word faithfully
+- Estimate timestamps as best you can (seconds from start)
+- If there is no speech, return {"text": "", "segments": []}
+- Do not add commentary or explanation — only the JSON`,
+          },
+        ],
+      }],
+    });
+
+    const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Parse JSON from response
+    let jsonStr = responseText;
+    const codeBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) jsonStr = codeBlockMatch[1].trim();
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    if (jsonMatch) jsonStr = jsonMatch[0];
+
+    const parsed = JSON.parse(jsonStr);
+    const text = typeof parsed.text === 'string' ? parsed.text.trim() : '';
+    const segments = normalizeSegments(
+      (Array.isArray(parsed.segments) ? parsed.segments : []).map(
+        (s: { start: number; end: number; text: string }) => ({
+          start: Number(s.start) || 0,
+          end: Number(s.end) || 0,
+          text: String(s.text || ''),
+        })
+      )
+    );
+
+    if (!text && segments.length === 0) {
+      console.warn('[transcribe] Claude audio fallback returned empty transcript');
+      return null;
+    }
+
+    // Claude audio fallback gets a lower base confidence since timestamps are estimated
+    const baseConfidence = computeConfidence(text, segments);
+    const adjustedConfidence = Math.min(1, Number((baseConfidence * 0.85).toFixed(2)));
+
+    console.log(
+      `[transcribe] Claude audio fallback returned ${text.length} chars, ${segments.length} segments (confidence: ${adjustedConfidence})`
+    );
+    return { text, segments, provider: 'claude-audio', confidence: adjustedConfidence };
+  } catch (err) {
+    console.error('[transcribe] Claude audio fallback failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 /**
- * Transcribe audio using AssemblyAI (preferred when available for timed segments)
- * or OpenAI Whisper as a fallback.
+ * Transcribe audio using AssemblyAI (preferred when available for timed segments),
+ * OpenAI Whisper as first fallback, or Claude audio understanding as last resort.
  */
 export async function transcribeAudio(
   audioPath: string,
@@ -302,10 +471,11 @@ export async function transcribeAudio(
 
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
   const hasAssemblyAI = !!process.env.ASSEMBLYAI_API_KEY;
+  const hasClaude = !!process.env.ANTHROPIC_API_KEY;
 
-  if (!hasOpenAI && !hasAssemblyAI) {
+  if (!hasOpenAI && !hasAssemblyAI && !hasClaude) {
     console.error(
-      '[transcribe] NO TRANSCRIPTION API KEY SET. Set OPENAI_API_KEY or ASSEMBLYAI_API_KEY to enable audio transcription.'
+      '[transcribe] NO TRANSCRIPTION API KEY SET. Set OPENAI_API_KEY, ASSEMBLYAI_API_KEY, or ANTHROPIC_API_KEY to enable audio transcription.'
     );
     return null;
   }
@@ -324,9 +494,20 @@ export async function transcribeAudio(
     }
   }
 
+  // Fallback: use Claude audio understanding if primary providers failed
+  if (hasClaude) {
+    console.log('[transcribe] Primary providers failed — trying Claude audio fallback');
+    try {
+      const claudeResult = await transcribeWithClaude(audioPath);
+      if (claudeResult?.text || claudeResult?.segments.length) return claudeResult;
+    } catch (err) {
+      console.error('[transcribe] Claude audio fallback failed:', err);
+    }
+  }
+
   console.error(
     '[transcribe] All transcription methods failed. ' +
-      `Providers attempted: ${[hasAssemblyAI && 'AssemblyAI', hasOpenAI && 'Whisper'].filter(Boolean).join(', ')}`
+      `Providers attempted: ${[hasAssemblyAI && 'AssemblyAI', hasOpenAI && 'Whisper', hasClaude && 'Claude'].filter(Boolean).join(', ')}`
   );
   return null;
 }
