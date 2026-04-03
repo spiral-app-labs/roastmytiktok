@@ -1,10 +1,21 @@
 import { supabaseServer } from '@/lib/supabase-server';
 
+export interface HookExample {
+  hook_text: string;
+  hook_type: string;
+  niche: string;
+  creator_handle: string;
+  approx_views: number;
+  why_it_worked: string;
+  adaptable_template: string;
+}
+
 export interface TrendingContext {
   trendingSounds: Array<{ name: string; status: string; velocity: number }>;
   trendingFormats: Array<{ name: string; status: string }>;
   trendingHashtags: Array<{ name: string; velocity: number }>;
   relevantTips: Array<{ category: string; tip: string; relevance: number }>;
+  hookExamples: HookExample[];
 }
 
 // Simple in-memory cache: { data, expiry }
@@ -21,10 +32,11 @@ export async function fetchTrendingContext(): Promise<TrendingContext> {
     trendingFormats: [],
     trendingHashtags: [],
     relevantTips: [],
+    hookExamples: [],
   };
 
   try {
-    const [soundsRes, formatsRes, hashtagsRes, tipsRes] = await Promise.all([
+    const [soundsRes, formatsRes, hashtagsRes, tipsRes, hookExamplesRes] = await Promise.all([
       supabaseServer
         .from('rmt_trending_content')
         .select('name, status, velocity')
@@ -52,6 +64,13 @@ export async function fetchTrendingContext(): Promise<TrendingContext> {
         .eq('active', true)
         .order('relevance_score', { ascending: false })
         .limit(15),
+      // Hook examples: pull top 10 by view count for inject into script generation
+      supabaseServer
+        .from('rmt_viral_hook_examples')
+        .select('hook_text, hook_type, niche, creator_handle, approx_views, why_it_worked, adaptable_template')
+        .eq('active', true)
+        .order('approx_views', { ascending: false })
+        .limit(10),
     ]);
 
     const result: TrendingContext = {
@@ -63,6 +82,7 @@ export async function fetchTrendingContext(): Promise<TrendingContext> {
         tip: t.tip_text,
         relevance: t.relevance_score,
       })),
+      hookExamples: (hookExamplesRes.data ?? []) as HookExample[],
     };
 
     cache = { data: result, expiry: Date.now() + CACHE_TTL_MS };
@@ -170,6 +190,15 @@ export function buildScriptTrendingContext(ctx: TrendingContext): string {
   const tips = ctx.relevantTips.filter((t) => t.category !== 'general').slice(0, 5);
   if (tips.length > 0) {
     parts.push(`**Viral Tips:**\n${tips.map((t) => `- [${t.category}] ${t.tip}`).join('\n')}`);
+  }
+
+  // Inject top 5 hook examples as proven reference templates
+  if (ctx.hookExamples && ctx.hookExamples.length > 0) {
+    const exLines = ctx.hookExamples.slice(0, 5).map(
+      (h) =>
+        `- [${h.hook_type}] Template: "${h.adaptable_template}" — proven: "${h.hook_text}" (${(h.approx_views / 1_000_000).toFixed(1)}M views, ${h.niche})`
+    );
+    parts.push(`**Proven Hook Templates (adapt for this creator's niche):**\n${exLines.join('\n')}`);
   }
 
   if (parts.length === 0) return '';
