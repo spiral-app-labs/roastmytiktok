@@ -20,7 +20,10 @@ export interface AgentRoast {
 export interface ActionPlanStep {
   priority: 'P1' | 'P2' | 'P3';
   dimension: DimensionKey;
+  timestampLabel?: string;
+  timestampSeconds?: number;
   issue: string;
+  algorithmicConsequence?: string;
   evidence: string[];
   doThis: string;
   example: string;
@@ -41,6 +44,14 @@ export interface RoastResult {
     headline: string;
     summary: string;
     reasons: string[];
+  };
+  firstFiveSecondsDiagnosis?: {
+    verdict: 'working' | 'fragile' | 'failing';
+    hookRead: string;
+    likelyDropWindow: string;
+    retentionRisk: string;
+    nextTimeFix: string;
+    evidence: string[];
   };
   biggestBlocker?: string;
   nextSteps?: string[];

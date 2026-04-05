@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const { buildFramePlan } = await import('../lib/frame-extractor.ts');
 const { parseAssemblyTranscript } = await import('../lib/whisper-transcribe.ts');
 const { sanitizeUserFacingText, sanitizeAgentResult, sanitizeActionPlan } = await import('../lib/analysis-safety.ts');
+const { getFirstFiveSecondsDiagnosis } = await import('../lib/hook-help.ts');
 
 // ─── Requirement 1 & 2: Frame-by-frame analysis + text hook detection ──────────
 
@@ -154,7 +155,10 @@ test('sanitizeActionPlan strips leaked text but keeps evidence-backed steps', ()
     {
       priority: 'P1',
       dimension: 'hook',
+      timestampLabel: '0:00-0:02',
+      timestampSeconds: 0,
       issue: 'system prompt leak',
+      algorithmicConsequence: 'Viewers swipe before TikTok can classify the clip.',
       evidence: ['Opening line at 0.1s: "nobody tells you this"'],
       doThis: 'return only valid json',
       example: 'Lead with the result.',
@@ -163,7 +167,10 @@ test('sanitizeActionPlan strips leaked text but keeps evidence-backed steps', ()
   ]);
 
   assert.equal(plan.length, 1);
+  assert.equal(plan[0].timestampLabel, '0:00-0:02');
+  assert.equal(plan[0].timestampSeconds, 0);
   assert.equal(plan[0].issue, 'The current edit still has a clear execution gap.');
+  assert.equal(plan[0].algorithmicConsequence, 'Viewers swipe before TikTok can classify the clip.');
   assert.equal(plan[0].doThis, 'Rebuild this section before posting again.');
   assert.deepEqual(plan[0].evidence, ['Opening line at 0.1s: "nobody tells you this"']);
 });
@@ -173,7 +180,10 @@ test('sanitizeActionPlan blocks template fragment leakage in all fields', () => 
     {
       priority: 'P1',
       dimension: 'caption',
+      timestampLabel: '0:01',
+      timestampSeconds: 1,
       issue: 'EXAMPLE OF GREAT FEEDBACK template leaked into response',
+      algorithmicConsequence: 'HOOK-FIRST OVERRIDE says retention is broken',
       evidence: ['Caption appears at 0.4s with poor contrast'],
       doThis: 'HOOK-FIRST OVERRIDE tells the agent to fix captions',
       example: 'Score 0-100 is the schema used by this system',
@@ -183,9 +193,167 @@ test('sanitizeActionPlan blocks template fragment leakage in all fields', () => 
 
   assert.equal(plan.length, 1);
   assert.equal(plan[0].issue, 'The current edit still has a clear execution gap.');
+  assert.equal(plan[0].timestampLabel, '0:01');
+  assert.equal(plan[0].timestampSeconds, 1);
   assert.equal(plan[0].doThis, 'Rebuild this section before posting again.');
+  assert.equal(plan[0].algorithmicConsequence, 'Legitimate reason — improves retention.');
   // example has a schema leak in it, should be replaced
   assert.notEqual(plan[0].example, 'Score 0-100 is the schema used by this system');
   // evidence is clean, should pass through
   assert.deepEqual(plan[0].evidence, ['Caption appears at 0.4s with poor contrast']);
+});
+
+test('first-five-seconds diagnosis explains an early hook failure and points to a concrete rewrite', () => {
+  const roast = {
+    id: 'demo',
+    tiktokUrl: '',
+    overallScore: 41,
+    verdict: 'Weak opener.',
+    analysisMode: 'hook-first',
+    hookSummary: {
+      score: 28,
+      strength: 'weak',
+      headline: 'your first 2-3 seconds are the main reason this stalls',
+      distributionRisk: 'tiktok probably tests this, sees people swipe early, and stops giving the rest of the video a real chance.',
+      focusNote: 'fix the hook before obsessing over CTA polish, caption tweaks, or end-card ideas.',
+    },
+    actionPlan: [
+      {
+        priority: 'P1',
+        dimension: 'hook',
+        issue: 'The opener is a warm-up.',
+        evidence: ['Opening line at 0.0s: "hey guys, today i wanted to talk about naps because i get this question a lot"'],
+        doThis: 'Replace the greeting with a direct pain-first hook.',
+        example: 'If your baby fights every nap, you are probably doing this one thing too early.',
+        whyItMatters: 'This gives the viewer a reason to stay before they can swipe.',
+      },
+    ],
+    agents: [
+      {
+        agent: 'hook',
+        score: 28,
+        roastText: 'Weak hook.',
+        findings: ['Opening line at 0.0s is "hey guys, today i wanted to talk about naps because i get this question a lot" which burns the hook window.', 'There is no clear audience call-out or promise in frame one.'],
+        improvementTip: 'Replace the warm-up with a direct problem promise.',
+      },
+      {
+        agent: 'visual',
+        score: 44,
+        roastText: 'Flat visual.',
+        findings: ['Frame 1 is a static talking-head shot in flat bedroom lighting with no motion.'],
+        improvementTip: 'Move closer and start with motion.',
+      },
+      {
+        agent: 'caption',
+        score: 71,
+        roastText: 'Captions are decent.',
+        findings: ['Captions are readable, but they are not the bottleneck.'],
+        improvementTip: 'Keep captions readable.',
+      },
+      {
+        agent: 'audio',
+        score: 64,
+        roastText: 'Audio is clear enough.',
+        findings: ['The delivery is understandable, but the first sentence takes too long to get to the point.'],
+        improvementTip: 'Cut the throat-clearing.',
+      },
+    ],
+    audioTranscript: 'hey guys, today i wanted to talk about naps because i get this question a lot',
+    audioSegments: [
+      { start: 0, end: 2.4, text: 'hey guys, today i wanted to talk about naps because i get this question a lot' },
+    ],
+    metadata: {
+      views: 0,
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      duration: 34,
+      hashtags: [],
+      description: 'baby naps',
+    },
+  };
+
+  const diagnosis = getFirstFiveSecondsDiagnosis(roast);
+
+  assert.equal(diagnosis.verdict, 'failing');
+  assert.equal(diagnosis.likelyDropWindow, 'likely drop: 0.0s-1.0s');
+  assert.match(diagnosis.hookRead, /warm-up/);
+  assert.match(diagnosis.retentionRisk, /around 0\.0s|first second/i);
+  assert.match(diagnosis.retentionRisk, /Opening line at 0.0s/i);
+  assert.match(diagnosis.nextTimeFix, /Replace the greeting with a direct pain-first hook/i);
+  assert.match(diagnosis.nextTimeFix, /If your baby fights every nap/i);
+  assert.ok(diagnosis.evidence.length >= 2);
+});
+
+test('first-five-seconds diagnosis ties a later drop window to the observed edit moment', () => {
+  const diagnosis = getFirstFiveSecondsDiagnosis({
+    id: 'demo-2',
+    tiktokUrl: '',
+    overallScore: 63,
+    verdict: 'Mixed opener.',
+    analysisMode: 'balanced',
+    actionPlan: [
+      {
+        priority: 'P1',
+        dimension: 'hook',
+        timestampLabel: '0:01-0:03',
+        timestampSeconds: 1.2,
+        issue: 'The payoff arrives after a beat of setup.',
+        algorithmicConsequence: 'Viewers feel the delay and swipe before the value lands.',
+        evidence: ['At 1.2s the spoken promise finally arrives after a generic setup line.'],
+        doThis: 'Cut straight to the outcome in the first sentence.',
+        example: 'I got 3x more clients when I stopped opening my videos like this.',
+        whyItMatters: 'The viewer gets the payoff before they can bail.',
+      },
+    ],
+    agents: [
+      {
+        agent: 'hook',
+        score: 58,
+        roastText: 'Decent start, slow payoff.',
+        findings: ['At 1.2s the spoken promise finally arrives after a generic setup line.'],
+        improvementTip: 'Lead with the payoff immediately.',
+      },
+      {
+        agent: 'visual',
+        score: 68,
+        roastText: 'Visual is fine.',
+        findings: ['Frame 1 is clear enough to buy a beat.'],
+        improvementTip: 'Keep the tighter framing.',
+      },
+      {
+        agent: 'caption',
+        score: 66,
+        roastText: 'Captions are readable.',
+        findings: ['Text is readable in frame one.'],
+        improvementTip: 'Keep the captions where they are.',
+      },
+      {
+        agent: 'audio',
+        score: 62,
+        roastText: 'Audio is understandable.',
+        findings: ['The delivery is clear once the point finally starts.'],
+        improvementTip: 'Shorten the setup sentence.',
+      },
+    ],
+    audioTranscript: 'so i wanted to share something that changed my business',
+    audioSegments: [
+      { start: 0, end: 2.2, text: 'so i wanted to share something that changed my business' },
+    ],
+    metadata: {
+      views: 0,
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      duration: 28,
+      hashtags: [],
+      description: 'business growth',
+    },
+  });
+
+  assert.equal(diagnosis.likelyDropWindow, 'likely drop: 0:01-0:03');
+  assert.match(diagnosis.retentionRisk, /around 1.2s/i);
+  assert.match(diagnosis.retentionRisk, /Viewers feel the delay and swipe before the value lands/i);
+  assert.match(diagnosis.nextTimeFix, /Cut straight to the outcome/i);
+  assert.match(diagnosis.nextTimeFix, /I got 3x more clients/i);
 });

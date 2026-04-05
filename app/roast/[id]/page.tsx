@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RoastResult, DimensionKey } from '@/lib/types';
-import { getDetectedHookType, getFirstGlanceChecks, getHoldAssessment, getHookRewriteWorkflow, getHookTypeLenses, getHookWorkshop, getReshootPlanner, getReshootTakes } from '@/lib/hook-help';
+import { getDetectedHookType, getFirstFiveSecondsDiagnosis, getFirstGlanceChecks, getHoldAssessment, getHookRewriteWorkflow, getHookTypeLenses, getHookWorkshop, getReshootPlanner, getReshootTakes } from '@/lib/hook-help';
 import { getPersonalizedHookPatterns } from '@/lib/viral-hooks';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
@@ -27,6 +27,16 @@ function getLetterGrade(score: number): string {
   if (score >= 60) return 'C';
   if (score >= 50) return 'D';
   return 'F';
+}
+
+function formatRecommendationTimestamp(step: NonNullable<RoastResult['actionPlan']>[number]): string {
+  if (step.timestampLabel) return step.timestampLabel;
+  if (typeof step.timestampSeconds !== 'number') return 'Timestamp not pinned';
+
+  const rounded = Math.max(0, Math.round(step.timestampSeconds));
+  const mins = Math.floor(rounded / 60);
+  const secs = rounded % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 export default function RoastPage() {
@@ -163,6 +173,7 @@ function RoastContent({
   const reshootTakes = getReshootTakes(roast);
   const hookPatterns = getPersonalizedHookPatterns(roast, 6);
   const holdAssessment = roast.holdAssessment ?? getHoldAssessment(roast);
+  const firstFiveSecondsDiagnosis = roast.firstFiveSecondsDiagnosis ?? getFirstFiveSecondsDiagnosis(roast);
   const firstGlanceChecks = getFirstGlanceChecks(roast);
 
   const hookAgent = roast.agents.find(a => a.agent === 'hook');
@@ -185,6 +196,7 @@ function RoastContent({
       { id: 'hook-education', label: 'Hook School', emoji: '🎓' },
       { id: 'hook-examples', label: 'Hook Examples', emoji: '📚' },
       { id: 'hold-strength', label: 'Watch Strength', emoji: '⏱️' },
+      { id: 'first-five', label: 'First 5s', emoji: '📉' },
       { id: 'first-glance', label: 'First Glance', emoji: '👁️' },
       { id: 'reshoot-planner', label: 'Reshoot Plan', emoji: '🎬' },
       { id: 'agent-cards', label: isHookWeak ? 'Secondary Feedback' : 'Full Analysis', emoji: '🔬' },
@@ -210,6 +222,14 @@ function RoastContent({
       summary: 'understand how likely the opening beats are to hold attention.',
       emoji: '⏱️',
       accent: 'border-yellow-500/20 bg-yellow-500/[0.05] text-yellow-100',
+    },
+    {
+      id: 'first-five',
+      eyebrow: 'retention diagnosis',
+      title: 'first 5 seconds read',
+      summary: 'see where the opener likely loses people and what to change next.',
+      emoji: '📉',
+      accent: 'border-red-500/20 bg-red-500/[0.05] text-red-100',
     },
     {
       id: 'first-glance',
@@ -377,6 +397,23 @@ function RoastContent({
                           <p className="text-sm font-semibold text-zinc-100">{step.priority} • {step.issue}</p>
                           <p className="text-xs text-zinc-500">{agent?.emoji} {agent?.name ?? step.dimension} • {step.whyItMatters}</p>
                         </div>
+                        <div className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-[11px] font-bold tracking-wide text-orange-300">
+                          {formatRecommendationTimestamp(step)}
+                        </div>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-lg border border-zinc-800/80 bg-black/20 p-2.5">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">Observed issue</p>
+                          <p className="mt-1 text-sm text-zinc-200">{step.issue}</p>
+                        </div>
+                        <div className="rounded-lg border border-amber-500/15 bg-amber-500/8 p-2.5">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">Algorithmic consequence</p>
+                          <p className="mt-1 text-sm text-zinc-200">{step.algorithmicConsequence || step.whyItMatters}</p>
+                        </div>
+                        <div className="rounded-lg border border-blue-500/15 bg-blue-500/8 p-2.5">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300">Exact edit instruction</p>
+                          <p className="mt-1 text-sm text-zinc-100">{step.doThis}</p>
+                        </div>
                       </div>
                       {evidence.length > 0 && (
                         <div>
@@ -392,9 +429,8 @@ function RoastContent({
                         </div>
                       )}
                       <div className="rounded-lg bg-blue-500/8 border border-blue-500/15 p-2.5">
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">Do this</p>
-                        <p className="text-sm text-zinc-200">{step.doThis}</p>
-                        <p className="text-xs text-zinc-400 mt-1">example: {step.example}</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">Edit example</p>
+                        <p className="text-xs text-zinc-300">{step.example}</p>
                       </div>
                     </div>
                   );
@@ -814,7 +850,7 @@ function RoastContent({
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.15, duration: 0.45 }}
-          className="grid gap-4 lg:grid-cols-2 mb-6"
+          className="grid gap-4 lg:grid-cols-3 mb-6"
         >
           <CollapsibleSection
             id="hold-strength"
@@ -841,6 +877,40 @@ function RoastContent({
                   </li>
                 ))}
               </ul>
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            id="first-five"
+            eyebrow="First 5-second diagnosis"
+            title={firstFiveSecondsDiagnosis.likelyDropWindow}
+            emoji="📉"
+            tier={isHookWeak ? 3 : 2}
+            gated={isHookWeak}
+            accent={firstFiveSecondsDiagnosis.verdict === 'working' ? 'border-emerald-500/25 bg-emerald-500/8' : firstFiveSecondsDiagnosis.verdict === 'fragile' ? 'border-yellow-500/25 bg-yellow-500/8' : 'border-red-500/25 bg-red-500/8'}
+          >
+            <div className="text-left">
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`rounded-full border px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest shrink-0 ${firstFiveSecondsDiagnosis.verdict === 'working' ? 'border-emerald-500/30 text-emerald-300' : firstFiveSecondsDiagnosis.verdict === 'fragile' ? 'border-yellow-500/30 text-yellow-300' : 'border-red-500/30 text-red-300'}`}>
+                  {firstFiveSecondsDiagnosis.verdict}
+                </div>
+              </div>
+              <p className="text-sm text-zinc-200">{firstFiveSecondsDiagnosis.hookRead}</p>
+              <p className="mt-2 text-sm text-zinc-400">{firstFiveSecondsDiagnosis.retentionRisk}</p>
+              <div className="mt-3 rounded-xl border border-blue-500/15 bg-blue-500/8 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">Change next time</p>
+                <p className="text-sm text-zinc-200">{firstFiveSecondsDiagnosis.nextTimeFix}</p>
+              </div>
+              {firstFiveSecondsDiagnosis.evidence.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {firstFiveSecondsDiagnosis.evidence.map((item, index) => (
+                    <li key={index} className="flex gap-2 text-sm text-zinc-300">
+                      <span className="text-orange-400">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </CollapsibleSection>
 

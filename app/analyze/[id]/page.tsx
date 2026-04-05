@@ -119,6 +119,7 @@ export default function AnalyzePage() {
     let encouragement = '';
     let analysisMode: RoastResult['analysisMode'] = 'balanced';
     let hookSummary: RoastResult['hookSummary'] | undefined;
+    let firstFiveSecondsDiagnosis: RoastResult['firstFiveSecondsDiagnosis'] | undefined;
 
     const sessionId = getSessionId();
     const eventSource = new EventSource(`/api/analyze/${id}?session_id=${encodeURIComponent(sessionId)}`);
@@ -158,6 +159,7 @@ export default function AnalyzePage() {
           encouragement = data.encouragement ?? '';
           analysisMode = data.analysisMode ?? 'balanced';
           hookSummary = data.hookSummary;
+          firstFiveSecondsDiagnosis = data.firstFiveSecondsDiagnosis;
         }
 
         if (data.type === 'done') {
@@ -176,6 +178,7 @@ export default function AnalyzePage() {
             encouragement,
             analysisMode,
             hookSummary,
+            firstFiveSecondsDiagnosis,
             agents: agentResults,
             metadata: {
               views: 0,

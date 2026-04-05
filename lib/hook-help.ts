@@ -11,6 +11,15 @@ export interface HoldAssessment {
   reasons: string[];
 }
 
+export interface FirstFiveSecondsDiagnosis {
+  verdict: 'working' | 'fragile' | 'failing';
+  hookRead: string;
+  likelyDropWindow: string;
+  retentionRisk: string;
+  nextTimeFix: string;
+  evidence: string[];
+}
+
 export interface HookWorkshop {
   openerLine: string;
   diagnosis: string[];
@@ -330,6 +339,85 @@ export function getHoldAssessment(roast: RoastResult): HoldAssessment {
   };
 }
 
+export function getFirstFiveSecondsDiagnosis(roast: RoastResult): FirstFiveSecondsDiagnosis {
+  const stored = roast.firstFiveSecondsDiagnosis;
+  if (stored) return stored;
+
+  const hook = getAgent(roast, 'hook');
+  const visual = getAgent(roast, 'visual');
+  const caption = getAgent(roast, 'caption');
+  const audio = getAgent(roast, 'audio');
+  const openerLine = getOpeningLine(roast);
+  const hookScore = hook?.score ?? roast.hookSummary?.score ?? 50;
+  const visualScore = visual?.score ?? 50;
+  const captionScore = caption?.score ?? 50;
+  const audioScore = audio?.score ?? 50;
+  const primaryStep = roast.actionPlan?.find((step) => step.priority === 'P1') || roast.actionPlan?.find((step) => step.dimension === 'hook');
+  const stepEvidence = (primaryStep?.evidence ?? []).map(clean).filter(Boolean);
+  const evidenceMoments = stepEvidence.map(parseEvidenceMoment).filter(Boolean) as string[];
+  const primaryEvidence = stepEvidence[0] || clean(hook?.findings?.[0]);
+  const primaryMoment = evidenceMoments[0] || inferLikelyDropMoment(primaryStep?.timestampSeconds, openerLine, hookScore, visualScore);
+  const openerFeelsSoft = /^(hey|hi|hello)\b|today i (want|wanted)|i get this question|let me talk about|welcome back/i.test(openerLine);
+  const noSpokenOpener = openerLine === 'No spoken opener detected in the first beat.';
+  const verdict: FirstFiveSecondsDiagnosis['verdict'] =
+    hookScore >= 75 && visualScore >= 65 && Math.min(captionScore, audioScore) >= 55
+      ? 'working'
+      : hookScore >= 55 || (visualScore >= 60 && captionScore >= 60)
+        ? 'fragile'
+        : 'failing';
+
+  const likelyDropWindow =
+    verdict === 'working'
+      ? 'likely to hold through 5.0s'
+      : primaryStep?.timestampLabel
+        ? `likely drop: ${primaryStep.timestampLabel}`
+        : hookScore < 45 || openerFeelsSoft || noSpokenOpener
+          ? 'likely drop: 0.0s-1.0s'
+          : hookScore < 60 || visualScore < 55
+            ? 'likely drop: 1.0s-3.0s'
+            : 'likely drop: 3.0s-5.0s';
+
+  const hookRead = verdict === 'working'
+    ? clean(roast.hookSummary?.headline) || `the opener works because the first beat lands a clear promise instead of easing in.`
+    : openerFeelsSoft
+      ? `the opening line "${openerLine}" reads like a warm-up, so the hook fails before the payoff starts.`
+      : noSpokenOpener
+        ? 'there is no clear spoken hook in the first beat, so the video has to win visually right away and currently does not.'
+        : clean(primaryStep?.issue)
+          ? `${clean(primaryStep.issue)} this is the moment that makes the opener feel ${verdict === 'fragile' ? 'fragile' : 'unfinished'}.`
+          : clean(hook?.findings?.[0]) || clean(roast.hookSummary?.headline) || 'the first beat is not landing clearly enough yet.';
+
+  let retentionRisk = '';
+  if (verdict === 'working') {
+    retentionRisk = clean(roast.hookSummary?.distributionRisk) || 'the opening has enough clarity and momentum that later fixes can now matter.';
+  } else if (primaryEvidence) {
+    retentionRisk = `${primaryMoment ? `${primaryMoment}, ` : ''}viewers are likely dropping because ${lowercaseFirst(primaryEvidence)}${clean(primaryStep?.algorithmicConsequence) ? ` ${lowercaseFirst(clean(primaryStep?.algorithmicConsequence))}` : ''}`;
+  } else {
+    retentionRisk = clean(roast.hookSummary?.distributionRisk) || (verdict === 'fragile'
+      ? 'viewers may stay for the promise, but the hold is shaky if the next beat drags.'
+      : 'cold viewers are getting an early-friction signal before the value lands.');
+  }
+
+  const nextTimeFix = buildNextTimeFix(roast, primaryStep, hook?.improvementTip);
+
+  const evidence = [
+    ...stepEvidence,
+    clean(hook?.findings?.[0]),
+    clean(visual?.findings?.[0]),
+    clean(caption?.findings?.[0]),
+    clean(audio?.findings?.[0]),
+  ].filter(Boolean).filter((item, index, array) => array.indexOf(item) === index).slice(0, 3);
+
+  return {
+    verdict,
+    hookRead,
+    likelyDropWindow,
+    retentionRisk,
+    nextTimeFix,
+    evidence,
+  };
+}
+
 export function getFirstGlanceChecks(roast: RoastResult): FirstGlanceCheckItem[] {
   const hook = getAgent(roast, 'hook');
   const visual = getAgent(roast, 'visual');
@@ -442,6 +530,67 @@ function inferTopic(roast: RoastResult, openerLine: string): string {
     .slice(0, 8)
     .join(' ');
   return description || transcriptSeed || 'this topic';
+}
+
+function buildNextTimeFix(
+  roast: RoastResult,
+  primaryStep?: RoastResult['actionPlan'] extends Array<infer Step> ? Step : never,
+  fallbackTip?: string,
+): string {
+  const directive = clean(primaryStep?.doThis);
+  const example = clean(primaryStep?.example);
+  const combined = [directive, example].filter(Boolean).join(' example: ');
+  return clean(
+    combined ||
+    fallbackTip ||
+    roast.actionPlan?.find((step) => step.dimension === 'hook')?.example ||
+    getReshootTakes(roast)[0]?.spokenLine ||
+    'lead with the clearest result or pain point in the first second.'
+  );
+}
+
+function inferLikelyDropMoment(
+  timestampSeconds?: number,
+  openerLine?: string,
+  hookScore?: number,
+  visualScore?: number,
+): string {
+  if (typeof timestampSeconds === 'number' && Number.isFinite(timestampSeconds)) {
+    return `around ${formatSeconds(timestampSeconds)}`;
+  }
+  if (openerLine && /^(hey|hi|hello)\b|today i (want|wanted)|i get this question|let me talk about|welcome back/i.test(openerLine)) {
+    return 'in the first second';
+  }
+  if ((hookScore ?? 50) < 45) return 'in the first second';
+  if ((visualScore ?? 50) < 55) return 'between second 1 and 3';
+  return '';
+}
+
+function parseEvidenceMoment(value: string): string {
+  const rangeMatch = value.match(/(\d+(?:\.\d+)?)s\s*-\s*(\d+(?:\.\d+)?)s/i);
+  if (rangeMatch) return `between ${formatSeconds(Number(rangeMatch[1]))} and ${formatSeconds(Number(rangeMatch[2]))}`;
+
+  const labelMatch = value.match(/(\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?)/);
+  if (labelMatch) return `around ${labelMatch[1]}`;
+
+  const secondMatch = value.match(/(?:at|around)\s*(\d+(?:\.\d+)?)s/i) || value.match(/(\d+(?:\.\d+)?)s/i);
+  if (secondMatch) return `around ${formatSeconds(Number(secondMatch[1]))}`;
+
+  if (/frame\s*1|opening line/i.test(value)) return 'in the first second';
+  return '';
+}
+
+function formatSeconds(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '0.0s';
+  if (value < 10) return `${value.toFixed(1)}s`;
+  const rounded = Math.round(value);
+  const mins = Math.floor(rounded / 60);
+  const secs = rounded % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function lowercaseFirst(value: string): string {
+  return value ? value.charAt(0).toLowerCase() + value.slice(1) : '';
 }
 
 function sanitizeRewriteSource(value: string): string {
