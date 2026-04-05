@@ -96,6 +96,9 @@ export function buildBenchmarkPromptSection(
   const totalComments = videos.reduce((s, v) => s + v.comment_count, 0);
 
   const overallEngagement = totalViews > 0
+    ? (((totalLikes + totalComments) / totalViews) * 100)
+    : 0;
+  const likeRate = totalViews > 0
     ? ((totalLikes / totalViews) * 100)
     : 0;
   const commentRate = totalViews > 0
@@ -105,11 +108,19 @@ export function buildBenchmarkPromptSection(
   // Per-video engagement rates for distribution analysis
   const videoEngagements = videos
     .filter((v) => v.view_count > 0)
-    .map((v) => ((v.like_count / v.view_count) * 100))
+    .map((v) => (((v.like_count + v.comment_count) / v.view_count) * 100))
+    .sort((a, b) => a - b);
+
+  const viewCounts = videos
+    .map((v) => v.view_count)
+    .filter((count) => count > 0)
     .sort((a, b) => a - b);
 
   const median = videoEngagements.length > 0
     ? videoEngagements[Math.floor(videoEngagements.length / 2)]
+    : 0;
+  const medianViews = viewCounts.length > 0
+    ? viewCounts[Math.floor(viewCounts.length / 2)]
     : 0;
   const top10pctIndex = Math.max(0, Math.floor(videoEngagements.length * 0.9));
   const top10pct = videoEngagements.length > 0
@@ -121,7 +132,7 @@ export function buildBenchmarkPromptSection(
     videos[0],
   );
   const bestEngagement = bestVideo.view_count > 0
-    ? ((bestVideo.like_count / bestVideo.view_count) * 100)
+    ? (((bestVideo.like_count + bestVideo.comment_count) / bestVideo.view_count) * 100)
     : 0;
 
   // Posting frequency analysis
@@ -162,6 +173,7 @@ With ${followerCount.toLocaleString()} followers, this creator is in the ${tier.
 - Tier average engagement rate: ${tier.avgEngagementRate}%  |  This creator's engagement rate: ${overallEngagement.toFixed(1)}%  →  ${comparison} average
 - Good for this tier: ${tier.goodEngagementRate}%  |  Excellent: ${tier.excellentEngagementRate}%
 - Tier avg comment rate: ${tier.avgCommentRate}%  |  This creator: ${commentRate.toFixed(2)}%
+- Like rate: ${likeRate.toFixed(2)}% (engagement here means likes + comments per view)
 - ${tier.growthNotes}
 
 You MUST say: "With ${followerCount.toLocaleString()} followers, you're in the ${tier.tier} tier where the average engagement rate is ${tier.avgEngagementRate}%. Your ${overallEngagement.toFixed(1)}% is ${comparison} average."
@@ -169,8 +181,9 @@ Identify which metrics (likes, comments) are strong vs weak relative to their ti
   } else {
     tierSection = `
 **ENGAGEMENT CONTEXT (follower count unknown):**
-- This creator's engagement rate: ${overallEngagement.toFixed(1)}%
+- This creator's engagement rate: ${overallEngagement.toFixed(1)}% (likes + comments per view)
 - General healthy range: 3-6%
+- Like rate: ${likeRate.toFixed(2)}%
 - Comment rate: ${commentRate.toFixed(2)}%`;
   }
 
@@ -187,9 +200,12 @@ You MUST say: "Your posting consistency is ${consistencyLabel}. Consistent accou
   const distributionSection = `
 **PERFORMANCE DISTRIBUTION — reference in overallVerdict:**
 - Median engagement rate: ${median.toFixed(1)}%
+- Median views (true baseline per post): ${medianViews.toLocaleString()}
+- Average views: ${Math.round(totalViews / Math.max(videos.length, 1)).toLocaleString()}${medianViews > 0 ? ` (${(totalViews / Math.max(videos.length, 1)) / medianViews >= 1.8 ? 'likely inflated by spikes' : 'close to baseline'})` : ''}
 - Top 10% engagement rate: ${top10pct.toFixed(1)}%
 - Gap: ${(top10pct - median).toFixed(1)} percentage points — ${top10pct - median > 3 ? 'wide gap indicates inconsistency — their best content proves they CAN perform, they just don\'t do it reliably' : 'narrow gap indicates consistent quality'}
 - Best video engagement: ${bestEngagement.toFixed(1)}% (${bestVideo.view_count.toLocaleString()} views)${tier ? `\n- Compare to tier average: ${bestEngagement > tier.excellentEngagementRate ? 'best video is EXCELLENT for this tier' : bestEngagement > tier.goodEngagementRate ? 'best video is GOOD for this tier' : 'best video is just average for this tier — even peaks aren\'t breaking through'}` : ''}
+You MUST treat median views as the creator's baseline and use average views only as outlier context.
 You MUST reference the gap between median and top 10% as a consistency indicator.`;
 
   return `${tierSection}\n${distributionSection}\n${postingSection}`;

@@ -5,6 +5,7 @@ import { buildBenchmarkPromptSection } from '@/lib/engagement-benchmarks';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { buildCreatorDeltaPromptSection } from '@/lib/creator-delta-analysis';
+import { detectNiche } from '@/lib/niche-detect';
 
 const execFileAsync = promisify(execFile);
 
@@ -221,6 +222,21 @@ export async function POST(request: NextRequest) {
 
     const benchmarkSection = buildBenchmarkPromptSection(followerCount, videos);
     const creatorDeltaSection = buildCreatorDeltaPromptSection(videos);
+    const accountNiche = detectNiche({
+      caption: videos.map((v) => v.description || v.title).join(' '),
+      hashtags: videos.flatMap((v) => {
+        const source = `${v.description || ''} ${v.title || ''}`;
+        return Array.from(source.matchAll(/#([a-z0-9_\.]+)/gi)).map((match) => match[1].toLowerCase());
+      }),
+      transcript: videos.map((v) => v.track || '').join(' '),
+      audioType: videos.some((v) => v.track) ? 'music' : 'none',
+    });
+    const nicheAuditSection = `
+**NICHE DETECTION AUDIT — use this as a grounding hint, not a blind rule:**
+- Deterministic niche guess from captions/hashtags: ${accountNiche.niche}${accountNiche.subNiche ? ` (${accountNiche.subNiche})` : ''}
+- Confidence: ${accountNiche.confidence}
+- Signals found: ${accountNiche.signals.join(', ') || 'none'}
+- If the account content clearly points elsewhere, override this and explain why. Do not force a niche that the evidence does not support.`;
 
     const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K. You're analyzing @${handle}'s content history with the precision of a data scientist and the bluntness of a best friend. Here are their last ${videos.length} videos with performance data:
 
@@ -229,6 +245,8 @@ ${videoSummary}
 ANALYSIS FRAMEWORK — use these benchmarks to evaluate:
 
 ${benchmarkSection}
+
+${nicheAuditSection}
 
 ${creatorDeltaSection}
 
@@ -294,12 +312,12 @@ Rules:
 - worstPerformingFormats: 2-3 formats that underperform relative to their average. Explain WHY using specific data (e.g. "your talking head videos average Xk views vs your tutorial videos at Xk — talking head is rank #7 for virality and requires strong personality to carry").
 - recurringWeaknesses: 3-5 specific, actionable weaknesses. Not "improve your hooks" — instead "your hooks are mostly Tier 3 countdown/listicle style which ranks #8 in effectiveness — try direct address hooks like 'If you [specific trait], stop scrolling'". Reference the actual data.
 - strengths: 3-5 things this creator does well. Be specific — name the videos, the formats, the patterns.
-- nicheAnalysis: 2-3 sentences on niche positioning. Identify their primary niche from the taxonomy (Comedy, Education, Lifestyle, Fitness, Beauty, Tech, Food, Finance, Travel, Gaming, Parenting, Fashion, Pets, DIY, Music). Is their niche clear enough for the algorithm to categorize them? Compare their engagement rate against the benchmark for their follower tier.
+- nicheAnalysis: 2-3 sentences on niche positioning. Identify their primary niche from the taxonomy (Comedy, Education, Lifestyle, Fitness, Beauty, Tech, Food, Finance, Travel, Gaming, Parenting, Fashion, Pets, DIY, Music). Audit the niche guess against the captions/hashtags above, say whether the niche is clear enough for the algorithm to categorize them, and compare their engagement rate against the benchmark for their follower tier.
 - creatorDelta.topSuccessFactors: exactly 3 factors that appear disproportionately in the winner cluster versus the loser cluster. Each factor must use this creator's own posts as evidence, not generic advice.
 - creatorDelta.topViewKillers: exactly 3 factors that show up in the loser cluster and suppress views. Again, evidence must come from this creator's own history.
 - creatorDelta.exampleComparison: use the provided top winner example and top loser example. winnerLabel and loserLabel should be short plain-English descriptions of those specific posts. whyWinnerWon should directly explain why the winner beat the loser. successFactors and viewKillers should each contain 2-3 bullets tied to that exact comparison.
 - nextVideoIdeas: 5 specific video ideas with EXACT hook text they could film tomorrow. Each hook should be Tier 1 or Tier 2 from the hook taxonomy. Match the format to their strengths. Match the length to their niche. Explain why each idea would outperform their current content.
-- overallVerdict: 2-3 sentence blunt, specific assessment. Reference their actual numbers. Tell them exactly where they'd stall in the algorithm distribution phases (test → validation → acceleration → viral) and what's holding them back. Sound like a growth expert friend giving real talk, not a corporate consultant.`;
+- overallVerdict: 2-3 sentence blunt, specific assessment. Reference their actual numbers. Use median views as the creator's baseline and call out if average views are inflated by spikes. Tell them exactly where they'd stall in the algorithm distribution phases (test → validation → acceleration → viral) and what's holding them back. Sound like a growth expert friend giving real talk, not a corporate consultant.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250514',
