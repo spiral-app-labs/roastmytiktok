@@ -13,6 +13,21 @@ export interface NicheDetection {
   signals: string[];
 }
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasKeywordMatch(text: string, keyword: string): boolean {
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  if (!normalizedKeyword) return false;
+
+  const pattern = normalizedKeyword.includes(' ')
+    ? `(^|[^a-z0-9])${escapeRegex(normalizedKeyword).replace(/\s+/g, '\\s+')}([^a-z0-9]|$)`
+    : `(^|[^a-z0-9])${escapeRegex(normalizedKeyword)}([^a-z0-9]|$)`;
+
+  return new RegExp(pattern, 'i').test(text);
+}
+
 // Keyword signals mapped to niches. Order matters: first match with highest signal count wins.
 const NICHE_SIGNALS: Record<NicheCategory, { keywords: string[]; subNiches: Record<string, string[]> }> = {
   comedy: {
@@ -180,7 +195,7 @@ export function detectNiche(signals: {
     const { keywords } = NICHE_SIGNALS[niche];
     const matched: string[] = [];
     for (const kw of keywords) {
-      if (text.includes(kw)) {
+      if (hasKeywordMatch(text, kw)) {
         matched.push(kw);
       }
     }
@@ -222,7 +237,7 @@ export function detectNiche(signals: {
   let bestSubScore = 0;
 
   for (const [subName, subKeywords] of Object.entries(subNiches)) {
-    const subScore = subKeywords.filter(kw => text.includes(kw)).length;
+    const subScore = subKeywords.filter((kw) => hasKeywordMatch(text, kw)).length;
     if (subScore > bestSubScore) {
       bestSubScore = subScore;
       detectedSubNiche = subName;
