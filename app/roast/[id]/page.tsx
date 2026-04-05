@@ -8,6 +8,8 @@ import { getDetectedHookType, getFirstFiveSecondsDiagnosis, getFirstGlanceChecks
 import { getPersonalizedHookPatterns } from '@/lib/viral-hooks';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
+import { ScoreCard } from '@/components/ScoreCard';
+import { useScoreCardDownload } from '@/hooks/useScoreCardDownload';
 import { DeepDiveNav } from '@/components/DeepDiveNav';
 import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
@@ -225,6 +227,8 @@ function RoastContent({
     const hasPlan = !!localStorage.getItem('plan');
     setIsPaid(hasPaidCookie || hasPlan);
   }, []);
+
+  const { squareRef, storyRef, download, downloading } = useScoreCardDownload(roast);
 
   // Deep-dive navigation items
   const navItems = useMemo(() => {
@@ -636,12 +640,12 @@ function RoastContent({
             </div>
           </motion.div>
 
-          {/* Share buttons */}
+          {/* Share + Download buttons */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.65 }}
-            className="flex items-center justify-center gap-3 mt-6"
+            className="flex flex-wrap items-center justify-center gap-3 mt-6"
           >
             <button
               onClick={handleCopyLink}
@@ -670,7 +674,51 @@ function RoastContent({
               </svg>
               <span>Share on X</span>
             </button>
+            <button
+              onClick={() => download('square')}
+              disabled={downloading !== null}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/25"
+            >
+              {downloading === 'square' ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  <span>Download Score Card</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => download('story')}
+              disabled={downloading !== null}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-600 text-white text-sm font-semibold hover:border-orange-500/40 hover:bg-zinc-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {downloading === 'story' ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3" />
+                  </svg>
+                  <span>Share to Stories</span>
+                </>
+              )}
+            </button>
           </motion.div>
+
+          {/* Off-screen ScoreCard nodes captured by html-to-image */}
+          <div aria-hidden="true" style={{ position: 'fixed', left: '-9999px', top: 0, pointerEvents: 'none', zIndex: -1 }}>
+            <ScoreCard ref={squareRef} roast={roast} variant="square" />
+            <ScoreCard ref={storyRef} roast={roast} variant="story" />
+          </div>
 
           {/* Metadata */}
           {hasMetadata && (
