@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 
 const FREE_FEATURES = [
   { text: `Full video upload + roast flow`, icon: `🎬` },
@@ -57,6 +58,101 @@ const FAQ = [
     a: `Most tools show you what happened (views, likes, retention). We show you why it happened and what to change. Six specialized AI agents give you a specific diagnosis and a reshoot plan — not just charts.`,
   },
 ];
+
+function PlanSignupPanel({ plan, label, buttonClass }: { plan: "monthly" | "yearly"; label: string; buttonClass: string }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) setEmail(session.user.email);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (open && status === "idle") inputRef.current?.focus();
+  }, [open, status]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, intent: "subscribe", plan }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || "Something went wrong");
+        setStatus("error");
+      } else {
+        setStatus("success");
+      }
+    } catch {
+      setErrorMsg("Network error — please try again");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className={buttonClass}
+      >
+        {label}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 rounded-xl border border-zinc-700 bg-zinc-950/80 p-4">
+              {status === "success" ? (
+                <p className="text-sm text-zinc-300 text-center py-1">
+                  You&apos;re on the list — we&apos;ll activate your plan and email you when billing goes live.
+                </p>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <p className="text-xs text-zinc-400">
+                    Selected plan: <span className="text-white font-medium capitalize">{plan}</span>
+                  </p>
+                  <input
+                    ref={inputRef}
+                    type="email"
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500/60"
+                  />
+                  {errorMsg && <p className="text-xs text-red-400">{errorMsg}</p>}
+                  <button
+                    type="submit"
+                    disabled={status === "loading"}
+                    className="w-full py-2.5 rounded-lg font-semibold text-sm fire-gradient text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {status === "loading" ? "Saving…" : "Lock in beta rate →"}
+                  </button>
+                </form>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -230,12 +326,13 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
             <span className="text-zinc-500 text-sm ml-2">/mo</span>
           </div>
 
-          <Link
-            href="/login?intent=subscribe&plan=monthly&redirect=/pricing"
-            className="block text-center py-3 px-6 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all mb-8"
-          >
-Choose Monthly Beta
-          </Link>
+          <div className="mb-8">
+            <PlanSignupPanel
+              plan="monthly"
+              label="Choose Monthly Beta"
+              buttonClass="block w-full text-center py-3 px-6 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all"
+            />
+          </div>
 
           <div className="space-y-3 flex-1">
             <p className="text-xs text-zinc-600 uppercase tracking-wider font-medium mb-2">Everything in Free, plus</p>
@@ -294,13 +391,14 @@ Choose Monthly Beta
           </AnimatePresence>
           {!yearly && <div className="mb-6" />}
 
-          <Link
-            href="/login?intent=subscribe&plan=yearly&redirect=/pricing"
-            className="block text-center py-4 px-6 rounded-xl font-bold fire-gradient text-white hover:opacity-90 transition-opacity mb-3 text-base shadow-lg shadow-orange-500/20"
-          >
-Choose Yearly Beta →
-          </Link>
-          <p className="text-center text-xs text-zinc-500 mb-8">Your plan choice is saved first. billing is activated during beta onboarding.</p>
+          <div className="mb-3">
+            <PlanSignupPanel
+              plan="yearly"
+              label="Choose Yearly Beta →"
+              buttonClass="block w-full text-center py-4 px-6 rounded-xl font-bold fire-gradient text-white hover:opacity-90 transition-opacity text-base shadow-lg shadow-orange-500/20"
+            />
+          </div>
+          <p className="text-center text-xs text-zinc-500 mb-8">We&apos;ll email you when billing activates. You&apos;re locked in at the beta rate.</p>
 
           <div className="space-y-3 flex-1">
             <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-2">Everything in Monthly, plus</p>
