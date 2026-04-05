@@ -8,6 +8,8 @@ import { getDetectedHookType, getFirstFiveSecondsDiagnosis, getFirstGlanceChecks
 import { getPersonalizedHookPatterns } from '@/lib/viral-hooks';
 import { AgentCard } from '@/components/AgentCard';
 import { ScoreRing } from '@/components/ScoreRing';
+import { ScoreCard } from '@/components/ScoreCard';
+import { useScoreCardDownload } from '@/hooks/useScoreCardDownload';
 import { DeepDiveNav } from '@/components/DeepDiveNav';
 import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { saveToHistory, getChronicIssues, getHistory, getFixedIssues, getEscalationLevel, getEscalatingRoast, ChronicIssue } from '@/lib/history';
@@ -35,6 +37,16 @@ function getVerdictLabel(score: number): string {
   if (score >= 55) return 'decent idea, weak packaging';
   if (score >= 40) return 'concept survives, execution does not';
   return 'the opener is killing the post';
+}
+
+function getVerdictOneLiner(score: number): string {
+  if (score >= 90) return "this one's primed to break out. polish the edges.";
+  if (score >= 80) return "strong foundation. there's a higher ceiling here.";
+  if (score >= 70) return "real potential — hasn't cracked through yet.";
+  if (score >= 60) return "the content is there. the packaging is holding it back.";
+  if (score >= 50) return "the idea works. the execution needs help.";
+  if (score >= 40) return "something here wants to perform. find it and amplify it.";
+  return "this is getting scrolled past in the first second.";
 }
 
 function formatRecommendationTimestamp(step: NonNullable<RoastResult['actionPlan']>[number]): string {
@@ -226,6 +238,8 @@ function RoastContent({
     setIsPaid(hasPaidCookie || hasPlan);
   }, []);
 
+  const { squareRef, storyRef, download, downloading } = useScoreCardDownload(roast);
+
   // Deep-dive navigation items
   const navItems = useMemo(() => {
     const items = [
@@ -352,32 +366,41 @@ function RoastContent({
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 120, damping: 16, delay: 0.25 }}
-                className="relative inline-block mb-4"
+                className="relative inline-block mb-5"
               >
-                <ScoreRing score={roast.overallScore} size={180} showGrade={getLetterGrade(roast.overallScore)} />
+                <ScoreRing score={roast.overallScore} size={220} showGrade={getLetterGrade(roast.overallScore)} />
               </motion.div>
 
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55, duration: 0.4 }}
+                className="text-base sm:text-lg font-medium text-zinc-400 mb-3 italic"
+              >
+                {getVerdictOneLiner(roast.overallScore)}
+              </motion.p>
+
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.4 }}
-                className={`text-3xl sm:text-4xl font-bold mb-2 ${
+                className={`text-4xl sm:text-5xl font-black mb-2 tabular-nums ${
                   roast.overallScore >= 80 ? 'text-green-400' :
                   roast.overallScore >= 60 ? 'text-yellow-400' :
                   roast.overallScore >= 40 ? 'text-orange-400' :
                   'text-red-400'
                 }`}
               >
-                {roast.overallScore} <span className="text-zinc-600 text-lg font-medium">/ 100</span>
+                {roast.overallScore}<span className="text-zinc-600 text-xl font-medium"> / 100</span>
               </motion.p>
 
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.8, duration: 0.3 }}
-                className="mb-4"
+                transition={{ delay: 0.75, duration: 0.3 }}
+                className="mb-5"
               >
-                <span className={`inline-block text-sm font-bold px-5 py-2 rounded-full ${
+                <span className={`inline-block text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest ${
                   roast.overallScore >= 80 ? 'bg-green-500/15 text-green-400 border border-green-500/25' :
                   roast.overallScore >= 60 ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/25' :
                   roast.overallScore >= 40 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/25' :
@@ -385,6 +408,42 @@ function RoastContent({
                 }`}>
                   {getVerdictLabel(roast.overallScore)}
                 </span>
+              </motion.div>
+
+              {/* Share buttons — near the score, not buried */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.82, duration: 0.35 }}
+                className="flex items-center justify-center gap-3 mb-6"
+              >
+                <button
+                  onClick={handleCopyLink}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-sm font-semibold hover:border-orange-500/50 hover:text-orange-400 transition-all"
+                >
+                  {copied ? (
+                    <>
+                      <span className="text-green-400">✓</span>
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                      </svg>
+                      <span>Copy Link</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleShareOnX(roast.overallScore)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black border border-zinc-700 text-white text-sm font-semibold hover:border-white/30 hover:bg-zinc-900 transition-all"
+                >
+                  <svg aria-hidden="true" className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.741l7.733-8.835L1.254 2.25H8.08l4.258 5.63L18.245 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  <span>Share on X</span>
+                </button>
               </motion.div>
 
               <motion.div
@@ -460,64 +519,78 @@ function RoastContent({
             )}
 
             {roast.actionPlan && roast.actionPlan.length > 0 ? (
-              <div className="border-t border-zinc-800/50 pt-3 space-y-3">
-                <div className="flex flex-col gap-3 rounded-2xl border border-blue-500/15 bg-blue-500/[0.05] p-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Fix This Next</p>
-                    <p className="mt-1 text-sm text-zinc-300">start with the highest-leverage edit first. the rest can wait until this one is cleaner.</p>
-                  </div>
-                  <div className="rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-orange-300">
-                    ranked by impact
+              <div className="border-t border-zinc-800/50 pt-4 space-y-2">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Action Plan — ranked by impact</p>
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-600">
+                    <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />P1
+                    <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block ml-1" />P2
+                    <span className="w-2 h-2 rounded-full bg-zinc-600 inline-block ml-1" />P3
                   </div>
                 </div>
-                {roast.actionPlan.map((step) => {
-                  const agent = AGENTS.find((item) => item.key === step.dimension);
-                  const evidence = Array.isArray(step.evidence) ? step.evidence : [];
-                  return (
-                    <div key={`${step.priority}-${step.dimension}-${step.issue}`} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-zinc-100">{step.priority} • {step.issue}</p>
-                          <p className="text-xs text-zinc-500">{agent?.emoji} {agent?.name ?? step.dimension} • {step.whyItMatters}</p>
+                {/* Timeline */}
+                <div className="relative pl-6">
+                  {/* Vertical line */}
+                  <div className="absolute left-2.5 top-2 bottom-2 w-px bg-gradient-to-b from-red-500/50 via-yellow-500/30 to-zinc-700/30" />
+                  <div className="space-y-4">
+                    {roast.actionPlan.map((step, idx) => {
+                      const agent = AGENTS.find((item) => item.key === step.dimension);
+                      const evidence = Array.isArray(step.evidence) ? step.evidence : [];
+                      const priorityNum = parseInt(step.priority?.replace(/\D/g, '') || '3');
+                      const isP1 = priorityNum === 1;
+                      const isP2 = priorityNum === 2;
+                      const dotColor = isP1 ? 'bg-red-500 shadow-red-500/50' : isP2 ? 'bg-yellow-500 shadow-yellow-500/50' : 'bg-zinc-600';
+                      const cardBorder = isP1 ? 'border-red-500/25 bg-gradient-to-br from-red-500/8 to-transparent' : isP2 ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-zinc-800/60 bg-zinc-950/40';
+                      const priorityBadge = isP1 ? 'bg-red-500/20 text-red-300 border-red-500/30' : isP2 ? 'bg-yellow-500/15 text-yellow-300 border-yellow-500/25' : 'bg-zinc-800/60 text-zinc-500 border-zinc-700/50';
+                      return (
+                        <div key={`${step.priority}-${step.dimension}-${step.issue}-${idx}`} className="relative">
+                          {/* Timeline dot */}
+                          <div className={`absolute -left-6 top-3.5 w-3 h-3 rounded-full shadow-lg ${dotColor}`} />
+                          <div className={`rounded-2xl border p-4 space-y-3 ${cardBorder}`}>
+                            <div className="flex items-start justify-between gap-3 flex-wrap">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${priorityBadge}`}>
+                                    {step.priority}
+                                  </span>
+                                  <span className="text-xs text-zinc-500">{agent?.emoji} {agent?.name ?? step.dimension}</span>
+                                </div>
+                                <p className={`text-sm font-semibold leading-snug ${isP1 ? 'text-zinc-100' : 'text-zinc-200'}`}>{step.issue}</p>
+                              </div>
+                              <div className="rounded-full border border-zinc-700/50 bg-zinc-900/80 px-2.5 py-1 text-[11px] font-bold tracking-wide text-zinc-400 shrink-0">
+                                {formatRecommendationTimestamp(step)}
+                              </div>
+                            </div>
+                            <div className="grid gap-2 sm:grid-cols-3">
+                              <div className="rounded-xl border border-zinc-800/80 bg-black/20 p-2.5">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-1">consequence</p>
+                                <p className="text-xs text-zinc-300">{step.algorithmicConsequence || step.whyItMatters}</p>
+                              </div>
+                              <div className={`rounded-xl border p-2.5 ${isP1 ? 'border-red-500/15 bg-red-500/5' : isP2 ? 'border-yellow-500/15 bg-yellow-500/5' : 'border-zinc-800/60 bg-zinc-950/40'}`}>
+                                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isP1 ? 'text-red-400' : isP2 ? 'text-yellow-400' : 'text-zinc-600'}`}>exact fix</p>
+                                <p className="text-xs text-zinc-200 font-medium">{step.doThis}</p>
+                              </div>
+                              <div className="rounded-xl border border-blue-500/15 bg-blue-500/5 p-2.5">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-1">example</p>
+                                <p className="text-xs text-zinc-300 italic">{step.example}</p>
+                              </div>
+                            </div>
+                            {evidence.length > 0 && (
+                              <ul className="flex flex-wrap gap-2">
+                                {evidence.map((item, eIdx) => (
+                                  <li key={eIdx} className="text-[11px] text-zinc-500 flex items-center gap-1.5">
+                                    <span className={`h-1 w-1 rounded-full shrink-0 ${isP1 ? 'bg-red-500' : isP2 ? 'bg-yellow-500' : 'bg-zinc-600'}`} />
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
                         </div>
-                        <div className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-[11px] font-bold tracking-wide text-orange-300">
-                          {formatRecommendationTimestamp(step)}
-                        </div>
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-3">
-                        <div className="rounded-lg border border-zinc-800/80 bg-black/20 p-2.5">
-                          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">Observed issue</p>
-                          <p className="mt-1 text-sm text-zinc-200">{step.issue}</p>
-                        </div>
-                        <div className="rounded-lg border border-amber-500/15 bg-amber-500/8 p-2.5">
-                          <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">Algorithmic consequence</p>
-                          <p className="mt-1 text-sm text-zinc-200">{step.algorithmicConsequence || step.whyItMatters}</p>
-                        </div>
-                        <div className="rounded-lg border border-blue-500/15 bg-blue-500/8 p-2.5">
-                          <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300">Exact edit instruction</p>
-                          <p className="mt-1 text-sm text-zinc-100">{step.doThis}</p>
-                        </div>
-                      </div>
-                      {evidence.length > 0 && (
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Evidence</p>
-                          <ul className="space-y-1">
-                            {evidence.map((item, index) => (
-                              <li key={index} className="text-xs text-zinc-400 flex gap-2">
-                                <span className="text-orange-400 shrink-0">•</span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      <div className="rounded-lg bg-blue-500/8 border border-blue-500/15 p-2.5">
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-1">Edit example</p>
-                        <p className="text-xs text-zinc-300">{step.example}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             ) : roast.nextSteps && roast.nextSteps.length > 0 ? (
               <div className="border-t border-zinc-800/50 pt-3">
@@ -636,12 +709,12 @@ function RoastContent({
             </div>
           </motion.div>
 
-          {/* Share buttons */}
+          {/* Share + Download buttons */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.65 }}
-            className="flex items-center justify-center gap-3 mt-6"
+            className="flex flex-wrap items-center justify-center gap-3 mt-6"
           >
             <button
               onClick={handleCopyLink}
@@ -670,7 +743,52 @@ function RoastContent({
               </svg>
               <span>Share on X</span>
             </button>
+            <button
+              onClick={() => download('square')}
+              disabled={downloading !== null}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/25"
+            >
+              {downloading === 'square' ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  <span>Download Score Card</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => download('story')}
+              disabled={downloading !== null}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-600 text-white text-sm font-semibold hover:border-orange-500/40 hover:bg-zinc-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {downloading === 'story' ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3" />
+                  </svg>
+                  <span>Share to Stories</span>
+                </>
+              )}
+            </button>
           </motion.div>
+
+          {/* Off-screen ScoreCard nodes captured by html-to-image */}
+          <div aria-hidden="true" style={{ position: 'fixed', left: '-9999px', top: 0, pointerEvents: 'none', zIndex: -1 }}>
+            <ScoreCard ref={squareRef} roast={roast} variant="square" />
+            <ScoreCard ref={storyRef} roast={roast} variant="story" />
+          </div>
+
 
           {/* Metadata */}
           {hasMetadata && (
@@ -724,7 +842,7 @@ function RoastContent({
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 mb-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 mb-6">
                   <div className="shrink-0">
                     <ScoreRing score={hookScore} size={120} />
                   </div>
@@ -733,10 +851,38 @@ function RoastContent({
                     <p className="mt-3 text-sm sm:text-base text-zinc-300 leading-relaxed max-w-xl">
                       Nothing else matters until this is fixed. Strategy, visuals, captions, audio — they&apos;re all <EducationalTooltip tooltipKey="downstream-advice">downstream</EducationalTooltip> of getting someone to <EducationalTooltip tooltipKey="scroll-stop">stop scrolling</EducationalTooltip>. Right now, that&apos;s not happening.
                     </p>
-                    <p className="mt-2 text-xs text-red-300/80">
-                      Hook score {hookScore}/100 — {weakHookPenalty} points below the bar where other feedback starts to matter.
-                    </p>
                   </div>
+                </div>
+
+                {/* Hook strength meter */}
+                <div className="mb-6 rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">hook strength meter</p>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-red-300 font-bold">{hookScore}</span>
+                      <span className="text-zinc-600">/</span>
+                      <span className="text-zinc-500">70 threshold</span>
+                    </div>
+                  </div>
+                  <div className="relative h-3 rounded-full bg-zinc-900 overflow-hidden">
+                    {/* Threshold marker at 70% */}
+                    <div className="absolute left-[70%] top-0 bottom-0 w-px bg-zinc-400/40 z-10" />
+                    <motion.div
+                      className="absolute left-0 top-0 bottom-0 rounded-full"
+                      style={{ background: 'linear-gradient(to right, #f87171, #fb923c)' }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${hookScore}%` }}
+                      transition={{ duration: 1.2, delay: 0.3, ease: 'easeOut' }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    <span className="text-[10px] text-zinc-600">0</span>
+                    <span className="text-[10px] text-zinc-400 font-semibold">70 ← minimum threshold</span>
+                    <span className="text-[10px] text-zinc-600">100</span>
+                  </div>
+                  <p className="mt-2 text-xs text-red-300/70 font-medium">
+                    {weakHookPenalty} points below the threshold where downstream feedback starts to matter
+                  </p>
                 </div>
 
                 {roast.hookSummary && (
@@ -1050,16 +1196,45 @@ function RoastContent({
           >
             <div className="text-left">
               <p className="text-sm text-zinc-500 mb-3">an honest <EducationalTooltip tooltipKey="frame-one">frame-one</EducationalTooltip> gut check for a cold viewer.</p>
+              {/* Summary indicator */}
+              {firstGlanceChecks.length > 0 && (() => {
+                const passing = firstGlanceChecks.filter(c => c.status === 'working').length;
+                const total = firstGlanceChecks.length;
+                const pct = Math.round((passing / total) * 100);
+                const color = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-red-500';
+                const label = pct >= 70 ? 'text-emerald-300' : pct >= 40 ? 'text-yellow-300' : 'text-red-300';
+                return (
+                  <div className="mb-4 rounded-xl border border-zinc-800/60 bg-black/20 p-3">
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">first-glance score</p>
+                      <span className={`text-sm font-black ${label}`}>{passing}/{total} passing</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-zinc-900 overflow-hidden">
+                      <motion.div
+                        className={`h-full rounded-full ${color}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="space-y-2">
                 {firstGlanceChecks.map((item) => (
-                  <div key={item.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+                  <div key={item.label} className={`rounded-xl border p-3 ${item.status === 'working' ? 'border-emerald-500/15 bg-emerald-500/5' : 'border-red-500/15 bg-red-500/5'}`}>
                     <div className="flex items-center justify-between gap-3 mb-1">
-                      <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
-                      <span className={`text-[11px] font-bold uppercase tracking-widest ${item.status === 'working' ? 'text-emerald-300' : 'text-red-300'}`}>
-                        {item.status === 'working' ? 'working' : 'needs work'}
+                      <div className="flex items-center gap-2">
+                        <span className={`text-base ${item.status === 'working' ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {item.status === 'working' ? '✓' : '✗'}
+                        </span>
+                        <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border shrink-0 ${item.status === 'working' ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : 'text-red-300 border-red-500/25 bg-red-500/10'}`}>
+                        {item.status === 'working' ? 'passing' : 'fix this'}
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-400">{item.note}</p>
+                    <p className="text-xs text-zinc-400 pl-6">{item.note}</p>
                   </div>
                 ))}
               </div>
@@ -1149,12 +1324,12 @@ function RoastContent({
         >
           <CollapsibleSection
             id="agent-cards"
-            eyebrow={isHookWeak ? 'Secondary feedback' : 'Full analysis'}
+            eyebrow={isHookWeak ? 'Secondary feedback' : '6 AI agents · full breakdown'}
             title={isHookWeak ? 'fix hook first — these stay benched until it lands' : 'detailed breakdown by dimension'}
             emoji="🔬"
             tier={isHookWeak ? 3 : 1}
             gated={isHookWeak}
-            accent={isHookWeak ? 'border-zinc-800/50 bg-zinc-950/40' : 'border-zinc-800/70 bg-zinc-900/60'}
+            accent={isHookWeak ? 'border-zinc-800/50 bg-zinc-950/40' : 'border-orange-500/15 bg-zinc-900/60'}
           >
             <div>
               {/* Dimmed overlay hint when hook is weak */}
