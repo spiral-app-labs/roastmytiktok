@@ -69,7 +69,7 @@ function LoginForm() {
           <Link href="/" className="flex items-center gap-2 mb-3">
             <span className="text-3xl">🔥</span>
             <span className="text-2xl font-black bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 bg-clip-text text-transparent">
-              RoastMyTikTok
+              Go Viral
             </span>
           </Link>
           <p className="text-zinc-600 text-sm">The analysis-first AI content coach</p>

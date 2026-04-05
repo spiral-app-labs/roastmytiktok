@@ -275,7 +275,7 @@ export default function ScriptsPage() {
                 href="/"
                 className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-200 font-semibold px-6 py-3 rounded-xl border border-zinc-700 hover:border-zinc-500 transition-all"
               >
-                🔥 Roast My TikTok
+                🚀 Go Viral
               </Link>
             </div>
           </motion.div>

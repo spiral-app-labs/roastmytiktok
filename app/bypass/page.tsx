@@ -47,7 +47,7 @@ function BypassForm() {
         <div className="space-y-2">
           <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight">
             <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
-              RoastMyTikTok
+              Go Viral
             </span>
           </h1>
           <p className="text-zinc-400 text-sm">Enter the password to access early preview.</p>

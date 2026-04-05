@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
-  description: 'Terms of Service for Roast My TikTok — rules, usage policies, and legal agreements.',
+  description: 'Terms of Service for Go Viral — rules, usage policies, and legal agreements.',
   alternates: { canonical: '/terms' },
 };
 

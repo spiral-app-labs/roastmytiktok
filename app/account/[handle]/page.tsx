@@ -90,7 +90,7 @@ export default function AccountResultsPage() {
 
   const handleShare = async () => {
     const url = window.location.href;
-    const text = `Check out my TikTok pattern report for @${handle} on RoastMyTikTok!`;
+    const text = `Check out my TikTok pattern report for @${handle} on Go Viral!`;
     if (navigator.share) {
       try {
         await navigator.share({ title: `@${handle} Pattern Report`, text, url });

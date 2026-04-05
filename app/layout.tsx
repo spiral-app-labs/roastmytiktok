@@ -6,12 +6,12 @@ import { HomeJsonLd } from "@/components/JsonLd";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://roastmytiktok.com"),
+  metadataBase: new URL("https://goviralwith.ai"),
   title: {
-    default: "Roast My TikTok — AI Agents Roast Your Content",
-    template: "%s | Roast My TikTok",
+    default: "Go Viral — AI Agents Diagnose Why Your Videos Don't Spread",
+    template: "%s | Go Viral",
   },
-  description: "Your TikTok is cringe. Watch AI prove it. 6 specialized AI agents analyze and brutally roast your TikTok videos.",
+  description: "Six AI agents analyze your TikTok opener, diagnose why viewers leave, and give you a reshoot plan you can film today.",
   manifest: "/manifest.json",
   themeColor: "#fb923c",
   alternates: {

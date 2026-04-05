@@ -22,7 +22,7 @@ const PRO_FEATURES = [
 ];
 
 const SOCIAL_PROOF = [
-  { name: `@brayden.creates`, text: `went from 200 to 14k followers in 3 weeks after fixing what RoastMyTikTok flagged. no cap.` },
+  { name: `@brayden.creates`, text: `went from 200 to 14k followers in 3 weeks after fixing what Go Viral flagged. no cap.` },
   { name: `@liftwithlaura`, text: `the hook agent roasted me so hard I completely rethought my content. 10/10 worth it.` },
   { name: `@techwithterry`, text: `this thing found issues my editor didn't even catch. brutal but accurate every time.` },
 ];

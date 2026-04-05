@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Settings',
-  description: 'Manage your Roast My TikTok account settings, preferences, and subscription.',
+  description: 'Manage your Go Viral account settings, preferences, and subscription.',
   alternates: { canonical: '/settings' },
 };
 
