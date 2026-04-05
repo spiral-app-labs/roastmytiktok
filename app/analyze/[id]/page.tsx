@@ -232,44 +232,67 @@ export default function AnalyzePage() {
         <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-gradient-to-br from-pink-500/5 to-transparent blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
-      <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
+      <div className="relative z-10 max-w-5xl w-full space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-3"
+          className="rounded-[30px] border border-orange-500/20 bg-zinc-950/80 p-6 text-center shadow-2xl shadow-orange-500/5 backdrop-blur-xl md:p-8"
         >
-          {/* Animated fire emoji */}
-          <motion.div
-            animate={{ scale: [1, 1.15, 1], rotate: [-3, 3, -3] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            className="text-5xl"
-          >
-            🔥
-          </motion.div>
-
-          <h1 className="text-3xl md:text-4xl font-bold">
-            <span className="fire-text">Roasting</span> your TikTok...
-          </h1>
-
-          <div className="h-8 text-zinc-400 text-sm">
-            <RotatingMessage messages={DEFAULT_LOADING_MESSAGES} />
-          </div>
-          <p className="text-xs text-zinc-500">{statusMessage}</p>
-
-          {/* Progress bar */}
-          <div className="mt-4 space-y-2">
-            <div className="flex justify-between items-center text-xs text-zinc-500">
-              <span>{completedCount} / {AGENTS.length} agents done</span>
-              <span className="font-mono">{progressPct}%</span>
+          <div className="mx-auto max-w-3xl space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-500/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-300">
+              <span className="h-2 w-2 rounded-full bg-orange-400 animate-pulse" />
+              go viral analysis running
             </div>
-            <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-orange-500 to-pink-500"
-                initial={{ width: '0%' }}
-                animate={{ width: `${progressPct}%` }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-              />
+
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], rotate: [-3, 3, -3] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              className="text-5xl"
+            >
+              🔥
+            </motion.div>
+
+            <div>
+              <h1 className="text-3xl font-black tracking-tight text-white md:text-5xl">
+                building your <span className="fire-text">go viral diagnosis</span>
+              </h1>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400 md:text-base">
+                this pass is prioritizing the opener first, then stacking the most important fixes behind it so the final roast is actually useful, not just loud.
+              </p>
+            </div>
+
+            <div className="h-8 text-zinc-300 text-sm font-medium">
+              <RotatingMessage messages={DEFAULT_LOADING_MESSAGES} />
+            </div>
+            <p className="text-xs text-zinc-500">{statusMessage}</p>
+
+            <div className="mt-4 space-y-3">
+              <div className="flex justify-between items-center text-xs text-zinc-500">
+                <span>{completedCount} / {AGENTS.length} agents done</span>
+                <span className="font-mono text-orange-300">{progressPct}%</span>
+              </div>
+              <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-orange-500 via-orange-400 to-pink-500"
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3 pt-2 text-left md:grid-cols-3">
+              {[
+                { label: 'first priority', value: 'hook clarity + scroll-stop strength' },
+                { label: 'then we rank', value: 'what to fix first vs what can wait' },
+                { label: 'final output', value: 'clean verdict, score, and filmable next take' },
+              ].map((item) => (
+                <div key={item.label} className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-500">{item.label}</p>
+                  <p className="mt-2 text-sm text-zinc-200">{item.value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </motion.div>

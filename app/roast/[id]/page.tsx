@@ -29,6 +29,14 @@ function getLetterGrade(score: number): string {
   return 'F';
 }
 
+function getVerdictLabel(score: number): string {
+  if (score >= 85) return 'viral-ready foundation';
+  if (score >= 70) return 'promising, but not sharp enough yet';
+  if (score >= 55) return 'decent idea, weak packaging';
+  if (score >= 40) return 'concept survives, execution does not';
+  return 'the opener is killing the post';
+}
+
 function formatRecommendationTimestamp(step: NonNullable<RoastResult['actionPlan']>[number]): string {
   if (step.timestampLabel) return step.timestampLabel;
   if (typeof step.timestampSeconds !== 'number') return 'Timestamp not pinned';
@@ -182,6 +190,11 @@ function RoastContent({
   const downstreamImpactSummary = isHookWeak
     ? `until the opener improves, the rest of this feedback is support work, not the main event.`
     : `the hook is good enough that the supporting levers below can actually move performance.`;
+  const sortedAgents = [...roast.agents].sort((a, b) => a.score - b.score);
+  const weakestAgent = sortedAgents[0];
+  const strongestAgent = sortedAgents[sortedAgents.length - 1];
+  const weakestAgentMeta = weakestAgent ? AGENTS.find((agent) => agent.key === weakestAgent.agent) : null;
+  const strongestAgentMeta = strongestAgent ? AGENTS.find((agent) => agent.key === strongestAgent.agent) : null;
 
   // Deep-dive navigation items
   const navItems = useMemo(() => {
@@ -328,11 +341,31 @@ function RoastContent({
                   roast.overallScore >= 40 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/25' :
                   'bg-red-500/15 text-red-400 border border-red-500/25'
                 }`}>
-                  {roast.overallScore >= 80 ? 'Actually decent' :
-                   roast.overallScore >= 60 ? 'Room for improvement' :
-                   roast.overallScore >= 40 ? 'Needs serious work' :
-                   'We need to talk'}
+                  {getVerdictLabel(roast.overallScore)}
                 </span>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.88, duration: 0.35 }}
+                className="mb-5 grid gap-3 text-left sm:grid-cols-3"
+              >
+                <div className="rounded-2xl border border-red-500/15 bg-red-500/[0.07] p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-300">fix first</p>
+                  <p className="mt-2 text-sm font-semibold text-zinc-100">{weakestAgentMeta?.emoji} {weakestAgentMeta?.name ?? 'biggest blocker'}</p>
+                  <p className="mt-1 text-xs text-zinc-400">{weakestAgent?.score ?? roast.overallScore}/100</p>
+                </div>
+                <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/[0.07] p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-300">strongest signal</p>
+                  <p className="mt-2 text-sm font-semibold text-zinc-100">{strongestAgentMeta?.emoji} {strongestAgentMeta?.name ?? 'best dimension'}</p>
+                  <p className="mt-1 text-xs text-zinc-400">{strongestAgent?.score ?? roast.overallScore}/100</p>
+                </div>
+                <div className="rounded-2xl border border-orange-500/15 bg-orange-500/[0.07] p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-orange-300">hook pressure</p>
+                  <p className="mt-2 text-sm font-semibold text-zinc-100">{hookScore}/100</p>
+                  <p className="mt-1 text-xs text-zinc-400">{isHookWeak ? `${weakHookPenalty} points under the safety line` : 'strong enough for downstream fixes to matter'}</p>
+                </div>
               </motion.div>
 
               {/* Agent score strip — scannable at-a-glance */}
@@ -386,7 +419,15 @@ function RoastContent({
 
             {roast.actionPlan && roast.actionPlan.length > 0 ? (
               <div className="border-t border-zinc-800/50 pt-3 space-y-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Fix This Next</p>
+                <div className="flex flex-col gap-3 rounded-2xl border border-blue-500/15 bg-blue-500/[0.05] p-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Fix This Next</p>
+                    <p className="mt-1 text-sm text-zinc-300">start with the highest-leverage edit first. the rest can wait until this one is cleaner.</p>
+                  </div>
+                  <div className="rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-orange-300">
+                    ranked by impact
+                  </div>
+                </div>
                 {roast.actionPlan.map((step) => {
                   const agent = AGENTS.find((item) => item.key === step.dimension);
                   const evidence = Array.isArray(step.evidence) ? step.evidence : [];
