@@ -229,7 +229,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "roastmytiktok-data.json";
+    a.download = "goviral-data.json";
     a.click();
     URL.revokeObjectURL(url);
   }

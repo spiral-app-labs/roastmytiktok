@@ -213,7 +213,7 @@ export default function UploadUI() {
         >
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-2xl">🔥</span>
-            <span className="text-zinc-500 text-sm font-semibold tracking-widest uppercase">RoastMyTikTok</span>
+            <span className="text-zinc-500 text-sm font-semibold tracking-widest uppercase">Go Viral</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.05]">
             stuck at 200 views?{' '}

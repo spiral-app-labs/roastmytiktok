@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         <div className="space-y-8 text-sm text-zinc-400 leading-relaxed">
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">1. Information We Collect</h2>
-            <p className="mb-3">We collect the following information when you use RoastMyTikTok:</p>
+            <p className="mb-3">We collect the following information when you use Go Viral:</p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li><strong className="text-zinc-300">Account info:</strong> Email address and name (via Google OAuth or magic link sign-in).</li>
               <li><strong className="text-zinc-300">Waitlist email:</strong> If you join the waitlist before launch, we collect your email address to send you launch updates.</li>
@@ -72,8 +72,8 @@ export default function PrivacyPage() {
             </ul>
             <p className="mt-3">
               To exercise any of these rights, contact us at{' '}
-              <a href="mailto:support@roastmytiktok.com" className="text-orange-400 hover:text-orange-300 transition-colors">
-                support@roastmytiktok.com
+              <a href="mailto:support@goviralwith.ai" className="text-orange-400 hover:text-orange-300 transition-colors">
+                support@goviralwith.ai
               </a>.
             </p>
           </section>
@@ -96,8 +96,8 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-white mb-3">9. Contact</h2>
             <p>
               Questions about your privacy? Reach out at{' '}
-              <a href="mailto:support@roastmytiktok.com" className="text-orange-400 hover:text-orange-300 transition-colors">
-                support@roastmytiktok.com
+              <a href="mailto:support@goviralwith.ai" className="text-orange-400 hover:text-orange-300 transition-colors">
+                support@goviralwith.ai
               </a>.
             </p>
           </section>

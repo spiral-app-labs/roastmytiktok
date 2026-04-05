@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Changelog',
-  description: 'See what\u2019s new in RoastMyTikTok \u2014 product updates, new features, and improvements.',
+  description: 'See what\u2019s new in Go Viral \u2014 product updates, new features, and improvements.',
 };
 
 const ENTRIES = [
@@ -30,7 +30,7 @@ const ENTRIES = [
     date: 'January 2026',
     tag: 'Launch',
     items: [
-      { title: 'RoastMyTikTok beta launch', desc: '6 specialized AI agents analyze your TikTok video and deliver a brutally honest roast with actionable fixes.' },
+      { title: 'Go Viral beta launch', desc: '6 specialized AI agents analyze your TikTok video and diagnose why viewers leave, with actionable reshoot plans.' },
       { title: 'Hook-first analysis mode', desc: 'When the hook is weak, all other feedback is deprioritized \u2014 because nothing else matters until the opener lands.' },
       { title: 'Chronic issue detection', desc: 'Tracks recurring problems across roasts and escalates the feedback intensity when the same mistake keeps showing up.' },
       { title: 'Script generator', desc: 'AI-generated scripts based on your roast results, tailored to your niche and content style.' },
@@ -55,7 +55,7 @@ export default function ChangelogPage() {
       <div className="w-full max-w-2xl">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold fire-text mb-3">Changelog</h1>
-          <p className="text-zinc-400 text-lg">What&apos;s new in RoastMyTikTok</p>
+          <p className="text-zinc-400 text-lg">What&apos;s new in Go Viral</p>
         </div>
 
         <div className="space-y-12">

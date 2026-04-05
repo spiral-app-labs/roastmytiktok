@@ -1,4 +1,4 @@
-// Design Tokens — single source of truth for RoastMyTikTok UI
+// Design Tokens — single source of truth for Go Viral UI
 // No hardcoded values in components; import from here.
 
 export const colors = {

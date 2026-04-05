@@ -1,7 +1,7 @@
 {
-  "name": "Roast My TikTok",
-  "short_name": "RoastMyTikTok",
-  "description": "6 AI agents roast your TikTok — hook rewrites, reshoot plans, and brutally honest scores.",
+  "name": "Go Viral",
+  "short_name": "Go Viral",
+  "description": "6 AI agents analyze your TikTok opener, diagnose why viewers leave, and give you a reshoot plan you can film today.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",

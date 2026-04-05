@@ -111,7 +111,7 @@ async function tryOEmbed(tiktokUrl: string): Promise<DetectedSound | null> {
   try {
     const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(tiktokUrl)}`;
     const res = await fetch(oembedUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RoastMyTikTok/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GoViral/1.0)' },
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return null;

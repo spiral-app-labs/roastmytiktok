@@ -82,7 +82,7 @@ export default function AppNav() {
         <Link href={showAppNav ? '/dashboard' : '/'} className="flex items-center gap-3">
           <span className="text-2xl">🔥</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-black tracking-tight text-orange-400">RoastMyTikTok</span>
+            <span className="text-xl font-black tracking-tight text-orange-400">Go Viral</span>
             <span className="hidden rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-300 sm:inline-flex">
               Beta
             </span>

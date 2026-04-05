@@ -98,7 +98,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
         >
           <span style={{ fontSize: '28px' }}>🔥</span>
           <span style={{ fontSize: '18px', fontWeight: 700, color: '#f97316' }}>
-            Roast My TikTok
+            Go Viral
           </span>
         </div>
 
@@ -219,7 +219,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
           }}
         >
           <span style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
-            🔥 Roast YOUR TikTok → roastmytiktok.com
+            🚀 Go Viral → goviralwith.ai
           </span>
         </div>
       </div>

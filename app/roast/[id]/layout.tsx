@@ -9,8 +9,8 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
 
-  let title = 'Roast My TikTok — Results';
-  let description = 'See how AI agents roasted this TikTok video.';
+  let title = 'Go Viral — Results';
+  let description = 'See how AI agents diagnosed this TikTok video.';
 
   try {
     const { data } = await supabaseServer
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       .single();
 
     if (data) {
-      title = `Score: ${data.overall_score}/100 — Roast My TikTok`;
+      title = `Score: ${data.overall_score}/100 — Go Viral`;
       if (data.verdict) {
         description = data.verdict.slice(0, 160);
       }

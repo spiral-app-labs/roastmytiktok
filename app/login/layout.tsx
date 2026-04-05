@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Log In',
-  description: 'Sign in to Roast My TikTok to access your dashboard, roast history, and AI-powered content analysis.',
+  description: 'Sign in to Go Viral to access your dashboard, analysis history, and AI-powered content insights.',
   alternates: { canonical: '/login' },
 };
 

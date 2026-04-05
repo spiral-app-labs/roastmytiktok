@@ -15,14 +15,14 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using RoastMyTikTok (&ldquo;the Service&rdquo;), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
+              By accessing or using Go Viral (&ldquo;the Service&rdquo;), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">2. Content Ownership &amp; Upload Policy</h2>
             <p className="mb-3">
-              <strong className="text-white">You must only upload videos that you own or have created yourself.</strong> By uploading a video to RoastMyTikTok, you represent and warrant that:
+              <strong className="text-white">You must only upload videos that you own or have created yourself.</strong> By uploading a video to Go Viral, you represent and warrant that:
             </p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li>You are the original creator of the video content.</li>
@@ -48,9 +48,9 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">3a. Waitlist &amp; Email Communications</h2>
             <p className="mb-3">
-              If you submit your email address to join our waitlist, you consent to receive launch updates and product announcements from RoastMyTikTok. You can unsubscribe at any time by clicking the unsubscribe link in any email or by contacting us at{' '}
-              <a href="mailto:support@roastmytiktok.com" className="text-orange-400 hover:text-orange-300 transition-colors">
-                support@roastmytiktok.com
+              If you submit your email address to join our waitlist, you consent to receive launch updates and product announcements from Go Viral. You can unsubscribe at any time by clicking the unsubscribe link in any email or by contacting us at{' '}
+              <a href="mailto:support@goviralwith.ai" className="text-orange-400 hover:text-orange-300 transition-colors">
+                support@goviralwith.ai
               </a>.
             </p>
             <p>
@@ -100,8 +100,8 @@ export default function TermsPage() {
             <h2 className="text-lg font-semibold text-white mb-3">9. Contact</h2>
             <p>
               Questions about these Terms? Reach out at{' '}
-              <a href="mailto:support@roastmytiktok.com" className="text-orange-400 hover:text-orange-300 transition-colors">
-                support@roastmytiktok.com
+              <a href="mailto:support@goviralwith.ai" className="text-orange-400 hover:text-orange-300 transition-colors">
+                support@goviralwith.ai
               </a>.
             </p>
           </section>

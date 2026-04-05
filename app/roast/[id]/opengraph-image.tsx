@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { supabaseServer } from '@/lib/supabase-server';
 
-export const alt = 'Roast My TikTok — Results';
+export const alt = 'Go Viral — Results';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -97,7 +97,7 @@ export default async function OGImage({ params }: { params: Promise<{ id: string
         >
           <span style={{ fontSize: '28px' }}>🔥</span>
           <span style={{ fontSize: '18px', fontWeight: 700, color: '#f97316' }}>
-            Roast My TikTok
+            Go Viral
           </span>
         </div>
 
@@ -201,7 +201,7 @@ export default async function OGImage({ params }: { params: Promise<{ id: string
           }}
         >
           <span style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>
-            🔥 Roast YOUR TikTok → roastmytiktok.com
+            🚀 Go Viral → goviralwith.ai
           </span>
         </div>
       </div>
