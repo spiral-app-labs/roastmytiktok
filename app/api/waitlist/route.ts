@@ -5,7 +5,7 @@ const INITIAL_SLOTS = parseInt(process.env.NEXT_PUBLIC_SLOTS_REMAINING || '47', 
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
+    const { email, intent, plan } = await req.json();
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 });
@@ -29,9 +29,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Insert new entry
+    const insertData: Record<string, unknown> = { email: normalizedEmail };
+    if (intent) insertData.intent = intent;
+    if (plan) insertData.plan = plan;
+
     const { data, error } = await supabaseServer
       .from('rmt_waitlist')
-      .insert({ email: normalizedEmail })
+      .insert(insertData)
       .select('position')
       .single();
 
