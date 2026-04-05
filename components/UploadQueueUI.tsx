@@ -179,11 +179,13 @@ function QueueItemCard({
   index,
   isActive,
   onRemove,
+  onRetry,
 }: {
   item: QueueItem;
   index: number;
   isActive: boolean;
   onRemove: (id: string) => void;
+  onRetry: (id: string) => void;
 }) {
   const canRemove = item.status === 'pending' || item.status === 'done' || item.status === 'error';
 
@@ -295,13 +297,20 @@ function QueueItemCard({
       {item.status === 'error' && item.error && (
         <div className="px-3 pb-3 space-y-1.5">
           <p className="text-xs text-red-400/80 bg-red-500/10 rounded-lg px-2 py-1.5">{item.error}</p>
-          {item.error.includes('Free limit reached') && (
+          {item.error.includes('Free limit reached') || item.error.includes('daily limit') ? (
             <a
               href="/pricing"
               className="flex items-center justify-center gap-1.5 w-full text-xs font-semibold text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 rounded-lg px-2 py-1.5 transition-colors"
             >
               🔥 Upgrade for unlimited roasts →
             </a>
+          ) : (
+            <button
+              onClick={() => onRetry(item.id)}
+              className="mt-2 w-full text-xs font-semibold text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 rounded-lg px-2 py-1.5 transition-colors"
+            >
+              ↺ Retry
+            </button>
           )}
         </div>
       )}
@@ -768,6 +777,13 @@ export default function UploadQueueUI() {
     }
   }, [processItem]);
 
+  const retryItem = useCallback((id: string) => {
+    setQueue((prev) => prev.map((item) =>
+      item.id === id ? { ...item, status: 'pending', error: undefined, progress: 0 } : item
+    ));
+    setTimeout(() => startProcessing(), 0);
+  }, [startProcessing]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
@@ -1078,6 +1094,7 @@ export default function UploadQueueUI() {
                                 index={idx}
                                 isActive={item.id === activeItem?.id}
                                 onRemove={removeItem}
+                                onRetry={retryItem}
                               />
                             ))}
                           </AnimatePresence>
