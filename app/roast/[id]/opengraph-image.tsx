@@ -51,9 +51,6 @@ export default async function OGImage({ params }: { params: Promise<{ id: string
 
   const grade = getLetterGrade(score);
   const color = getScoreColor(score);
-  const circumference = 2 * Math.PI * 52;
-  const progress = (score / 100) * circumference;
-  const dashOffset = circumference - progress;
 
   return new ImageResponse(
     (
@@ -111,20 +108,21 @@ export default async function OGImage({ params }: { params: Promise<{ id: string
           }}
         >
           {/* Score ring + grade column */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-            <div style={{ position: 'relative', width: '120px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="60" cy="60" r="52" fill="none" stroke="#27272a" strokeWidth="8" />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <div style={{ position: 'relative', width: '180px', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="180" height="180" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="90" cy="90" r="78" fill="none" stroke="#27272a" strokeWidth="10" />
                 <circle
-                  cx="60"
-                  cy="60"
-                  r="52"
+                  cx="90"
+                  cy="90"
+                  r="78"
                   fill="none"
                   stroke={color}
-                  strokeWidth="8"
+                  strokeWidth="10"
                   strokeLinecap="round"
-                  strokeDasharray={`${circumference}`}
-                  strokeDashoffset={`${dashOffset}`}
+                  strokeDasharray={`${2 * Math.PI * 78}`}
+                  strokeDashoffset={`${2 * Math.PI * 78 - (score / 100) * 2 * Math.PI * 78}`}
+                  style={{ filter: `drop-shadow(0 0 8px ${color})` }}
                 />
               </svg>
               <div
@@ -136,14 +134,14 @@ export default async function OGImage({ params }: { params: Promise<{ id: string
                   justifyContent: 'center',
                 }}
               >
-                <span style={{ fontSize: '28px', fontWeight: 900, color, lineHeight: '1' }}>
+                <span style={{ fontSize: '56px', fontWeight: 900, color, lineHeight: '1' }}>
                   {score}
                 </span>
-                <span style={{ fontSize: '12px', color: '#71717a' }}>/100</span>
+                <span style={{ fontSize: '14px', color: '#71717a' }}>/100</span>
               </div>
             </div>
 
-            <div style={{ fontSize: '72px', fontWeight: 900, color: '#f97316', lineHeight: '1' }}>
+            <div style={{ fontSize: '64px', fontWeight: 900, color: '#f97316', lineHeight: '1', textShadow: '0 0 20px rgba(249,115,22,0.6)' }}>
               {grade}
             </div>
           </div>
