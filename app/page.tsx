@@ -44,38 +44,7 @@ const AGENTS_PREVIEW = [
   { emoji: '🎧', name: 'Audio Agent', desc: 'Performs autopsies on audio choices' },
 ];
 
-const TESTIMONIALS = [
-  { text: 'I was stuck at 180 views for months. The reshoot planner showed me my opener was dead — refilmed it in 10 minutes and broke 12K.', handle: '@tiktoker_reformed' },
-  { text: 'The hook breakdown literally showed me I had no hook at all. Just a greeting. Fixed it, next video did 40x my average.', handle: '@content.creator.xyz' },
-  { text: 'Got a 34/100. Best thing that ever happened to my channel. The rewrite workshop gave me three openers I could film that day.', handle: '@growingfast2024' },
-];
 
-const SUCCESS_STORIES = [
-  {
-    handle: '@brayden.creates',
-    before: '180 views',
-    after: '12K views',
-    multiplier: '67×',
-    fix: 'Dead opener → pattern-interrupt hook',
-    quote: 'The reshoot planner showed me my opener was dead — refilmed it in 10 minutes.',
-  },
-  {
-    handle: '@liftwithlaura',
-    before: '220 views',
-    after: '47K views',
-    multiplier: '213×',
-    fix: 'No text hook → bold on-screen text frame 1',
-    quote: 'I had no hook at all. Just a greeting. Fixed it, next video did 40x my average.',
-  },
-  {
-    handle: '@techwithterry',
-    before: '310 views',
-    after: '8.2K views',
-    multiplier: '26×',
-    fix: 'Buried payoff → curiosity gap opener',
-    quote: 'Got a 34/100. Best thing that ever happened to my channel.',
-  },
-];
 
 const FEATURES = [
   {
@@ -144,7 +113,6 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
   const router = useRouter();
 
@@ -185,7 +153,6 @@ export default function Home() {
   useEffect(() => {
     if (bypassed || !checked) return;
     const t = setInterval(() => {
-      setActiveTestimonial((p) => (p + 1) % TESTIMONIALS.length);
     }, 4000);
     return () => clearInterval(t);
   }, [bypassed, checked]);
@@ -470,29 +437,6 @@ export default function Home() {
                 <p className="text-zinc-600 text-xs">Each agent specializes in a different dimension of what makes or kills a video.</p>
               </div>
 
-              {/* Success stories */}
-              <div className="space-y-3">
-                <p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">before → after</p>
-                <div className="grid grid-cols-1 gap-3">
-                  {SUCCESS_STORIES.map((s) => (
-                    <GlassCard key={s.handle} variant="surface" className="p-4">
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-red-400 font-bold line-through">{s.before}</span>
-                          <span className="text-zinc-600">→</span>
-                          <span className="text-emerald-400 font-bold">{s.after}</span>
-                        </div>
-                        <span className="text-xs font-black text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full">{s.multiplier}</span>
-                      </div>
-                      <p className="text-zinc-300 text-xs italic leading-relaxed">&ldquo;{s.quote}&rdquo;</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-zinc-600 text-xs font-medium">{s.handle}</span>
-                        <span className="text-[10px] text-zinc-700 bg-zinc-900 rounded-full px-2 py-0.5">{s.fix}</span>
-                      </div>
-                    </GlassCard>
-                  ))}
-                </div>
-              </div>
             </motion.div>
 
             {/* Right: Hook school + testimonials */}
@@ -548,26 +492,6 @@ export default function Home() {
                 </div>
               </GlassCard>
 
-              {/* Testimonial rotator */}
-              <div className="relative h-[90px] overflow-hidden">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeTestimonial}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    transition={{ duration: 0.4 }}
-                    className="absolute inset-0"
-                  >
-                    <GlassCard variant="surface" className="h-full p-4 flex flex-col justify-center border border-orange-500/10">
-                      <p className="text-zinc-300 text-xs italic leading-relaxed">
-                        &ldquo;{TESTIMONIALS[activeTestimonial].text}&rdquo;
-                      </p>
-                      <p className="text-zinc-500 text-xs mt-1.5 font-medium">{TESTIMONIALS[activeTestimonial].handle}</p>
-                    </GlassCard>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
 
               {/* Trust / money-back strip */}
               <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/50 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
