@@ -533,6 +533,48 @@ function RoastContent({
             )}
           </motion.div>
 
+          {/* Upgrade CTA — shown when free user has used 2 or 3 roasts */}
+          {usageCount != null && usageCount >= 2 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.05, duration: 0.4 }}
+              className="mx-auto mt-6 max-w-2xl rounded-2xl border border-orange-500/25 bg-orange-500/[0.06] p-6"
+            >
+              <p className="text-base font-bold text-orange-300">
+                🔥 {usageCount} of 3 free roasts used
+              </p>
+              {usageCount >= 3 ? (
+                <>
+                  <p className="mt-2 text-sm text-zinc-300">
+                    {"You've used all 3 free roasts today. Come back tomorrow or upgrade now."}
+                  </p>
+                  <Link
+                    href="/pricing"
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-400"
+                  >
+                    Upgrade — $9.99/mo →
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-sm text-zinc-300">
+                    Upgrade for unlimited roasts, priority processing, and account-level analysis.
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <Link
+                      href="/pricing"
+                      className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-400"
+                    >
+                      Upgrade — $9.99/mo →
+                    </Link>
+                    <span className="text-xs text-zinc-500">or keep going with 1 free roast left</span>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
