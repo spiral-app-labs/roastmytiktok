@@ -51,10 +51,10 @@ const TESTIMONIALS = [
 ];
 
 const FEATURES = [
-  { icon: '🎣', title: 'Hook Rewrite Workshop', desc: 'See why your first beat leaks and get stronger opener options you can actually say.' },
-  { icon: '🎬', title: 'Reshoot Plan', desc: 'Concrete shot, text, and delivery guidance you can film right away.' },
-  { icon: '🧠', title: 'Honest Hold Read', desc: 'Weak, mixed, or strong. No fake watch-time prophecy dressed up as science.' },
-  { icon: '⚡', title: 'Fast Feedback', desc: 'Upload once, leave with a smarter first 3 seconds.' },
+  { icon: '🧠', title: 'Analysis-first diagnosis', desc: 'See exactly why the opener loses people before you waste time tweaking the wrong thing.' },
+  { icon: '🎣', title: 'Hook rewrite workshop', desc: 'Get better first-line and first-frame options you can actually say on camera.' },
+  { icon: '🎬', title: 'Reshoot plan', desc: 'Concrete shot, text, and delivery guidance you can film right away.' },
+  { icon: '🗺️', title: 'Clear next step', desc: 'Know whether to keep iterating free, create an account, or choose a paid beta plan.' },
 ];
 
 const SUCCESS_STORIES = [
@@ -252,7 +252,7 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-xl mb-8"
           >
-            paste your tiktok link. get a brutally honest roast, hook rewrites, and a reshoot plan you can film today.
+            upload a video or paste a tiktok link. get an analysis-first teardown that shows why viewers drop, what to rewrite, and what to reshoot next.
           </motion.p>
 
           {/* Prominent URL paste field */}
@@ -269,7 +269,7 @@ export default function Home() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter invite code to get started"
+                    placeholder="Enter invite code to unlock private beta"
                     aria-label="Beta invite code"
                     className="w-full bg-zinc-900/80 border-2 border-zinc-700/60 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 transition-all text-base"
                   />
@@ -282,7 +282,7 @@ export default function Home() {
                   disabled={loading || !password}
                   loading={loading}
                 >
-                  {loading ? 'Verifying...' : 'Get Roasted 🔥'}
+                  {loading ? 'Verifying...' : 'Unlock Beta →'}
                 </GradientButton>
               </div>
               <AnimatePresence mode="wait">
@@ -300,6 +300,31 @@ export default function Home() {
             </form>
           </motion.div>
 
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.28 }}
+            className="w-full max-w-4xl mb-8"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
+              {[
+                { step: '1', title: 'unlock beta', desc: 'enter your invite code to get inside the private product.' },
+                { step: '2', title: 'create your account', desc: 'sign in with google or magic link so your roasts, history, and plan choice stay attached to you.' },
+                { step: '3', title: 'pick your path', desc: 'start free for limited roasts or choose a monthly/yearly beta plan. billing is staged through beta onboarding, not fake in-app checkout.' },
+              ].map((item) => (
+                <div key={item.step} className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-4 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/15 border border-orange-500/25 text-sm font-bold text-orange-400">
+                      {item.step}
+                    </div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-300">{item.title}</p>
+                  </div>
+                  <p className="text-sm leading-relaxed text-zinc-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
           {/* What you get — inline */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -308,10 +333,10 @@ export default function Home() {
             className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-zinc-500 mb-8"
           >
             {[
+              { icon: '🧠', text: 'Drop-off diagnosis' },
               { icon: '🎣', text: 'Hook rewrites' },
               { icon: '🎬', text: 'Reshoot plan' },
-              { icon: '⏱️', text: 'Hold-strength read' },
-              { icon: '📊', text: 'Score + grade' },
+              { icon: '🗺️', text: 'Clear beta path' },
             ].map((f) => (
               <span key={f.text} className="flex items-center gap-1.5">
                 <span>{f.icon}</span>
@@ -478,14 +503,14 @@ export default function Home() {
             <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">200 views</span>?
           </h1>
           <p className="text-zinc-400 text-base max-w-lg mx-auto">
-            Upload a TikTok or paste a link. Get a brutally honest roast, hook rewrites, and a reshoot plan you can film today.
+            Upload a TikTok or paste a link. Get an analysis-first diagnosis, stronger hook options, and a reshoot plan you can film today.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-zinc-500">
           {[
+            { icon: '🧠', text: 'Drop-off diagnosis' },
             { icon: '🎣', text: 'Hook rewrites' },
             { icon: '🎬', text: 'Reshoot plan' },
-            { icon: '⏱️', text: 'Hold-strength read' },
             { icon: '📊', text: 'Score + grade' },
           ].map((f) => (
             <span key={f.text} className="flex items-center gap-1.5">

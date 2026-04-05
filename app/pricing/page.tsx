@@ -120,7 +120,7 @@ export default function PricingPage() {
           Pick your cadence. Get the full teardown either way.
         </h1>
         <p className="text-zinc-400 text-center max-w-lg mx-auto text-lg">
-          {`Every paid plan includes video uploads, full analysis, ratings, roasts, and fixes. The real differences are billing, future limits, and extra workflow features.`}
+Every plan starts with the same analysis-first teardown: why the opener lost attention, what to rewrite, and what to reshoot next. The difference is how much usage and support you unlock.
         </p>
       </motion.div>
 
@@ -222,7 +222,7 @@ export default function PricingPage() {
         >
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-zinc-300 mb-1">Monthly</h2>
-            <p className="text-zinc-500 text-sm">Unlimited roasts, cancel anytime</p>
+            <p className="text-zinc-500 text-sm">Unlimited analysis in beta once your plan is activated</p>
           </div>
 
           <div className="mb-8">
@@ -234,7 +234,7 @@ export default function PricingPage() {
             href="/login?intent=subscribe&plan=monthly&redirect=/pricing"
             className="block text-center py-3 px-6 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all mb-8"
           >
-            Start Monthly
+Choose Monthly Beta
           </Link>
 
           <div className="space-y-3 flex-1">
@@ -261,7 +261,7 @@ export default function PricingPage() {
 
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-white mb-1">Yearly</h2>
-            <p className="text-zinc-500 text-sm">Save 20% — best for serious creators</p>
+            <p className="text-zinc-500 text-sm">Save 20% once yearly beta billing is activated</p>
           </div>
 
           <div className="mb-1">
@@ -298,9 +298,9 @@ export default function PricingPage() {
             href="/login?intent=subscribe&plan=yearly&redirect=/pricing"
             className="block text-center py-4 px-6 rounded-xl font-bold fire-gradient text-white hover:opacity-90 transition-opacity mb-3 text-base shadow-lg shadow-orange-500/20"
           >
-            Start Yearly →
+Choose Yearly Beta →
           </Link>
-          <p className="text-center text-xs text-zinc-500 mb-8">7-day free trial included</p>
+          <p className="text-center text-xs text-zinc-500 mb-8">Your plan choice is saved first. billing is activated during beta onboarding.</p>
 
           <div className="space-y-3 flex-1">
             <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-2">Everything in Monthly, plus</p>
@@ -313,6 +313,33 @@ export default function PricingPage() {
           </div>
         </motion.div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="w-full max-w-5xl mb-12 rounded-2xl border border-orange-500/20 bg-orange-500/5 p-6"
+      >
+        <div className="grid gap-4 md:grid-cols-[1.2fr,2fr]">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">beta checkout path</p>
+            <h3 className="text-2xl font-bold text-white">the signup and payment path is explicit, even before self-serve billing is live.</h3>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ['1', 'create account', 'sign in first so your roasts, history, and plan choice are tied to your account.'],
+              ['2', 'choose a plan', 'free stays card-free. monthly or yearly marks the beta plan you want activated.'],
+              ['3', 'activate billing in onboarding', 'during private beta, paid billing is finalized in onboarding instead of pretending there is a live checkout flow today.'],
+            ].map(([step, title, desc]) => (
+              <div key={step} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full border border-orange-500/25 bg-orange-500/10 text-sm font-bold text-orange-400">{step}</div>
+                <p className="mb-1 text-sm font-semibold text-white">{title}</p>
+                <p className="text-sm leading-relaxed text-zinc-500">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
 
       {/* Comparison callout */}
       <motion.div
@@ -392,8 +419,8 @@ export default function PricingPage() {
         transition={{ delay: 0.5 }}
         className="text-center max-w-lg mx-auto"
       >
-        <h3 className="text-2xl font-bold text-white mb-2">Ready to break past 200 views?</h3>
-        <p className="text-zinc-500 text-sm mb-6">Start free — no credit card required. Upgrade when you&apos;re ready for unlimited roasts.</p>
+        <h3 className="text-2xl font-bold text-white mb-2">Ready to see what&apos;s actually killing your videos?</h3>
+        <p className="text-zinc-500 text-sm mb-6">Start free with no card, or save a paid beta plan now and finish billing during onboarding.</p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/dashboard"
@@ -405,10 +432,10 @@ export default function PricingPage() {
             href="/login"
             className="inline-block py-4 px-10 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all text-base"
           >
-            Start Subscription
+Choose Paid Beta
           </Link>
         </div>
-        <p className="text-zinc-600 text-xs mt-4">Cancel anytime. 7-day trial on yearly plans.</p>
+        <p className="text-zinc-600 text-xs mt-4">Free stays card-free. Paid beta billing is activated after sign-in during onboarding.</p>
       </motion.div>
     </main>
   );
