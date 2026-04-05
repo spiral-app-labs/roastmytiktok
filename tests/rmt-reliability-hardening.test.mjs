@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 const { buildFramePlan } = await import('../lib/frame-extractor.ts');
 const { parseAssemblyTranscript } = await import('../lib/whisper-transcribe.ts');
+const { assessTranscriptQuality } = await import('../lib/transcript-quality.ts');
 const { sanitizeUserFacingText, sanitizeAgentResult, sanitizeActionPlan } = await import('../lib/analysis-safety.ts');
 
 // ─── Requirement 1 & 2: Frame-by-frame analysis + text hook detection ──────────
@@ -91,6 +92,74 @@ test('parseAssemblyTranscript falls back to words when utterances is empty', () 
 test('parseAssemblyTranscript returns null when text and segments are both empty', () => {
   const result = parseAssemblyTranscript({ text: '', utterances: [] });
   assert.equal(result, null);
+});
+
+test('empty transcript cases are handled safely', () => {
+  const assessment = assessTranscriptQuality(null, {
+    hasSpeech: false,
+    hasMusic: false,
+    speechPercent: 0,
+  });
+
+  assert.equal(assessment.quality, 'unavailable');
+  assert.equal(assessment.shouldUseTranscriptEvidence, false);
+  assert.match(assessment.note, /falling back to waveform-only audio analysis/i);
+});
+
+test('music-heavy clips degrade gracefully instead of poisoning downstream diagnosis', () => {
+  const assessment = assessTranscriptQuality({
+    text: 'yeah yeah yeah',
+    segments: [{ start: 0, end: 0.8, text: 'yeah yeah yeah' }],
+    provider: 'assemblyai',
+    confidence: 0.74,
+  }, {
+    hasSpeech: false,
+    hasMusic: true,
+    speechPercent: 12,
+  });
+
+  assert.equal(assessment.quality, 'degraded');
+  assert.equal(assessment.shouldUseTranscriptEvidence, false);
+  assert.equal(assessment.transcript?.confidence, 0.2);
+  assert.match(assessment.note, /withheld from the diagnosis|music-heavy or speech-light/i);
+});
+
+test('speech-light partial transcripts stay honest even when text exists', () => {
+  const assessment = assessTranscriptQuality({
+    text: 'quick tip',
+    segments: [{ start: 0, end: 0.6, text: 'quick tip' }],
+    provider: 'whisper',
+    confidence: 0.82,
+  }, {
+    hasSpeech: true,
+    hasMusic: true,
+    speechPercent: 18,
+  });
+
+  assert.equal(assessment.quality, 'degraded');
+  assert.equal(assessment.shouldUseTranscriptEvidence, false);
+  assert.equal(assessment.transcript?.confidence, 0.35);
+  assert.match(assessment.note, /music-heavy or speech-light/i);
+});
+
+test('strong spoken transcripts remain usable for quoted evidence', () => {
+  const assessment = assessTranscriptQuality({
+    text: 'stop scrolling if you are posting on tiktok and still getting stuck under two hundred views',
+    segments: [
+      { start: 0, end: 2.2, text: 'stop scrolling if you are posting on tiktok' },
+      { start: 2.3, end: 4.7, text: 'and still getting stuck under two hundred views' },
+    ],
+    provider: 'assemblyai',
+    confidence: 0.77,
+  }, {
+    hasSpeech: true,
+    hasMusic: false,
+    speechPercent: 81,
+  });
+
+  assert.equal(assessment.quality, 'usable');
+  assert.equal(assessment.shouldUseTranscriptEvidence, true);
+  assert.equal(assessment.transcript?.confidence, 0.77);
 });
 
 // ─── Requirement 4: Prompt / system details cannot leak into user-visible output ─

@@ -56,6 +56,8 @@ export interface DebugData {
     }
     audioTranscript: string | null
     audioSegments: Array<{ start: number; end: number; text: string }> | null
+    transcriptQuality: 'usable' | 'degraded' | 'unavailable' | null
+    transcriptQualityNote: string | null
     actionPlan: unknown[]
     errors: string[]
     allTimings: Record<string, number>

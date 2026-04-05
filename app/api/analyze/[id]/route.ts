@@ -5,6 +5,7 @@ import { analyzeCaptionQuality, buildCaptionQualityContext } from '@/lib/caption
 import { extractAudio, cleanupAudio } from '@/lib/audio-extractor';
 import { transcribeAudio, TranscriptionResult } from '@/lib/whisper-transcribe';
 import { detectSpeechMusic, AudioCharacteristics } from '@/lib/speech-music-detect';
+import { assessTranscriptQuality } from '@/lib/transcript-quality';
 import { supabaseServer } from '@/lib/supabase-server';
 import { existsSync, unlinkSync } from 'fs';
 import { writeFile } from 'fs/promises';
@@ -1144,6 +1145,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         send({ type: 'status', message: 'Extracting audio...' });
         let transcript: TranscriptionResult | null = null;
         let audioChars: AudioCharacteristics = { hasSpeech: false, hasMusic: false, speechPercent: 0 };
+        let transcriptQuality: 'usable' | 'degraded' | 'unavailable' = 'unavailable';
+        let transcriptQualityNote = 'No reliable speech transcript available. Falling back to waveform-only audio analysis.';
+        let shouldUseTranscriptEvidence = false;
 
         try {
           audioPath = extractAudio(videoPath);
@@ -1164,14 +1168,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             transcript = transcriptResult;
             audioChars = speechMusicResult;
 
+            const transcriptAssessment = assessTranscriptQuality(transcript, audioChars);
+            transcript = transcriptAssessment.transcript;
+            transcriptQuality = transcriptAssessment.quality;
+            transcriptQualityNote = transcriptAssessment.note;
+            shouldUseTranscriptEvidence = transcriptAssessment.shouldUseTranscriptEvidence;
+
             if (transcript?.text || transcript?.segments?.length) {
-              logSuccess('transcription', id, { provider: transcript.provider, chars: transcript.text.length, segments: transcript.segments.length }, Date.now() - transcriptionStart);
-              send({ type: 'status', message: `Audio transcribed successfully${transcript.provider ? ` via ${transcript.provider}` : ''}.` });
+              logSuccess('transcription', id, {
+                provider: transcript.provider,
+                chars: transcript.text.length,
+                segments: transcript.segments.length,
+                quality: transcriptQuality,
+                confidence: transcript.confidence,
+              }, Date.now() - transcriptionStart);
+              send({
+                type: 'status',
+                message: transcriptQuality === 'usable'
+                  ? `Audio transcribed successfully${transcript.provider ? ` via ${transcript.provider}` : ''}.`
+                  : `${transcriptQualityNote}${transcript.provider ? ` (${transcript.provider}, ${Math.round(transcript.confidence * 100)}% confidence)` : ''}`,
+              });
             } else if (!hasTranscriptionKey) {
               send({ type: 'status', message: 'Audio transcription unavailable — set OPENAI_API_KEY or ASSEMBLYAI_API_KEY.' });
             } else {
-              logSuccess('transcription', id, { result: 'no-speech' }, Date.now() - transcriptionStart);
-              send({ type: 'status', message: 'No speech detected in audio.' });
+              logSuccess('transcription', id, { result: 'no-speech', quality: transcriptQuality }, Date.now() - transcriptionStart);
+              send({ type: 'status', message: transcriptQualityNote });
             }
           } else {
             logSuccess('audio-extraction', id, { result: 'no-audio-track' });
@@ -1289,7 +1310,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             const detectedSoundNote = detectedSound
               ? `\n\nDETECTED SOUND: The creator is using "${sanitizePromptInput(detectedSound.name, 200)}" by ${sanitizePromptInput(detectedSound.author, 100)}. ${detectedSound.isOriginal ? 'This is ORIGINAL AUDIO — no trending sound boost, but builds creator identity.' : 'This is a LICENSED/TRENDING sound — evaluate whether it is a smart choice for this niche and content type.'}${detectedSound.soundUrl ? ` Sound page: ${detectedSound.soundUrl}` : ''}`
               : '';
-            if (dimension === 'audio' && transcript?.text) {
+            if (dimension === 'audio' && transcript?.text && shouldUseTranscriptEvidence) {
               const safeTranscript = sanitizePromptInput(transcript.text, 3000);
               const segmentLines = transcript.segments
                 .slice(0, 50)
@@ -1315,10 +1336,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                 volumeNote,
                 silenceNote,
               ].filter(Boolean).join(' ');
-              audioContext = `\n\nNo audio transcript available (no OPENAI_API_KEY or ASSEMBLYAI_API_KEY configured).\n\nAUDIO SIGNAL ANALYSIS (from ffmpeg waveform detection):\n${structureNote}\n\nAnalyze based on these audio characteristics and visual cues. Note clearly that spoken content could not be transcribed and that a transcript API key would enable deeper analysis.${detectedSoundNote}`;
+              audioContext = `\n\n${transcriptQualityNote}\n\nAUDIO SIGNAL ANALYSIS (from ffmpeg waveform detection):\n${structureNote}\n\nAnalyze based on these audio characteristics and visual cues. If transcript quality is weak, do not invent quotes or specific spoken claims.${detectedSoundNote}`;
             } else if (dimension === 'hook') {
               // Hook Agent: first spoken words + on-screen text detection
-              if (transcript?.segments?.length) {
+              if (shouldUseTranscriptEvidence && transcript?.segments?.length) {
                 const firstSegment = transcript.segments[0];
                 audioContext = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstSegment.text, 500)}". Analyze whether this opening line is a strong hook.`;
               }
@@ -1331,7 +1352,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               // Authenticity Agent: full transcript helps judge delivery and personality
               const safeTranscript = sanitizePromptInput(transcript.text, 2000);
               audioContext = `\n\nFULL TRANSCRIPT:\n${safeTranscript}\n\nUse the transcript to judge delivery, word choice, and whether the creator sounds authentic or performed. Quote specific phrases as evidence.`;
-            } else if (dimension === 'conversion' && transcript?.text) {
+            } else if (dimension === 'conversion' && transcript?.text && shouldUseTranscriptEvidence) {
               // Conversion Agent: transcript helps identify verbal CTAs
               const safeTranscript = sanitizePromptInput(transcript.text, 1500);
               audioContext = `\n\nFULL TRANSCRIPT:\n${safeTranscript}\n\nCheck if the creator includes any verbal call-to-action. Quote the CTA if found, or note its absence.`;
@@ -1572,8 +1593,10 @@ Rules:
             confidence: nicheDetection.confidence,
           },
           ...(detectedSound ? { detectedSound } : {}),
-          ...(transcript?.text ? { audioTranscript: transcript.text } : {}),
-          ...(transcript?.segments?.length ? { audioSegments: transcript.segments } : {}),
+          ...(shouldUseTranscriptEvidence && transcript?.text ? { audioTranscript: transcript.text } : {}),
+          ...(shouldUseTranscriptEvidence && transcript?.segments?.length ? { audioSegments: transcript.segments } : {}),
+          transcriptQuality,
+          transcriptQualityNote,
           ...(transcript ? { transcriptConfidence: transcript.confidence, transcriptProvider: transcript.provider } : {}),
           metadata: {
             views: 0,
