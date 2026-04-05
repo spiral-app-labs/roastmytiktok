@@ -219,6 +219,13 @@ function RoastContent({
   const weakestAgentMeta = weakestAgent ? AGENTS.find((agent) => agent.key === weakestAgent.agent) : null;
   const strongestAgentMeta = strongestAgent ? AGENTS.find((agent) => agent.key === strongestAgent.agent) : null;
 
+  const [isPaid, setIsPaid] = useState(false);
+  useEffect(() => {
+    const hasPaidCookie = document.cookie.split(';').some(c => c.trim().startsWith('rmt_paid_bypass=1'));
+    const hasPlan = !!localStorage.getItem('plan');
+    setIsPaid(hasPaidCookie || hasPlan);
+  }, []);
+
   // Deep-dive navigation items
   const navItems = useMemo(() => {
     const items = [
@@ -1257,20 +1264,38 @@ function RoastContent({
                   const escalatedRoast = maxOccurrences >= 2
                     ? { ...agentRoast, roastText: getEscalatingRoast(agentRoast.roastText, agentRoast.agent, maxOccurrences) }
                     : agentRoast;
+                  const isLocked = !isPaid && i > 0;
 
                   return (
                     <div key={agentRoast.agent} className="relative">
-                      {isFixed && (
+                      {isFixed && !isLocked && (
                         <div className="absolute -top-2 -right-2 z-10 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-green-500/30">
                           FIXED
                         </div>
                       )}
-                      {maxOccurrences >= 2 && !isFixed && (
+                      {maxOccurrences >= 2 && !isFixed && !isLocked && (
                         <div className="absolute -top-2 -right-2 z-10 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg shadow-red-500/30">
                           {maxOccurrences}x REPEAT
                         </div>
                       )}
+                      {!isPaid && i === 0 && (
+                        <div className="absolute -top-2 -left-2 z-10 bg-zinc-700 text-zinc-300 text-xs font-bold px-2.5 py-1 rounded-full">
+                          FREE
+                        </div>
+                      )}
                       <AgentCard roast={escalatedRoast} index={i} />
+                      {isLocked && (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-2xl bg-black/60 backdrop-blur-sm">
+                          <span className="text-3xl">🔒</span>
+                          <p className="text-sm font-semibold text-white text-center px-4">Full analysis locked</p>
+                          <Link
+                            href="/pricing"
+                            className="rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 transition-opacity"
+                          >
+                            Unlock Full Analysis — $9.99/mo
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
