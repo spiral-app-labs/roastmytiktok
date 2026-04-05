@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { GlassCard, GradientButton } from '@/components/ui';
 
 const DISMISSED_KEY = 'rmt_cta_dismissed';
@@ -27,11 +28,8 @@ function AccountSummaryBar({ handle }: AccountSummaryBarProps) {
           </div>
           <div>
             <p className="text-white text-sm font-semibold">@{handle}</p>
-            <p className="text-zinc-500 text-xs">Last sync: 2 days ago</p>
+            <p className="text-zinc-500 text-xs">account linked</p>
           </div>
-        </div>
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
-          <span className="text-orange-400 text-xs font-semibold">47 videos analyzed</span>
         </div>
         <Link
           href="/history"
@@ -45,6 +43,7 @@ function AccountSummaryBar({ handle }: AccountSummaryBarProps) {
 }
 
 export function AccountCTA() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [linkedHandle, setLinkedHandle] = useState<string | null>(null);
@@ -71,7 +70,7 @@ export function AccountCTA() {
     // Normalize: strip @ if user typed it
     const normalized = handle.replace(/^@/, '').trim();
     localStorage.setItem(LINKED_HANDLE_KEY, normalized);
-    setLinkedHandle(normalized);
+    router.push('/analyze-account?handle=' + normalized);
     setSubmitting(false);
   };
 
