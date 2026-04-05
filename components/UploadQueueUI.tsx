@@ -625,6 +625,11 @@ export default function UploadQueueUI() {
           `/api/analyze/${roastId}?source=upload&filename=${encodeURIComponent(item.file.name)}&session_id=${sessionId}`
         );
 
+        const watchdog = setTimeout(() => {
+          eventSource.close();
+          reject(new Error('Analysis timed out'));
+        }, 180 * 1000);
+
         let agentsDone = 0;
         const totalAgents = AGENTS.length;
         let capturedScore: number | undefined;
@@ -653,6 +658,7 @@ export default function UploadQueueUI() {
             }
 
             if (data.type === 'done') {
+              clearTimeout(watchdog);
               eventSource.close();
               updateItem(item.id, {
                 status: 'done',
@@ -684,6 +690,7 @@ export default function UploadQueueUI() {
             }
 
             if (data.type === 'error') {
+              clearTimeout(watchdog);
               eventSource.close();
               reject(new Error(data.message || 'Analysis failed'));
             }

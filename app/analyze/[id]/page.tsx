@@ -124,6 +124,11 @@ export default function AnalyzePage() {
     const sessionId = getSessionId();
     const eventSource = new EventSource(`/api/analyze/${id}?session_id=${encodeURIComponent(sessionId)}`);
 
+    const timeout = setTimeout(() => {
+      eventSource.close();
+      setError('Analysis is taking longer than expected. The video may be too long or the service is busy. Please try again.');
+    }, 3 * 60 * 1000);
+
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -163,6 +168,7 @@ export default function AnalyzePage() {
         }
 
         if (data.type === 'done') {
+          clearTimeout(timeout);
           eventSource.close();
 
           const result: RoastResult = {
@@ -203,6 +209,7 @@ export default function AnalyzePage() {
         }
 
         if (data.type === 'error') {
+          clearTimeout(timeout);
           eventSource.close();
           setError(data.message);
         }
@@ -212,11 +219,13 @@ export default function AnalyzePage() {
     };
 
     eventSource.onerror = () => {
+      clearTimeout(timeout);
       eventSource.close();
       setError(`Connection lost. Please try uploading again.`);
     };
 
     return () => {
+      clearTimeout(timeout);
       eventSource.close();
     };
   }, [id, router, searchParams]);
