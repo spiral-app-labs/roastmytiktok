@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -8,10 +8,11 @@ import dynamic from 'next/dynamic'
 
 const ScoreTrendChart = dynamic(() => import('@/components/charts/ScoreTrendChart'), { ssr: false })
 import { createClient } from '@/lib/supabase/client'
-import { getHistory, getSessionId, HistoryEntry } from '@/lib/history'
+import { getHistory, HistoryEntry } from '@/lib/history'
 import { AGENTS } from '@/lib/agents'
 import { ScoreRing } from '@/components/ScoreRing'
 import { GlassCard, GradientButton, EmptyState } from '@/components/ui'
+import UploadQueueUI from '@/components/UploadQueueUI'
 
 /* ─── quick tips ─── */
 const TIPS = [
@@ -65,146 +66,6 @@ function StatCard({ label, value, sub, delay = 0 }: { label: string; value: Reac
         <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-1">{label}</p>
         <div className="text-2xl font-bold text-white">{value}</div>
         {sub && <div className="text-xs text-zinc-500 mt-1">{sub}</div>}
-      </GlassCard>
-    </motion.div>
-  )
-}
-
-/* ─── custom tooltip ─── */
-/* ─── upload area ─── */
-function UploadArea() {
-  const router = useRouter()
-  const [file, setFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [dragOver, setDragOver] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [status, setStatus] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const handleFile = useCallback((f: File) => {
-    setError(null)
-    if (f.size > 150 * 1024 * 1024) { setError('File too large. Max 150MB.'); return }
-    if (!f.type.startsWith('video/')) { setError('Please upload a video file.'); return }
-    setFile(f)
-    setPreviewUrl(URL.createObjectURL(f))
-  }, [])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); setDragOver(false)
-    const dropped = e.dataTransfer.files[0]
-    if (dropped) handleFile(dropped)
-  }, [handleFile])
-
-  const clearFile = () => {
-    setFile(null)
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setPreviewUrl(null)
-    setError(null)
-  }
-
-  const handleSubmit = async () => {
-    if (!file || loading) return
-    setLoading(true); setStatus('Preparing upload...')
-    try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type || 'video/mp4',
-          sessionId: getSessionId(),
-        }),
-      })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Upload failed') }
-
-      const { id, signedUrl, contentType } = await res.json()
-
-      setStatus('Uploading video...')
-      const uploadRes = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': contentType || file.type || 'video/mp4',
-          'x-upsert': 'false',
-        },
-        body: file,
-      })
-
-      if (!uploadRes.ok) throw new Error('Video upload failed')
-
-      setStatus('Starting analysis...')
-      router.push(`/analyze/${id}?source=upload&filename=${encodeURIComponent(file.name)}`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed.')
-      setLoading(false); setStatus(null)
-    }
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.1 }}
-    >
-      <GlassCard variant="surface" className="p-6 card-glow">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl fire-gradient flex items-center justify-center text-lg">🎬</div>
-          <div>
-            <h2 className="text-lg font-bold text-white">Upload New Video</h2>
-            <p className="text-xs text-zinc-500">Get your TikTok roasted by 6 AI agents</p>
-          </div>
-        </div>
-
-        {!file ? (
-          <div
-            onClick={() => inputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-10 cursor-pointer transition-all text-center ${
-              dragOver
-                ? 'border-orange-500 bg-orange-500/10'
-                : 'border-zinc-700 hover:border-orange-500/50 hover:bg-zinc-800/40'
-            }`}
-          >
-            <div className="text-4xl mb-3">📤</div>
-            <p className="text-zinc-200 font-semibold">Drop your video here</p>
-            <p className="text-zinc-500 text-sm mt-1">or click to browse</p>
-            <p className="text-zinc-600 text-xs mt-2">mp4, mov, avi &middot; max 150MB</p>
-          </div>
-        ) : (
-          <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl p-4 flex items-center gap-4">
-            {previewUrl && (
-              <video src={previewUrl} className="w-20 h-20 object-cover rounded-lg shrink-0" muted />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-semibold text-sm truncate">{file.name}</p>
-              <p className="text-zinc-500 text-xs mt-0.5">{(file.size / (1024 * 1024)).toFixed(1)} MB</p>
-            </div>
-            <button onClick={clearFile} className="text-zinc-500 hover:text-red-400 transition-colors text-lg shrink-0">✕</button>
-          </div>
-        )}
-
-        {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
-        {status && (
-          <p className="text-orange-400 text-sm mt-3 flex items-center gap-2">
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-            {status}
-          </p>
-        )}
-
-        <input ref={inputRef} type="file" accept="video/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
-
-        <GradientButton
-          variant="primary"
-          size="lg"
-          className="w-full mt-4"
-          onClick={handleSubmit}
-          disabled={loading || !file}
-          loading={loading}
-        >
-          {loading ? 'Uploading...' : 'Roast My Video'}
-        </GradientButton>
       </GlassCard>
     </motion.div>
   )
@@ -405,7 +266,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Upload — takes 3 cols */}
           <div className="lg:col-span-3">
-            <UploadArea />
+            <UploadQueueUI />
           </div>
 
           {/* Right column — chart + tips */}
