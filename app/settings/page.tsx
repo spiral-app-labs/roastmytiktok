@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { createClient } from "@/lib/supabase/client";
+import { getSessionId } from "@/lib/history";
 import type { DebugLevel } from "@/lib/debug-types";
 
 const ADMIN_EMAILS = ["ethan@ethantalreja.com", "ethan@spiralapplabs.com"];
@@ -95,6 +96,7 @@ export default function SettingsPage() {
   const [debugLevel, setDebugLevel] = useState<DebugLevel>("off");
   const [debugSaving, setDebugSaving] = useState(false);
   const [debugSaved, setDebugSaved] = useState(false);
+  const [usage, setUsage] = useState<{ roastsAllTime: number; roastsInWindow: number; minutesProcessedAllTime: number; roastLimit: number | null; } | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -107,6 +109,23 @@ export default function SettingsPage() {
         setDebugLevel(stored as DebugLevel);
       }
     });
+
+    fetch(`/api/usage?session_id=${encodeURIComponent(getSessionId())}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to load usage');
+        return res.json();
+      })
+      .then((data) => {
+        setUsage({
+          roastsAllTime: data.usage?.totals?.roastsAllTime ?? 0,
+          roastsInWindow: data.usage?.totals?.roastsInWindow ?? 0,
+          minutesProcessedAllTime: data.usage?.totals?.minutesProcessedAllTime ?? 0,
+          roastLimit: data.usage?.caps?.roastLimit ?? null,
+        });
+      })
+      .catch(() => {
+        setUsage({ roastsAllTime: 0, roastsInWindow: 0, minutesProcessedAllTime: 0, roastLimit: 3 });
+      });
   }, []);
 
   async function saveDebugLevel(level: DebugLevel) {
@@ -125,8 +144,10 @@ export default function SettingsPage() {
   const plan = "Free";
   const isFree = plan === "Free";
   const renewalDate = "—";
-  const roastsUsed = 3;
-  const roastsLimit = 5;
+  const roastsUsed = usage?.roastsInWindow ?? 0;
+  const roastsLimit = usage?.roastLimit ?? 3;
+  const totalMinutesProcessed = usage?.minutesProcessedAllTime ?? 0;
+  const totalRoasts = usage?.roastsAllTime ?? 0;
 
   function deleteAccount() {
     localStorage.clear();
@@ -218,20 +239,26 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Usage stats */}
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                    <p className="text-xs text-zinc-500 mb-1">Roasts this month</p>
+                    <p className="text-xs text-zinc-500 mb-1">Roasts in the last 24 hours</p>
                     <p className="text-2xl font-black text-white">
                       {roastsUsed}
                       <span className="ml-1 text-base font-normal text-zinc-500">/ {roastsLimit}</span>
                     </p>
-                    {/* Usage bar */}
                     <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-800">
                       <div
                         className="h-1.5 rounded-full bg-gradient-to-r from-orange-500 to-pink-500"
-                        style={{ width: `${Math.min((roastsUsed / roastsLimit) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((roastsUsed / Math.max(roastsLimit, 1)) * 100, 100)}%` }}
                       />
                     </div>
+                    <p className="mt-2 text-xs text-zinc-500">This cap is now backed by persisted successful analyses, not a memory-only IP bucket.</p>
+                  </div>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+                    <p className="text-xs text-zinc-500 mb-1">Total usage</p>
+                    <p className="text-2xl font-black text-white">{totalRoasts} roasts</p>
+                    <p className="mt-1 text-sm text-zinc-400">{totalMinutesProcessed.toFixed(1)} minutes processed</p>
+                    <p className="mt-2 text-xs text-zinc-500">Every completed roast now records real video minutes for future plan caps.</p>
                   </div>
                 </div>
 

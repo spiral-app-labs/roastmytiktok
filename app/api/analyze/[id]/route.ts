@@ -1613,6 +1613,7 @@ Rules:
         try {
           const agentScores = Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d].score]));
           const findings = Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d].findings]));
+          const processedSeconds = Number(videoDuration?.durationSeconds ?? result.metadata.duration ?? 0);
 
           await supabaseServer.from('rmt_roast_sessions').update({
             overall_score: overallScore,
@@ -1620,6 +1621,10 @@ Rules:
             agent_scores: agentScores,
             findings,
             result_json: result,
+            analysis_status: 'completed',
+            processed_seconds: processedSeconds,
+            processed_minutes: Math.round((processedSeconds / 60) * 100) / 100,
+            completed_at: new Date().toISOString(),
           }).eq('id', id);
         } catch (err) {
           logFailure('supabase-save', id, err);
@@ -1628,6 +1633,13 @@ Rules:
         send({ type: 'done', id });
       } catch (err) {
         logFailure('agent', id, err, { stage: 'stream-outer' });
+        try {
+          await supabaseServer.from('rmt_roast_sessions').update({
+            analysis_status: 'failed',
+          }).eq('id', id);
+        } catch (saveErr) {
+          logFailure('supabase-save', id, saveErr, { status: 'failed' });
+        }
         send({ type: 'error', message: 'Analysis failed. Please try again.' });
       } finally {
         // Clean up temp video and audio
