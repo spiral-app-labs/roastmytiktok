@@ -145,6 +145,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -162,6 +163,23 @@ export default function Home() {
       });
     return () => { cancelled = true; };
   }, []);
+
+  // Fetch usage when bypassed
+  useEffect(() => {
+    if (!bypassed) return;
+    fetch('/api/usage')
+      .then((r) => r.json())
+      .then((data) => {
+        const snap = data?.usage;
+        if (snap) {
+          setUsage({
+            used: snap.totals.roastsInWindow,
+            limit: snap.caps.roastLimit ?? 3,
+          });
+        }
+      })
+      .catch(() => {});
+  }, [bypassed]);
 
   // Cycle testimonials
   useEffect(() => {
@@ -604,6 +622,18 @@ export default function Home() {
           ))}
         </div>
         <AccountCTA />
+        {usage && usage.used > 0 && (
+          usage.used >= usage.limit ? (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300 flex items-center justify-between gap-3">
+              <span>Daily limit reached ({usage.used}/{usage.limit} roasts used) — upgrade for unlimited</span>
+              <a href="/pricing" className="shrink-0 font-semibold text-amber-200 underline underline-offset-2 hover:text-white transition-colors">Upgrade</a>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/60 px-4 py-2.5 text-sm text-zinc-400 text-center">
+              {usage.used} of {usage.limit} free roasts used today
+            </div>
+          )
+        )}
       </div>
       <UploadQueueUI />
     </div>
