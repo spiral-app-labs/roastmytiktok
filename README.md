@@ -29,8 +29,20 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Localhost-only safety
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This repo is intentionally locked to localhost-only for now.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run build` now runs `scripts/block-deploy.mjs` first and exits non-zero on Vercel or CI-style environments.
+- `vercel.json` has been removed so repo-level cron/deploy config no longer nudges Vercel behavior.
+- if Ethan later wants to allow remote builds again, he should first confirm Vercel auto-deploys are disabled for this project and only then use `ALLOW_NONLOCAL_BUILD=1 npm run build` intentionally.
+
+### Manual Vercel/GitHub checks Ethan still needs to do
+
+These cannot be fully verified from local repo state alone:
+
+1. In Vercel project settings, open **Settings → Git** and confirm **Production Branch** is `main` only if that is still desired, then turn off **Auto Expose System Environment Variables** if enabled and disable automatic deployments to production/preview if the project has that control available.
+2. In the same Vercel project, open **Settings → Functions → Cron Jobs** and confirm there are no remaining cron jobs configured in the dashboard after removing `vercel.json`.
+3. In GitHub, open **repo → Settings → Webhooks** and **Actions** and confirm there is no non-Vercel deployment automation targeting this repo.
+
+From repo/local context: there are no checked-in GitHub Actions workflows driving deploys, but whether pushes to `main` auto-deploy in Vercel itself is not knowable without the Vercel dashboard.
