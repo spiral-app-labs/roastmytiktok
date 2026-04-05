@@ -16,8 +16,9 @@ import { getVideoDuration, analyzeDuration, DurationAnalysis } from '@/lib/video
 import { buildEvidenceLedger, buildFallbackActionPlan, parseStrategicSummary } from '@/lib/action-plan';
 import { sanitizeActionPlan, sanitizeAgentResult, sanitizeUserFacingText, sanitizePromptInput, truncateForTokenLimit } from '@/lib/analysis-safety';
 import { logSuccess, logFailure } from '@/lib/analysis-logger';
-import type { ActionPlanStep } from '@/lib/types';
+import type { ActionPlanStep, RoastResult } from '@/lib/types';
 import { detectTikTokSound } from '@/lib/tiktok-sound-detect';
+import { getFirstFiveSecondsDiagnosis } from '@/lib/hook-help';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 
@@ -1417,7 +1418,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         const hookScore = agentResults.hook?.score;
         const hookSummary = buildHookSummary(agentResults.hook);
-        const analysisMode = hookSummary.strength === 'weak' ? 'hook-first' : 'balanced';
+        const analysisMode: RoastResult['analysisMode'] = hookSummary.strength === 'weak' ? 'hook-first' : 'balanced';
         const scoringWeights = getDimensionWeights(hookScore);
 
         // Calculate weighted overall score
@@ -1499,7 +1500,10 @@ Return ONLY valid JSON (no markdown):
     {
       "priority": "P1",
       "dimension": "hook",
+      "timestampLabel": "0:00-0:02",
+      "timestampSeconds": 0,
       "issue": "what is wrong right now — be specific, not generic",
+      "algorithmicConsequence": "what TikTok behavior this issue likely triggers — retention loss, weaker classification, fewer follows, etc.",
       "evidence": ["specific quote, timestamp, or agent finding from THIS video", "second specific proof point"],
       "doThis": "imperative instruction the creator can execute today — concrete, not vague",
       "example": "exact replacement spoken line, text overlay wording, or specific edit move",
@@ -1515,6 +1519,8 @@ Rules:
 - Do not introduce multiple headline problems. Pick one bottleneck and make the plan fix that first.
 - Give exactly 3 actionPlan items ranked P1 to P3.
 - P1 must be the highest-leverage fix, not just the lowest score.
+- Every actionPlan item must include a usable timestampLabel and timestampSeconds pointing to the moment the creator should edit first. Use mm:ss or a short mm:ss-mm:ss range.
+- Every actionPlan item must include algorithmicConsequence explaining the likely distribution or retention consequence if they leave it unfixed.
 - When the hook is weak: P1 doThis or example must include a concrete opening rewrite — a specific spoken line, text overlay, or shot description the creator can film today. Not a general tip. Actual replacement words. Quote the creator's opening if available, then show the upgrade.
 - Every actionPlan item must cite 1-3 specific evidence bullets drawn from the agent findings, transcript, or caption audit above. Do not use generic evidence like "the video needs work." Pull specific observations from the evidence ledger.
 - Every doThis must be specific enough to execute today without further research.
@@ -1544,7 +1550,7 @@ Rules:
         }
 
         // Build full result
-        const result = {
+        const result: RoastResult = {
           id,
           tiktokUrl: (session as { video_url: string; filename?: string; tiktok_url?: string }).tiktok_url ?? '',
           overallScore,
@@ -1585,6 +1591,7 @@ Rules:
             description: 'Uploaded video',
           },
         };
+        result.firstFiveSecondsDiagnosis = getFirstFiveSecondsDiagnosis(result);
 
         send({
           type: 'verdict',
@@ -1598,6 +1605,7 @@ Rules:
           encouragement,
           analysisMode,
           hookSummary,
+          firstFiveSecondsDiagnosis: result.firstFiveSecondsDiagnosis,
           niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
           ...(durationAnalysis ? {
             duration: {

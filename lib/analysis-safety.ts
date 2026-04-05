@@ -51,6 +51,7 @@ export function sanitizeActionPlan(plan: ActionPlanStep[]): ActionPlanStep[] {
     ...step,
     priority: (['P1', 'P2', 'P3'][index] ?? step.priority) as ActionPlanStep['priority'],
     issue: sanitizeUserFacingText(step.issue, 'The current edit still has a clear execution gap.'),
+    algorithmicConsequence: sanitizeUserFacingText(step.algorithmicConsequence, 'Legitimate reason — improves retention.'),
     evidence: sanitizeFindings(step.evidence, []).slice(0, 3),
     doThis: sanitizeUserFacingText(step.doThis, 'Rebuild this section before posting again.'),
     example: sanitizeUserFacingText(step.example, 'Ship a tighter version that proves the promise sooner.'),
