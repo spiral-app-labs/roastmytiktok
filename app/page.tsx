@@ -250,9 +250,9 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-xl mb-8"
+            className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-2xl mb-6"
           >
-            upload a video or paste a tiktok link. get an analysis-first teardown that shows why viewers drop, what to rewrite, and what to reshoot next.
+            get a sharp diagnosis of why your video stalls, what the hook is missing, and the fastest fix to test next. roasty when useful, analytical where it counts.
           </motion.p>
 
           {/* Prominent URL paste field */}
@@ -304,24 +304,49 @@ export default function Home() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.28 }}
-            className="w-full max-w-4xl mb-8"
+            className="w-full max-w-5xl mb-8"
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-left">
-              {[
-                { step: '1', title: 'unlock beta', desc: 'enter your invite code to get inside the private product.' },
-                { step: '2', title: 'create your account', desc: 'sign in with google or magic link so your roasts, history, and plan choice stay attached to you.' },
-                { step: '3', title: 'pick your path', desc: 'start free for limited roasts or choose a monthly/yearly beta plan. billing is staged through beta onboarding, not fake in-app checkout.' },
-              ].map((item) => (
-                <div key={item.step} className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-4 backdrop-blur-sm">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/15 border border-orange-500/25 text-sm font-bold text-orange-400">
-                      {item.step}
-                    </div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-300">{item.title}</p>
+            <div className="grid grid-cols-1 gap-3 text-left lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-[28px] border border-zinc-800/80 bg-zinc-950/70 p-5 backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-400">what you get back</p>
+                    <h3 className="mt-2 text-2xl font-black text-white">a clearer read on why this post dies or spreads</h3>
                   </div>
-                  <p className="text-sm leading-relaxed text-zinc-500">{item.desc}</p>
+                  <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-500/25 bg-orange-500/10 text-2xl">🔥</div>
                 </div>
-              ))}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    { title: 'hook diagnosis', desc: 'frame-one clarity, scroll-stop strength, and the exact reason the opener leaks attention.' },
+                    { title: 'priority order', desc: 'what to fix first, what is secondary, and what is not actually the problem.' },
+                    { title: 'clean score + verdict', desc: 'a sharper summary you can scan in seconds instead of deciphering a wall of ai text.' },
+                    { title: 'filmable next take', desc: 'rewrite and reshoot guidance you can actually test today.' },
+                  ].map((item) => (
+                    <div key={item.title} className="rounded-2xl border border-zinc-800 bg-black/20 p-4">
+                      <p className="text-sm font-semibold text-zinc-100">{item.title}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-zinc-500">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-3">
+                {[
+                  { step: '1', title: 'unlock beta', desc: 'enter your invite code to get inside the private product.' },
+                  { step: '2', title: 'create your account', desc: 'sign in with google or magic link so your roasts, history, and plan choice stay attached to you.' },
+                  { step: '3', title: 'pick your path', desc: 'start free for limited roasts or choose a monthly/yearly beta plan. billing is staged through beta onboarding, not fake in-app checkout.' },
+                ].map((item) => (
+                  <div key={item.step} className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-4 backdrop-blur-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/15 border border-orange-500/25 text-sm font-bold text-orange-400">
+                        {item.step}
+                      </div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-300">{item.title}</p>
+                    </div>
+                    <p className="text-sm leading-relaxed text-zinc-500">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </motion.div>
 
@@ -358,14 +383,25 @@ export default function Home() {
               className="space-y-8"
             >
               {/* Feature highlights */}
-              <div id="how-it-works" className="grid grid-cols-1 sm:grid-cols-2 gap-3 scroll-mt-28">
-                {FEATURES.map((f) => (
-                  <GlassCard key={f.title} variant="surface" className="p-3">
-                    <div className="text-xl mb-1">{f.icon}</div>
-                    <div className="text-white font-semibold text-sm">{f.title}</div>
-                    <div className="text-zinc-500 text-xs mt-0.5 leading-snug">{f.desc}</div>
-                  </GlassCard>
-                ))}
+              <div id="how-it-works" className="scroll-mt-28 rounded-[28px] border border-zinc-800/80 bg-zinc-950/55 p-4 sm:p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-zinc-500 text-[11px] uppercase tracking-[0.24em] font-semibold">why creators keep using it</p>
+                    <h3 className="mt-1 text-xl font-black text-white">less generic advice, more diagnosis you can act on</h3>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1.5 text-xs text-orange-300">
+                    <span>analysis-first</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {FEATURES.map((f) => (
+                    <GlassCard key={f.title} variant="surface" className="p-4 border border-zinc-800/70 bg-black/20">
+                      <div className="text-xl mb-2">{f.icon}</div>
+                      <div className="text-white font-semibold text-sm">{f.title}</div>
+                      <div className="text-zinc-500 text-sm mt-1.5 leading-relaxed">{f.desc}</div>
+                    </GlassCard>
+                  ))}
+                </div>
               </div>
 
               {/* Agent previews */}
