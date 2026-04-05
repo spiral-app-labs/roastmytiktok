@@ -17,6 +17,12 @@ interface VideoIdea {
   why: string;
 }
 
+interface CreatorDeltaPoint {
+  factor: string;
+  evidence: string;
+  impact: string;
+}
+
 interface AccountAnalysis {
   handle: string;
   totalVideos: number;
@@ -26,6 +32,19 @@ interface AccountAnalysis {
   recurringWeaknesses: string[];
   strengths: string[];
   nicheAnalysis: string;
+  creatorDelta: {
+    topSuccessFactors: CreatorDeltaPoint[];
+    topViewKillers: CreatorDeltaPoint[];
+    exampleComparison: {
+      winnerLabel: string;
+      winnerViews: number;
+      loserLabel: string;
+      loserViews: number;
+      whyWinnerWon: string;
+      successFactors: string[];
+      viewKillers: string[];
+    };
+  };
   nextVideoIdeas: VideoIdea[];
   overallVerdict: string;
 }
@@ -60,7 +79,9 @@ export default function AccountResultsPage() {
       const cached = sessionStorage.getItem(`account_${handle}`);
       if (cached) {
         const data = JSON.parse(cached);
-        analysis = data.analysis;
+        if (data?.analysis?.creatorDelta) {
+          analysis = data.analysis;
+        }
       }
     } catch {
       analysis = null;
@@ -133,6 +154,85 @@ export default function AccountResultsPage() {
         {/* Niche Analysis */}
         <Section title="Niche Positioning" delay={0.15}>
           <p className="text-zinc-300 leading-relaxed">{analysis.nicheAnalysis}</p>
+        </Section>
+
+        {/* Creator delta */}
+        <Section title="Why Your Winners Beat Your Losers" delay={0.18} accent="text-orange-300">
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-green-400">top success factors</p>
+                <div className="mt-3 space-y-3">
+                  {analysis.creatorDelta.topSuccessFactors.map((item, i) => (
+                    <div key={i} className="rounded-xl border border-green-500/10 bg-black/20 p-3">
+                      <p className="text-sm font-semibold text-white">{item.factor}</p>
+                      <p className="mt-1 text-sm text-zinc-300">{item.evidence}</p>
+                      <p className="mt-2 text-xs text-green-300">{item.impact}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-400">top view killers</p>
+                <div className="mt-3 space-y-3">
+                  {analysis.creatorDelta.topViewKillers.map((item, i) => (
+                    <div key={i} className="rounded-xl border border-red-500/10 bg-black/20 p-3">
+                      <p className="text-sm font-semibold text-white">{item.factor}</p>
+                      <p className="mt-1 text-sm text-zinc-300">{item.evidence}</p>
+                      <p className="mt-2 text-xs text-red-300">{item.impact}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-pink-500/5 p-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-300">example comparison</p>
+                  <p className="mt-2 text-white text-lg font-semibold">{analysis.creatorDelta.exampleComparison.whyWinnerWon}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm min-w-[220px]">
+                  <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-green-400">winner</p>
+                    <p className="mt-2 font-semibold text-white">{analysis.creatorDelta.exampleComparison.winnerLabel}</p>
+                    <p className="mt-1 text-green-300">{formatNumber(analysis.creatorDelta.exampleComparison.winnerViews)} views</p>
+                  </div>
+                  <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-red-400">loser</p>
+                    <p className="mt-2 font-semibold text-white">{analysis.creatorDelta.exampleComparison.loserLabel}</p>
+                    <p className="mt-1 text-red-300">{formatNumber(analysis.creatorDelta.exampleComparison.loserViews)} views</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-sm font-semibold text-green-300">what the winner did right</p>
+                  <ul className="mt-2 space-y-2">
+                    {analysis.creatorDelta.exampleComparison.successFactors.map((point, i) => (
+                      <li key={i} className="flex gap-2 text-sm text-zinc-300">
+                        <span className="mt-0.5 text-green-400">✓</span>
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-red-300">what killed the loser</p>
+                  <ul className="mt-2 space-y-2">
+                    {analysis.creatorDelta.exampleComparison.viewKillers.map((point, i) => (
+                      <li key={i} className="flex gap-2 text-sm text-zinc-300">
+                        <span className="mt-0.5 text-red-400">✕</span>
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </Section>
 
         {/* What's Working */}

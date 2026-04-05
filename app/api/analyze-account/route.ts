@@ -4,6 +4,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { buildBenchmarkPromptSection } from '@/lib/engagement-benchmarks';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { buildCreatorDeltaPromptSection } from '@/lib/creator-delta-analysis';
 
 const execFileAsync = promisify(execFile);
 
@@ -20,6 +21,12 @@ interface TikTokVideo {
   artists?: string[];
 }
 
+interface CreatorDeltaPoint {
+  factor: string;
+  evidence: string;
+  impact: string;
+}
+
 interface AccountAnalysis {
   handle: string;
   totalVideos: number;
@@ -29,6 +36,19 @@ interface AccountAnalysis {
   recurringWeaknesses: string[];
   strengths: string[];
   nicheAnalysis: string;
+  creatorDelta: {
+    topSuccessFactors: CreatorDeltaPoint[];
+    topViewKillers: CreatorDeltaPoint[];
+    exampleComparison: {
+      winnerLabel: string;
+      winnerViews: number;
+      loserLabel: string;
+      loserViews: number;
+      whyWinnerWon: string;
+      successFactors: string[];
+      viewKillers: string[];
+    };
+  };
   nextVideoIdeas: Array<{ hook: string; format: string; why: string }>;
   overallVerdict: string;
 }
@@ -90,6 +110,69 @@ function buildVideoSummary(videos: TikTokVideo[]): string {
     .join('\n\n');
 }
 
+function normalizePoints(points: unknown): CreatorDeltaPoint[] {
+  if (!Array.isArray(points)) return [];
+  return points
+    .map((point) => {
+      if (!point || typeof point !== 'object') return null;
+      const candidate = point as Record<string, unknown>;
+      if (typeof candidate.factor !== 'string' || typeof candidate.evidence !== 'string' || typeof candidate.impact !== 'string') {
+        return null;
+      }
+      return {
+        factor: candidate.factor.trim(),
+        evidence: candidate.evidence.trim(),
+        impact: candidate.impact.trim(),
+      };
+    })
+    .filter((point): point is CreatorDeltaPoint => Boolean(point?.factor && point?.evidence && point?.impact))
+    .slice(0, 3);
+}
+
+function normalizeAccountAnalysis(input: unknown): AccountAnalysis | null {
+  if (!input || typeof input !== 'object') return null;
+  const analysis = input as Record<string, unknown>;
+  const creatorDelta = analysis.creatorDelta as Record<string, unknown> | undefined;
+  const exampleComparison = creatorDelta?.exampleComparison as Record<string, unknown> | undefined;
+  const topSuccessFactors = normalizePoints(creatorDelta?.topSuccessFactors);
+  const topViewKillers = normalizePoints(creatorDelta?.topViewKillers);
+
+  if (
+    !creatorDelta ||
+    !exampleComparison ||
+    topSuccessFactors.length < 3 ||
+    topViewKillers.length < 3 ||
+    typeof exampleComparison.winnerLabel !== 'string' ||
+    typeof exampleComparison.winnerViews !== 'number' ||
+    typeof exampleComparison.loserLabel !== 'string' ||
+    typeof exampleComparison.loserViews !== 'number' ||
+    typeof exampleComparison.whyWinnerWon !== 'string' ||
+    !Array.isArray(exampleComparison.successFactors) ||
+    !Array.isArray(exampleComparison.viewKillers)
+  ) {
+    return null;
+  }
+
+  const base = analysis as unknown as AccountAnalysis;
+
+  return {
+    ...base,
+    creatorDelta: {
+      topSuccessFactors,
+      topViewKillers,
+      exampleComparison: {
+        winnerLabel: exampleComparison.winnerLabel.trim(),
+        winnerViews: exampleComparison.winnerViews,
+        loserLabel: exampleComparison.loserLabel.trim(),
+        loserViews: exampleComparison.loserViews,
+        whyWinnerWon: exampleComparison.whyWinnerWon.trim(),
+        successFactors: exampleComparison.successFactors.filter((value): value is string => typeof value === 'string' && value.trim().length > 0).slice(0, 3),
+        viewKillers: exampleComparison.viewKillers.filter((value): value is string => typeof value === 'string' && value.trim().length > 0).slice(0, 3),
+      },
+    },
+  };
+}
+
 export const maxDuration = 120; // allow up to 2 min for yt-dlp + AI analysis
 
 export async function POST(request: NextRequest) {
@@ -137,6 +220,7 @@ export async function POST(request: NextRequest) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const benchmarkSection = buildBenchmarkPromptSection(followerCount, videos);
+    const creatorDeltaSection = buildCreatorDeltaPromptSection(videos);
 
     const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K. You're analyzing @${handle}'s content history with the precision of a data scientist and the bluntness of a best friend. Here are their last ${videos.length} videos with performance data:
 
@@ -145,6 +229,8 @@ ${videoSummary}
 ANALYSIS FRAMEWORK — use these benchmarks to evaluate:
 
 ${benchmarkSection}
+
+${creatorDeltaSection}
 
 **Format Virality Rankings** (compare their formats against this):
 1. Educational/Tutorial — highest save + share potential
@@ -186,6 +272,19 @@ Analyze patterns and return ONLY valid JSON (no markdown, no explanation) matchi
   "recurringWeaknesses": ["string"],
   "strengths": ["string"],
   "nicheAnalysis": "string",
+  "creatorDelta": {
+    "topSuccessFactors": [{"factor": "string", "evidence": "string", "impact": "string"}],
+    "topViewKillers": [{"factor": "string", "evidence": "string", "impact": "string"}],
+    "exampleComparison": {
+      "winnerLabel": "string",
+      "winnerViews": number,
+      "loserLabel": "string",
+      "loserViews": number,
+      "whyWinnerWon": "string",
+      "successFactors": ["string"],
+      "viewKillers": ["string"]
+    }
+  },
   "nextVideoIdeas": [{"hook": "string", "format": "string", "why": "string"}],
   "overallVerdict": "string"
 }
@@ -196,6 +295,9 @@ Rules:
 - recurringWeaknesses: 3-5 specific, actionable weaknesses. Not "improve your hooks" — instead "your hooks are mostly Tier 3 countdown/listicle style which ranks #8 in effectiveness — try direct address hooks like 'If you [specific trait], stop scrolling'". Reference the actual data.
 - strengths: 3-5 things this creator does well. Be specific — name the videos, the formats, the patterns.
 - nicheAnalysis: 2-3 sentences on niche positioning. Identify their primary niche from the taxonomy (Comedy, Education, Lifestyle, Fitness, Beauty, Tech, Food, Finance, Travel, Gaming, Parenting, Fashion, Pets, DIY, Music). Is their niche clear enough for the algorithm to categorize them? Compare their engagement rate against the benchmark for their follower tier.
+- creatorDelta.topSuccessFactors: exactly 3 factors that appear disproportionately in the winner cluster versus the loser cluster. Each factor must use this creator's own posts as evidence, not generic advice.
+- creatorDelta.topViewKillers: exactly 3 factors that show up in the loser cluster and suppress views. Again, evidence must come from this creator's own history.
+- creatorDelta.exampleComparison: use the provided top winner example and top loser example. winnerLabel and loserLabel should be short plain-English descriptions of those specific posts. whyWinnerWon should directly explain why the winner beat the loser. successFactors and viewKillers should each contain 2-3 bullets tied to that exact comparison.
 - nextVideoIdeas: 5 specific video ideas with EXACT hook text they could film tomorrow. Each hook should be Tier 1 or Tier 2 from the hook taxonomy. Match the format to their strengths. Match the length to their niche. Explain why each idea would outperform their current content.
 - overallVerdict: 2-3 sentence blunt, specific assessment. Reference their actual numbers. Tell them exactly where they'd stall in the algorithm distribution phases (test → validation → acceleration → viral) and what's holding them back. Sound like a growth expert friend giving real talk, not a corporate consultant.`;
 
@@ -217,7 +319,13 @@ Rules:
     const jsonStr = rawText.replace(/```json?\s*/g, '').replace(/```\s*/g, '').trim();
     let analysis: AccountAnalysis;
     try {
-      analysis = JSON.parse(jsonStr);
+      const parsed = JSON.parse(jsonStr);
+      const normalized = normalizeAccountAnalysis(parsed);
+      if (!normalized) {
+        console.error('[analyze-account] Missing creator delta payload:', rawText.slice(0, 700));
+        return Response.json({ error: 'Analysis failed — creator delta comparison came back incomplete.' }, { status: 500 });
+      }
+      analysis = normalized;
     } catch {
       console.error('[analyze-account] Failed to parse Claude response:', rawText.slice(0, 500));
       return Response.json({ error: 'Analysis failed — could not parse AI response.' }, { status: 500 });
