@@ -1,14 +1,29 @@
 import { NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabaseServer } from '@/lib/supabase-server';
-import { checkRateLimit, isPaidUser } from '@/lib/rate-limit';
-
-const FREE_LIMIT = { name: 'analyze-free', max: 3, windowMs: 24 * 60 * 60 * 1000 };
+import { isPaidUser } from '@/lib/rate-limit';
+import { enforceUsageCap } from '@/lib/usage';
 
 export async function POST(request: NextRequest) {
   // Rate limit: free users get 3/day, paid users are unlimited
   if (!isPaidUser(request)) {
-    const limited = checkRateLimit(request, FREE_LIMIT);
+    const contentTypeHeader = request.headers.get('content-type') ?? '';
+    let sessionIdForLimit: string | undefined;
+
+    if (contentTypeHeader.includes('application/json')) {
+      const body = await request.clone().json().catch(() => null) as { sessionId?: string } | null;
+      sessionIdForLimit = body?.sessionId;
+    } else if (
+      contentTypeHeader.includes('multipart/form-data') ||
+      contentTypeHeader.includes('application/x-www-form-urlencoded')
+    ) {
+      const formData = await request.clone().formData().catch(() => null);
+      sessionIdForLimit = typeof formData?.get('session_id') === 'string'
+        ? (formData?.get('session_id') as string)
+        : undefined;
+    }
+
+    const limited = await enforceUsageCap(request, sessionIdForLimit);
     if (limited) return limited;
   }
 
@@ -77,9 +92,13 @@ export async function POST(request: NextRequest) {
 
     // Create session record so the GET handler can find the video
     try {
+      const forwarded = request.headers.get('x-forwarded-for');
+      const clientIp = forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+
       await supabaseServer.from('rmt_roast_sessions').insert({
         id,
         session_id: sessionId ?? 'anonymous',
+        client_ip: clientIp,
         source: 'upload',
         filename,
         video_url: storagePath,
@@ -87,6 +106,7 @@ export async function POST(request: NextRequest) {
         verdict: '',
         agent_scores: {},
         findings: {},
+        analysis_status: 'pending',
       });
     } catch (err) {
       console.warn('[analyze] Session record insert failed:', err);
