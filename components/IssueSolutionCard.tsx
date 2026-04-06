@@ -1,14 +1,16 @@
 'use client';
 
 import { AGENTS } from '@/lib/agents';
-import type { ActionPlanStep } from '@/lib/types';
+import type { ActionPlanStep, ViewProjection } from '@/lib/types';
 
 interface Props {
   step: ActionPlanStep;
   timestampLabel: string;
+  viewProjection?: ViewProjection;
+  isHighestImpact?: boolean;
 }
 
-export function IssueSolutionCard({ step, timestampLabel }: Props) {
+export function IssueSolutionCard({ step, timestampLabel, viewProjection, isHighestImpact }: Props) {
   const agent = AGENTS.find(a => a.key === step.dimension);
   const priorityNum = parseInt(step.priority?.replace(/\D/g, '') || '3');
   const isP1 = priorityNum === 1;
@@ -30,6 +32,15 @@ export function IssueSolutionCard({ step, timestampLabel }: Props) {
 
   return (
     <div className={`rounded-2xl border p-4 space-y-3 ${cardBorder}`}>
+      {/* Highest Impact callout banner */}
+      {isHighestImpact && (
+        <div className="flex items-center gap-2 rounded-lg bg-orange-500/10 border border-orange-500/25 px-3 py-2 -mt-1">
+          <span className="text-base leading-none">🔥</span>
+          <p className="text-xs font-bold uppercase tracking-widest text-orange-400">Highest Impact Fix</p>
+          <span className="ml-auto text-xs text-orange-300/70">Fix this first</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
@@ -38,9 +49,11 @@ export function IssueSolutionCard({ step, timestampLabel }: Props) {
           </span>
           <span className="text-xs text-zinc-500">{agent?.emoji} {agent?.name ?? step.dimension}</span>
         </div>
-        <div className="rounded-full border border-zinc-700/50 bg-zinc-900/80 px-2.5 py-1 text-[11px] font-bold tracking-wide text-zinc-400 shrink-0">
-          {timestampLabel}
-        </div>
+        {timestampLabel && (
+          <div className="rounded-full border border-zinc-700/50 bg-zinc-900/80 px-2.5 py-1 text-[11px] font-bold tracking-wide text-zinc-400 shrink-0">
+            at {timestampLabel}
+          </div>
+        )}
       </div>
 
       {/* Problem / Solution split */}
@@ -49,7 +62,7 @@ export function IssueSolutionCard({ step, timestampLabel }: Props) {
         <div className={`rounded-xl border p-3 ${isP1 ? 'border-red-500/20 bg-red-500/[0.06]' : 'border-zinc-800/80 bg-black/20'}`}>
           <div className="flex items-center gap-1.5 mb-1.5">
             <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-red-400">Problem</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-400">What failed</p>
           </div>
           <p className="text-sm text-zinc-200 leading-relaxed">{step.issue}</p>
           {step.algorithmicConsequence && (
@@ -61,7 +74,7 @@ export function IssueSolutionCard({ step, timestampLabel }: Props) {
         <div className={`rounded-xl border p-3 ${isP1 ? 'border-emerald-500/20 bg-emerald-500/[0.06]' : 'border-zinc-800/80 bg-black/20'}`}>
           <div className="flex items-center gap-1.5 mb-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Do this</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">How to fix it</p>
           </div>
           <p className="text-sm text-zinc-200 leading-relaxed font-medium">{step.doThis}</p>
           {step.example && (
@@ -80,6 +93,21 @@ export function IssueSolutionCard({ step, timestampLabel }: Props) {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* View impact */}
+      {viewProjection && (
+        <div className="rounded-lg bg-emerald-500/[0.08] border border-emerald-500/20 px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70 mb-0.5">View impact if fixed</p>
+            <p className="text-sm text-emerald-300 font-semibold">
+              {viewProjection.currentExpected} &rarr; {viewProjection.improvedExpected}
+            </p>
+          </div>
+          <span className="rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2.5 py-1 text-xs font-bold text-emerald-300">
+            {viewProjection.multiplier} potential
+          </span>
+        </div>
       )}
     </div>
   );
