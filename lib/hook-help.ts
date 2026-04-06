@@ -366,16 +366,31 @@ export function getFirstFiveSecondsDiagnosis(roast: RoastResult): FirstFiveSecon
         ? 'fragile'
         : 'failing';
 
+  const earliestTimestampFromFindings = (() => {
+    if (!hook?.findings?.length) return null;
+    let earliest: number | null = null;
+    for (const finding of hook.findings) {
+      const matches = finding.match(/(\d+\.?\d*)s/g);
+      if (matches) {
+        for (const m of matches) {
+          const val = parseFloat(m);
+          if (Number.isFinite(val) && (earliest === null || val < earliest)) {
+            earliest = val;
+          }
+        }
+      }
+    }
+    return earliest;
+  })();
+
   const likelyDropWindow =
     verdict === 'working'
       ? 'likely to hold through 5.0s'
       : primaryStep?.timestampLabel
         ? `likely drop: ${primaryStep.timestampLabel}`
-        : hookScore < 45 || openerFeelsSoft || noSpokenOpener
-          ? 'likely drop: 0.0s-1.0s'
-          : hookScore < 60 || visualScore < 55
-            ? 'likely drop: 1.0s-3.0s'
-            : 'likely drop: 3.0s-5.0s';
+        : earliestTimestampFromFindings !== null
+          ? `likely drop: around ${earliestTimestampFromFindings.toFixed(1)}s`
+          : 'drop window unclear — no timestamped evidence';
 
   const hookRead = verdict === 'working'
     ? clean(roast.hookSummary?.headline) || `the opener works because the first beat lands a clear promise instead of easing in.`
