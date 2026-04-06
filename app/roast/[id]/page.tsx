@@ -12,6 +12,7 @@ import { IssueSolutionCard } from '@/components/IssueSolutionCard';
 import { QuickScoresBar } from '@/components/QuickScoresBar';
 import { saveToHistory, getHistory } from '@/lib/history';
 import { buildViewProjection } from '@/lib/view-projection';
+import { getViewImpact, getEstimatedImprovedScore } from '@/lib/view-count-tiers';
 import { sanitizeUserFacingText } from '@/lib/analysis-safety';
 import { useToast } from '@/components/ui';
 import Link from 'next/link';
@@ -367,6 +368,12 @@ function RoastContent({
                 const isHookSection = step.dimension === 'hook';
                 const prevIsNonHook = idx > 0 && actionPlan[idx - 1].dimension !== 'hook';
                 const showNonHookDivider = !isHookSection && prevIsNonHook === false && idx > 0 && actionPlan[idx - 1].dimension === 'hook';
+                const improvedScore = getEstimatedImprovedScore(
+                  roast.overallScore,
+                  step.dimension,
+                  step.priority,
+                );
+                const viewImpact = getViewImpact(roast.overallScore, improvedScore);
                 return (
                   <div key={`${step.priority}-${step.dimension}-${idx}`}>
                     {showNonHookDivider && (
@@ -377,6 +384,7 @@ function RoastContent({
                       timestampLabel={formatTimestamp(step)}
                       viewProjection={isFirstHook ? viewProjection : undefined}
                       isHighestImpact={isFirstHook}
+                      viewImpact={viewImpact}
                     />
                   </div>
                 );

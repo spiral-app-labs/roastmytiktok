@@ -2,15 +2,17 @@
 
 import { AGENTS } from '@/lib/agents';
 import type { ActionPlanStep, ViewProjection } from '@/lib/types';
+import type { ViewImpact } from '@/lib/view-count-tiers';
 
 interface Props {
   step: ActionPlanStep;
   timestampLabel: string;
   viewProjection?: ViewProjection;
   isHighestImpact?: boolean;
+  viewImpact?: ViewImpact;
 }
 
-export function IssueSolutionCard({ step, timestampLabel, viewProjection, isHighestImpact }: Props) {
+export function IssueSolutionCard({ step, timestampLabel, viewProjection, isHighestImpact, viewImpact }: Props) {
   const agent = AGENTS.find(a => a.key === step.dimension);
   const priorityNum = parseInt(step.priority?.replace(/\D/g, '') || '3');
   const isP1 = priorityNum === 1;
@@ -95,8 +97,22 @@ export function IssueSolutionCard({ step, timestampLabel, viewProjection, isHigh
         </ul>
       )}
 
-      {/* View impact */}
-      {viewProjection && (
+      {/* Per-issue view impact badge */}
+      {viewImpact && (
+        <div className={`rounded-lg px-3 py-2 flex items-center gap-2 ${
+          viewImpact.isHookJump
+            ? 'bg-orange-500/[0.10] border border-orange-500/30'
+            : 'bg-emerald-500/[0.08] border border-emerald-500/20'
+        }`}>
+          <span aria-hidden="true" className="text-sm">&#x1F4C8;</span>
+          <p className={`text-sm font-semibold ${viewImpact.isHookJump ? 'text-orange-300' : 'text-emerald-300'}`}>
+            {viewImpact.delta}
+          </p>
+        </div>
+      )}
+
+      {/* Overall projection (first hook card only, shown if no per-issue impact) */}
+      {viewProjection && !viewImpact && (
         <div className="rounded-lg bg-emerald-500/[0.08] border border-emerald-500/20 px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70 mb-0.5">View impact if fixed</p>
