@@ -8,7 +8,7 @@ import { ScoreRing } from '@/components/ScoreRing';
 import { ScoreCard } from '@/components/ScoreCard';
 import { useScoreCardDownload } from '@/hooks/useScoreCardDownload';
 import { ViewProjection } from '@/components/ViewProjection';
-import { RecommendationCard } from '@/components/RecommendationCard';
+import { IssueSolutionCard } from '@/components/IssueSolutionCard';
 import { QuickScoresBar } from '@/components/QuickScoresBar';
 import { saveToHistory, getHistory } from '@/lib/history';
 import { buildViewProjection } from '@/lib/view-projection';
@@ -201,9 +201,23 @@ function RoastContent({
   const failedDimensions = new Set(
     roast.agents.filter(a => isAgentFailed(a)).map(a => a.agent)
   );
-  const actionPlan = (roast.actionPlan ?? []).filter(
+  const filteredActionPlan = (roast.actionPlan ?? []).filter(
     step => !failedDimensions.has(step.dimension)
   );
+
+  // Sort: hook issues first (highest leverage), then visual/audio, then conversion, then authenticity/accessibility
+  // Within each group, P1 > P2 > P3
+  const DIMENSION_ORDER: Partial<Record<string, number>> = {
+    hook: 0, visual: 1, audio: 2, conversion: 3, authenticity: 4, accessibility: 5,
+  };
+  const actionPlan = [...filteredActionPlan].sort((a, b) => {
+    const dA = DIMENSION_ORDER[a.dimension] ?? 6;
+    const dB = DIMENSION_ORDER[b.dimension] ?? 6;
+    if (dA !== dB) return dA - dB;
+    const pA = parseInt(a.priority?.replace(/\D/g, '') || '3');
+    const pB = parseInt(b.priority?.replace(/\D/g, '') || '3');
+    return pA - pB;
+  });
 
   return (
     <main className="min-h-screen pb-20 relative">
@@ -345,17 +359,28 @@ function RoastContent({
           transition={{ delay: 0.8 }}
           className="mb-8"
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Recommendations</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Fix List</p>
           {actionPlan.length > 0 ? (
             <div className="space-y-3">
-              {actionPlan.map((step, idx) => (
-                <RecommendationCard
-                  key={`${step.priority}-${step.dimension}-${idx}`}
-                  step={step}
-                  timestampLabel={formatTimestamp(step)}
-                  viewProjection={idx === 0 ? viewProjection : undefined}
-                />
-              ))}
+              {actionPlan.map((step, idx) => {
+                const isFirstHook = idx === 0 && step.dimension === 'hook';
+                const isHookSection = step.dimension === 'hook';
+                const prevIsNonHook = idx > 0 && actionPlan[idx - 1].dimension !== 'hook';
+                const showNonHookDivider = !isHookSection && prevIsNonHook === false && idx > 0 && actionPlan[idx - 1].dimension === 'hook';
+                return (
+                  <div key={`${step.priority}-${step.dimension}-${idx}`}>
+                    {showNonHookDivider && (
+                      <p className="text-xs font-bold uppercase tracking-widest text-zinc-600 mt-5 mb-3 px-1">Other improvements</p>
+                    )}
+                    <IssueSolutionCard
+                      step={step}
+                      timestampLabel={formatTimestamp(step)}
+                      viewProjection={isFirstHook ? viewProjection : undefined}
+                      isHighestImpact={isFirstHook}
+                    />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-4 text-center">
