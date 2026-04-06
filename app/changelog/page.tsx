@@ -2,18 +2,28 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Changelog',
-  description: 'See what\u2019s new in Go Viral \u2014 product updates, new features, and improvements.',
+  description: 'See what\'s new in Go Viral — product updates, new features, and improvements.',
 };
 
 const ENTRIES = [
+  {
+    date: 'April 2026',
+    tag: 'Improved',
+    items: [
+      { title: 'Results page overhaul', desc: 'Redesigned score hero with animated ring, letter grade, and expandable agent findings. Priority-styled action plan with staggered animations.' },
+      { title: 'Dashboard overhaul', desc: 'Growth story with animated stat cards, score trend chart, dimension improvement breakdown, and chronic issues tracker.' },
+      { title: 'Shareable score card', desc: 'Download a Spotify Wrapped–style score card or share directly to Stories. Available on the results page after every analysis.' },
+      { title: 'Per-agent deep dives gated to paid', desc: 'Free users see the overall score and top findings. Paid users unlock the full per-agent breakdown.' },
+    ],
+  },
   {
     date: 'March 2026',
     tag: 'New',
     items: [
       { title: 'Batch upload queue', desc: 'Upload up to 5 videos at once and process them sequentially. Track progress for each video in real time.' },
       { title: 'Account-level analysis', desc: 'Connect your TikTok handle to see score trends, weakest dimensions, and tier benchmarks across all your roasts.' },
-      { title: 'Content calendar', desc: 'Research-backed posting schedule tailored to your niche and audience timezone.' },
-      { title: 'Comparison view', desc: 'Select any two roasts and see a side-by-side breakdown of which dimensions improved or regressed.' },
+      { title: 'Usage counter', desc: 'Free roast count shown on the home page so you always know how many analyses you have left.' },
+      { title: 'Upgrade CTA on results', desc: 'Contextual upgrade prompt on the results page at the highest-intent moment.' },
     ],
   },
   {
@@ -22,7 +32,7 @@ const ENTRIES = [
     items: [
       { title: 'Hook rewrite workshop v2', desc: 'Detected hook type, 6-lens hook anatomy, and a step-by-step rewrite workflow with filmable directions.' },
       { title: 'Reshoot planner', desc: 'Concrete A/B/C take options with spoken line, visual direction, camera framing, timing, and text overlay.' },
-      { title: 'Hold-strength read', desc: 'Qualitative watch-strength assessment based on opening beats \u2014 honest about what it can and can\u2019t predict.' },
+      { title: 'Hold-strength read', desc: 'Qualitative watch-strength assessment based on opening beats — honest about what it can and can\'t predict.' },
       { title: 'First-glance diagnostic', desc: 'Frame-one gut check: mute-mode readability, scroll-stop signal, and visual clarity.' },
     ],
   },
@@ -31,9 +41,8 @@ const ENTRIES = [
     tag: 'Launch',
     items: [
       { title: 'Go Viral beta launch', desc: '6 specialized AI agents analyze your TikTok video and diagnose why viewers leave, with actionable reshoot plans.' },
-      { title: 'Hook-first analysis mode', desc: 'When the hook is weak, all other feedback is deprioritized \u2014 because nothing else matters until the opener lands.' },
+      { title: 'Hook-first analysis mode', desc: 'When the hook is weak, all other feedback is deprioritized — because nothing else matters until the opener lands.' },
       { title: 'Chronic issue detection', desc: 'Tracks recurring problems across roasts and escalates the feedback intensity when the same mistake keeps showing up.' },
-      { title: 'Script generator', desc: 'AI-generated scripts based on your roast results, tailored to your niche and content style.' },
     ],
   },
 ];
