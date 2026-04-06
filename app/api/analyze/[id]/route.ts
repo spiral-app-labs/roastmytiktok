@@ -1440,6 +1440,17 @@ Rules:
             nichePercentile = sanitizeUserFacingText(parsed.nichePercentile ?? '', '');
             biggestBlocker = sanitizeUserFacingText(parsed.biggestBlocker, safePlan[0]?.issue || 'The video still has one obvious bottleneck holding it back.');
             actionPlan = safePlan.length > 0 ? safePlan : sanitizeActionPlan(fallbackActionPlan);
+            for (const item of actionPlan) {
+              if (item.evidence) {
+                const evidenceStr = Array.isArray(item.evidence) ? item.evidence.join(" ") : String(item.evidence);
+                const tsMatch = evidenceStr.match(/(\d+\.?\d*)s[-–](\d+\.?\d*)s/);
+                if (tsMatch) {
+                  item.timestampSeconds = parseFloat(tsMatch[1]);
+                } else {
+                  item.timestampLabel = null;
+                }
+              }
+            }
             nextSteps = actionPlan.map((step) => `${step.priority}: ${step.doThis}`);
             encouragement = sanitizeUserFacingText(parsed.encouragement, 'There is something here, but the first fix needs to land harder.');
           } else {

@@ -43,7 +43,7 @@ export function assessTranscriptQuality(
   const speechPercent = audio.speechPercent ?? 0;
   const musicHeavySpeechLight = audio.hasMusic && (!audio.hasSpeech || speechPercent < 35);
   const speechDetectionMismatch = !audio.hasSpeech && hasTranscriptText;
-  const veryShortTranscript = words > 0 && words < 4;
+  const veryShortTranscript = words > 0 && words < 8;
   const lowConfidence = transcript.confidence < 0.45;
 
   if (speechDetectionMismatch) {
