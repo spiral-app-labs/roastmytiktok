@@ -435,7 +435,7 @@ Rules:
 
     // Claude audio fallback gets a lower base confidence since timestamps are estimated
     const baseConfidence = computeConfidence(text, segments);
-    const adjustedConfidence = Math.min(1, Number((baseConfidence * 0.85).toFixed(2)));
+    const adjustedConfidence = Math.min(0.35, Number((baseConfidence * 0.85).toFixed(2)));
 
     console.log(
       `[transcribe] Claude audio fallback returned ${text.length} chars, ${segments.length} segments (confidence: ${adjustedConfidence})`

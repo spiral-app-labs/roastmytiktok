@@ -105,6 +105,11 @@ export function parseStrategicSummary(
         issue: cleanLine(parsedStep?.issue) || seedStep.issue,
         // Prefer LLM evidence; fall back to seed evidence from agent findings
         evidence: rawEvidence.length > 0 ? rawEvidence : seedStep.evidence,
+        ...groundTimestampFields(
+          rawEvidence.length > 0 ? rawEvidence : seedStep.evidence,
+          parsedStep?.timestampLabel,
+          parsedStep?.timestampSeconds,
+        ),
         doThis: cleanLine(parsedStep?.doThis) || seedStep.doThis,
         example: cleanLine(parsedStep?.example) || seedStep.example,
         whyItMatters: cleanLine(parsedStep?.whyItMatters) || seedStep.whyItMatters,
@@ -149,6 +154,65 @@ function firstSentence(text: string): string {
 
 function cleanLine(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+}
+
+function groundTimestampFields(
+  evidence: string[],
+  parsedLabel: unknown,
+  parsedSeconds: unknown,
+): Pick<ActionPlanStep, 'timestampLabel' | 'timestampSeconds'> {
+  const extracted = extractTimestampFromEvidence(evidence);
+  if (extracted) {
+    return extracted;
+  }
+
+  return {
+    timestampLabel: nullifyTimestampLabel(parsedLabel),
+    timestampSeconds: normalizeTimestampSeconds(parsedSeconds),
+  };
+}
+
+function extractTimestampFromEvidence(
+  evidence: string[],
+): Pick<ActionPlanStep, 'timestampLabel' | 'timestampSeconds'> | null {
+  for (const item of evidence) {
+    const match = item.match(/(\d+(?:\.\d+)?s(?:\s*-\s*\d+(?:\.\d+)?s)?|\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?)/);
+    if (!match) continue;
+
+    const timestampLabel = match[1].replace(/\s+/g, '');
+    return {
+      timestampLabel,
+      timestampSeconds: timestampLabelToSeconds(timestampLabel),
+    };
+  }
+
+  return null;
+}
+
+function nullifyTimestampLabel(value: unknown): string | null {
+  const cleaned = cleanLine(value);
+  return cleaned || null;
+}
+
+function normalizeTimestampSeconds(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function timestampLabelToSeconds(label: string): number | undefined {
+  const firstToken = label.split('-')[0]?.trim();
+  if (!firstToken) return undefined;
+
+  if (firstToken.endsWith('s')) {
+    const seconds = Number(firstToken.slice(0, -1));
+    return Number.isFinite(seconds) ? seconds : undefined;
+  }
+
+  const parts = firstToken.split(':').map(part => Number(part));
+  if (parts.length === 2 && parts.every(part => Number.isFinite(part))) {
+    return (parts[0] * 60) + parts[1];
+  }
+
+  return undefined;
 }
 
 // Evidence validation: accept any non-empty string as evidence.

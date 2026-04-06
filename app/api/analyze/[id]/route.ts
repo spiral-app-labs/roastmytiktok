@@ -1100,9 +1100,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const playbookContext = buildPlaybookContext(viralPatterns);
 
         // Detect niche from available signals
+        const sessionDescription = (session as { description?: string }).description ?? '';
         const nicheDetection: NicheDetection = detectNiche({
-          caption: (session as { video_url: string; filename?: string }).filename ?? '',
-          hashtags: [],
+          caption: sessionDescription,
+          hashtags: sessionDescription.match(/#\w+/g)?.map(token => token.slice(1)) ?? [],
           transcript: transcript?.text ?? undefined,
           audioType: audioChars.hasSpeech && audioChars.hasMusic ? 'both'
             : audioChars.hasSpeech ? 'speech'
@@ -1179,8 +1180,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           } else if (dimension === 'hook') {
             let ctx = '';
             if (shouldUseTranscriptEvidence && transcript?.segments?.length) {
-              const firstSegment = transcript.segments[0];
-              ctx = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstSegment.text, 500)}". Analyze whether this opening line is a strong hook.`;
+              const firstWords = transcript.segments
+                .filter(segment => segment.start <= 3.0)
+                .map(segment => segment.text)
+                .join(' ')
+                .trim();
+              if (firstWords) {
+                ctx = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstWords, 500)}". Analyze whether this opening line is a strong hook.`;
+              }
             }
             ctx += onScreenTextContext;
             return ctx;
@@ -1349,7 +1356,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             try {
               verdictResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-6',
-            max_tokens: 1200,
+            max_tokens: 1800,
             messages: [{
               role: 'user',
               content: `You are a killer TikTok strategist. Your job is not to summarize. Your job is to tell the creator exactly what to fix first, with evidence from THIS video.
