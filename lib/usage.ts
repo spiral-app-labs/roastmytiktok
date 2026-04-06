@@ -46,7 +46,7 @@ function buildSubjectFilter(subject: UsageSubject) {
     return { column: 'session_id', value: subject.id } as const;
   }
 
-  return { column: 'client_ip', value: subject.id } as const;
+  return { column: 'session_id', value: subject.id } as const;
 }
 
 export function buildUsageSnapshotFromRows(
@@ -105,9 +105,9 @@ export async function getUsageSnapshot(subject: UsageSubject, plan: 'free' | 'pa
 
   const { data, error } = await supabaseServer
     .from('rmt_roast_sessions')
-    .select('created_at, processed_seconds')
+    .select('created_at')
     .eq(filter.column, filter.value)
-    .eq('analysis_status', 'completed');
+    .gt('overall_score', 0);
 
   if (error) {
     throw new Error(error.message);

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import AppShell from '@/components/AppShell';
 import { supabaseServer } from '@/lib/supabase-server';
 
 type Props = {
@@ -51,5 +52,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function RoastLayout({ children }: Props) {
-  return <>{children}</>;
+  return <AppShell>{children}</AppShell>;
 }

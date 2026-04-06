@@ -271,6 +271,7 @@ async function transcribeWithAssemblyAI(
     headers: assemblyHeaders(),
     body: JSON.stringify({
       audio_url: upload_url,
+      speech_models: ['universal-3-pro'],
       speaker_labels: true,
       auto_chapters: false,
       punctuate: true,

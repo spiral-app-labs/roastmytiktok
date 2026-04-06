@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-const APP_ROUTE_PREFIXES = ['/dashboard', '/history', '/analyze', '/roast', '/analyze-account', '/account', '/calendar', '/settings'];
+const APP_ROUTE_PREFIXES = ['/dashboard', '/history', '/analytics', '/analyze', '/roast', '/analyze-account', '/account', '/calendar', '/settings', '/compare', '/scripts'];
 const MARKETING_ROOT_PATHS = ['/', '/login', '/bypass'];
 
 function isAppRoute(pathname: string) {
@@ -60,7 +60,10 @@ export default function AppNav() {
     };
   }, []);
 
-  const showAppNav = isAppRoute(pathname) || (resolved && hasAccess && !MARKETING_ROOT_PATHS.includes(pathname));
+  // App routes use the Sidebar component instead of top nav
+  if (isAppRoute(pathname)) return null;
+
+  const showAppNav = resolved && hasAccess && !MARKETING_ROOT_PATHS.includes(pathname);
 
   const appLinks = [
     { href: '/dashboard', label: 'Dashboard' },

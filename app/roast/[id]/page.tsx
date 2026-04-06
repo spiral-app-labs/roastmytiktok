@@ -232,6 +232,7 @@ function RoastContent({
   const strongestAgentMeta = strongestAgent ? AGENTS.find((agent) => agent.key === strongestAgent.agent) : null;
 
   const [isPaid, setIsPaid] = useState(false);
+  const [usageCount, setUsageCount] = useState<number | null>(null);
   useEffect(() => {
     const hasPaidCookie = document.cookie.split(';').some(c => c.trim().startsWith('rmt_paid_bypass=1'));
     const hasPlan = !!localStorage.getItem('plan');
@@ -498,14 +499,6 @@ function RoastContent({
             transition={{ delay: 1, duration: 0.5 }}
             className="max-w-2xl mx-auto bg-zinc-900/60 border border-zinc-800/50 rounded-2xl px-6 py-5 space-y-4"
           >
-            {/* Niche benchmark context — competitive positioning */}
-            {roast.nichePercentile && (
-              <div className="rounded-xl border border-indigo-500/25 bg-indigo-500/8 px-4 py-3">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-indigo-400 mb-1">vs. your niche</p>
-                <p className="text-sm text-zinc-200">{roast.nichePercentile}</p>
-              </div>
-            )}
-
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-2">TL;DR</p>
               <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">{roast.verdict}</p>

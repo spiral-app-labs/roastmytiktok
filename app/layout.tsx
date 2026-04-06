@@ -29,7 +29,7 @@ export default function RootLayout({
       <head>
         <HomeJsonLd />
       </head>
-      <body className="min-h-full flex flex-col bg-[#0a0a0a] text-white">
+      <body className="min-h-full flex flex-col bg-[#09090b] text-white">
         <Providers>
         <a
           href="#main-content"
@@ -41,17 +41,6 @@ export default function RootLayout({
         <div id="main-content">
         {children}
         </div>
-        <footer aria-label="Site footer" className="mt-auto border-t border-zinc-900 px-6 py-4 flex items-center justify-between text-xs text-zinc-500">
-          <span>© {new Date().getFullYear()} Spiral App Labs</span>
-          <div className="flex items-center gap-4">
-            <Link href="/terms" className="hover:text-orange-400 transition-colors">
-              Terms of Service
-            </Link>
-            <Link href="/privacy" className="hover:text-orange-400 transition-colors">
-              Privacy Policy
-            </Link>
-          </div>
-        </footer>
         </Providers>
       </body>
     </html>

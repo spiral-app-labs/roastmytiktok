@@ -384,7 +384,7 @@ export function getFirstFiveSecondsDiagnosis(roast: RoastResult): FirstFiveSecon
       : noSpokenOpener
         ? 'there is no clear spoken hook in the first beat, so the video has to win visually right away and currently does not.'
         : clean(primaryStep?.issue)
-          ? `${clean(primaryStep.issue)} this is the moment that makes the opener feel ${verdict === 'fragile' ? 'fragile' : 'unfinished'}.`
+          ? `${clean(primaryStep!.issue)} this is the moment that makes the opener feel ${verdict === 'fragile' ? 'fragile' : 'unfinished'}.`
           : clean(hook?.findings?.[0]) || clean(roast.hookSummary?.headline) || 'the first beat is not landing clearly enough yet.';
 
   let retentionRisk = '';
@@ -398,7 +398,7 @@ export function getFirstFiveSecondsDiagnosis(roast: RoastResult): FirstFiveSecon
       : 'cold viewers are getting an early-friction signal before the value lands.');
   }
 
-  const nextTimeFix = buildNextTimeFix(roast, primaryStep, hook?.improvementTip);
+  const nextTimeFix = buildNextTimeFix(roast, primaryStep as any, hook?.improvementTip);
 
   const evidence = [
     ...stepEvidence,
@@ -534,7 +534,7 @@ function inferTopic(roast: RoastResult, openerLine: string): string {
 
 function buildNextTimeFix(
   roast: RoastResult,
-  primaryStep?: RoastResult['actionPlan'] extends Array<infer Step> ? Step : never,
+  primaryStep?: any,
   fallbackTip?: string,
 ): string {
   const directive = clean(primaryStep?.doThis);

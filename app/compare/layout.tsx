@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import AppShell from '@/components/AppShell';
 
 export const metadata: Metadata = {
   title: 'Compare Roasts',
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function CompareLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <AppShell>{children}</AppShell>;
 }

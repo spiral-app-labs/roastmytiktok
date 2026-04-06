@@ -38,10 +38,10 @@ function Particle({ delay, duration, x, y, size, color }: { delay: number; durat
 const AGENTS_PREVIEW = [
   { emoji: '💀', name: 'Hook Agent', desc: 'Judges your first 3 seconds' },
   { emoji: '🎨', name: 'Visual Agent', desc: 'Rates your cinematography (or lack of it)' },
-  { emoji: '🔮', name: 'Algorithm Agent', desc: 'Predicts your FYP fate' },
-  { emoji: '💰', name: 'Conversion Agent', desc: 'Destroys your CTA strategy' },
-  { emoji: '👁️', name: 'Authenticity Agent', desc: 'Detects cringe at molecular level' },
   { emoji: '🎧', name: 'Audio Agent', desc: 'Performs autopsies on audio choices' },
+  { emoji: '👁️', name: 'Authenticity Agent', desc: 'Detects cringe at molecular level' },
+  { emoji: '💰', name: 'Conversion Agent', desc: 'Destroys your CTA strategy' },
+  { emoji: '♿', name: 'Accessibility Agent', desc: 'Checks if everyone can enjoy your content' },
 ];
 
 const TESTIMONIALS = [
@@ -93,7 +93,7 @@ const FEATURES = [
   {
     icon: '🎬',
     title: 'Reshoot planner',
-    problem: 'Knowing what's wrong isn't enough.',
+    problem: "Knowing what's wrong isn't enough.",
     fix: 'Concrete shot, text, and delivery guidance to film right now.',
   },
   {
@@ -275,10 +275,10 @@ export default function Home() {
             transition={{ duration: 0.65, ease: 'easeOut' }}
             className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[1.03] tracking-tight mb-5"
           >
-            stop guessing why your
+            get roasted before
             <br />
             <span className="bg-gradient-to-r from-orange-400 via-orange-300 to-pink-500 bg-clip-text text-transparent">
-              videos don&apos;t go viral
+              you hit post
             </span>
           </motion.h1>
 
@@ -288,7 +288,7 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.12 }}
             className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-2xl mb-3"
           >
-            Our AI analyzes your first 3 seconds and shows you exactly why viewers are leaving — then gives you stronger hooks and a reshoot plan you can film today.
+            Upload your video before posting to TikTok or Reels. 6 AI agents analyze your hook, visuals, and audio — then give you a fix-it plan so you post the strongest version.
           </motion.p>
 
           <motion.p
@@ -297,7 +297,7 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="text-zinc-600 text-sm mb-8"
           >
-            roasty when useful, precise where it counts.
+            your pre-upload quality check. roasty when useful, precise where it counts.
           </motion.p>
 
           {/* Beta unlock form */}
@@ -601,11 +601,11 @@ export default function Home() {
             6 AI agents ready
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-            stop guessing.{' '}
-            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">go viral.</span>
+            check your video{' '}
+            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">before you post.</span>
           </h1>
           <p className="text-zinc-400 text-base max-w-lg mx-auto">
-            Upload a TikTok or paste a link. Get an analysis-first diagnosis, stronger hook options, and a reshoot plan you can film today.
+            Upload your video before posting to TikTok or Reels. Get an instant diagnosis, stronger hook options, and a reshoot plan you can film today.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-zinc-500">

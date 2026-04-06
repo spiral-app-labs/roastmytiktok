@@ -16,25 +16,11 @@ export const AGENTS: AgentDef[] = [
     analyzes: 'Lighting, color grading, composition, transitions, visual consistency',
   },
   {
-    key: 'caption',
-    emoji: '✍️',
-    name: 'Caption Agent',
-    oneLiner: 'Your on-screen text gave them a migraine',
-    analyzes: 'On-screen text, captions, readability, CTA placement, caption timing/sync, font size, position safety, contrast ratio',
-  },
-  {
     key: 'audio',
     emoji: '🎧',
     name: 'Audio Agent',
     oneLiner: 'Performed an autopsy on your audio. It was already dead.',
     analyzes: 'Music choice, voice clarity, audio mixing, trending sound usage',
-  },
-  {
-    key: 'algorithm',
-    emoji: '🔮',
-    name: 'Algorithm Agent',
-    oneLiner: 'The algorithm saw your video and chose violence',
-    analyzes: 'Posting time, hashtag strategy (count, categorization, banned tag detection, niche-specific suggestions), engagement bait, trend alignment, FYP potential',
   },
   {
     key: 'authenticity',

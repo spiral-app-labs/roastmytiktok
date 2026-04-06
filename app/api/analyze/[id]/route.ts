@@ -692,44 +692,38 @@ ROAST PERSONALITY:
 - The best roasts are funny because they're ACCURATE. "Your opening line 'hey guys so today...' has the energy of a substitute teacher on a Friday" hits harder than "your hook is weak."
 - If the transcript or frames give you material, USE IT in the roast. Quote their words back at them. Describe what you see.`;
 
-const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility'];
+const DIMENSION_ORDER: DimensionKey[] = ['hook', 'visual', 'audio', 'authenticity', 'conversion', 'accessibility'];
 const AGENT_TIMESTAMPS: Record<DimensionKey, number> = {
   hook: 0.5,
   visual: 1.5,
-  caption: 3.0,
-  audio: 5.0,
-  algorithm: 8.0,
-  authenticity: 12.0,
-  conversion: 15.0,
-  accessibility: 18.0,
+  audio: 3.0,
+  authenticity: 8.0,
+  conversion: 12.0,
+  accessibility: 15.0,
 };
 
 const DIMENSION_WEIGHTS: Record<DimensionKey, number> = {
-  hook: 0.25,
-  visual: 0.15,
-  caption: 0.10,
-  audio: 0.10,
-  algorithm: 0.15,
-  authenticity: 0.10,
-  conversion: 0.10,
-  accessibility: 0.05,
+  hook: 0.30,
+  visual: 0.20,
+  audio: 0.15,
+  authenticity: 0.15,
+  conversion: 0.12,
+  accessibility: 0.08,
 };
 
-// When the hook is weak, conversion/caption/accessibility are near-irrelevant —
+// When the hook is weak, conversion/accessibility are near-irrelevant —
 // nobody reaches the end. Hook weight lifted to 0.45 to make a bad first impression
 // dominate the overall score and signal loudly to the creator.
 const HOOK_FIRST_WEIGHTS: Record<DimensionKey, number> = {
   hook: 0.45,
-  visual: 0.16,
-  caption: 0.07,
-  audio: 0.12,
-  algorithm: 0.11,
-  authenticity: 0.06,
-  conversion: 0.02,
-  accessibility: 0.01,
+  visual: 0.20,
+  audio: 0.15,
+  authenticity: 0.10,
+  conversion: 0.05,
+  accessibility: 0.05,
 };
 
-const LATE_STAGE_DIMENSIONS: DimensionKey[] = ['conversion', 'caption', 'accessibility'];
+const LATE_STAGE_DIMENSIONS: DimensionKey[] = ['conversion', 'accessibility'];
 
 interface AgentResult {
   score: number;
@@ -936,26 +930,58 @@ function buildHookSummary(hookResult: AgentResult) {
 function parseAgentResponse(text: string, dimension: DimensionKey): AgentResult {
   // Try to extract JSON from the response (handle markdown code blocks)
   let jsonStr = text;
-  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+
+  // Strip markdown code fences — handle both complete and unclosed blocks
+  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
   if (codeBlockMatch) {
     jsonStr = codeBlockMatch[1].trim();
-  }
-  // Also try to find JSON object directly
-  const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    jsonStr = jsonMatch[0];
+  } else {
+    // Handle unclosed code block (no closing ```)
+    const openBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*)/);
+    if (openBlockMatch) {
+      jsonStr = openBlockMatch[1].trim();
+    }
   }
 
-  const parsed = JSON.parse(jsonStr);
-  return {
-    ...sanitizeAgentResult({
-      score: Math.max(0, Math.min(100, Math.round(parsed.score))),
-      roastText: parsed.roastText || 'No roast text generated.',
-      findings: Array.isArray(parsed.findings) ? parsed.findings : [],
-      improvementTip: parsed.improvementTip || 'Try harder next time.',
-    }, dimension),
-    scoreJustification: Array.isArray(parsed.scoreJustification) ? parsed.scoreJustification : [],
-  };
+  // Extract the JSON object by finding balanced braces (skipping braces inside strings)
+  const startIdx = jsonStr.indexOf('{');
+  if (startIdx !== -1) {
+    let depth = 0;
+    let endIdx = startIdx;
+    let inString = false;
+    let escapeNext = false;
+    for (let i = startIdx; i < jsonStr.length; i++) {
+      const char = jsonStr[i];
+      if (escapeNext) { escapeNext = false; continue; }
+      if (char === '\\') { escapeNext = true; continue; }
+      if (char === '"') { inString = !inString; continue; }
+      if (!inString) {
+        if (char === '{') depth++;
+        else if (char === '}') {
+          depth--;
+          if (depth === 0) { endIdx = i; break; }
+        }
+      }
+    }
+    jsonStr = jsonStr.substring(startIdx, endIdx + 1);
+  }
+
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return {
+      ...sanitizeAgentResult({
+        score: Math.max(0, Math.min(100, Math.round(parsed.score))),
+        roastText: parsed.roastText || 'No roast text generated.',
+        findings: Array.isArray(parsed.findings) ? parsed.findings : [],
+        improvementTip: parsed.improvementTip || 'Try harder next time.',
+      }, dimension),
+      scoreJustification: Array.isArray(parsed.scoreJustification) ? parsed.scoreJustification : [],
+    };
+  } catch (parseErr) {
+    console.error(`[parseAgentResponse] ${dimension} JSON parse failed. Extracted (first 300 chars): ${jsonStr.slice(0, 300)}`);
+    console.error(`[parseAgentResponse] ${dimension} Original (first 300 chars): ${text.slice(0, 300)}`);
+    throw parseErr;
+  }
 }
 
 interface ViralPattern {
@@ -1205,37 +1231,51 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+        // Run caption quality analysis and on-screen text extraction IN PARALLEL
+        send({ type: 'status', message: 'Analyzing visual text and captions...' });
         let captionQualityContext = '';
         let captionQuality = null;
-        if (frames.length > 0) {
-          try {
-            send({ type: 'status', message: 'Auditing caption timing and readability...' });
-            const captionStart = Date.now();
-            captionQuality = await analyzeCaptionQuality({ anthropic, frames, transcript });
-            captionQualityContext = buildCaptionQualityContext(captionQuality);
-            logSuccess('caption-quality', id, { hasCaptions: captionQuality.hasCaptions, readability: captionQuality.overallReadability }, Date.now() - captionStart);
-          } catch (err) {
-            logFailure('caption-quality', id, err);
-          }
-        }
-
-        // Dedicated on-screen text extraction from opening frames (before agents)
         let onScreenTextResults: OnScreenTextResult[] = [];
         const openingFrames = frames.filter(f => f.timestampSec <= 3.5);
-        if (openingFrames.length > 0) {
-          try {
-            send({ type: 'status', message: 'Detecting on-screen text in opening frames...' });
-            const textStart = Date.now();
-            onScreenTextResults = await extractOnScreenText(anthropic, openingFrames);
-            const textCount = onScreenTextResults.reduce((sum, r) => sum + r.detectedText.length, 0);
-            logSuccess('text-extraction', id, { frameCount: openingFrames.length, textItems: textCount }, Date.now() - textStart);
-            if (textCount > 0) {
-              send({ type: 'status', message: `Detected ${textCount} text elements in opening frames.` });
-            }
-          } catch (err) {
-            logFailure('text-extraction', id, err);
-          }
+
+        const [captionResult, textResult] = await Promise.all([
+          // Caption quality
+          frames.length > 0
+            ? (async () => {
+                try {
+                  const captionStart = Date.now();
+                  const cq = await analyzeCaptionQuality({ anthropic, frames, transcript });
+                  logSuccess('caption-quality', id, { hasCaptions: cq.hasCaptions, readability: cq.overallReadability }, Date.now() - captionStart);
+                  return cq;
+                } catch (err) {
+                  logFailure('caption-quality', id, err);
+                  return null;
+                }
+              })()
+            : Promise.resolve(null),
+          // On-screen text extraction
+          openingFrames.length > 0
+            ? (async () => {
+                try {
+                  const textStart = Date.now();
+                  const results = await extractOnScreenText(anthropic, openingFrames);
+                  const textCount = results.reduce((sum, r) => sum + r.detectedText.length, 0);
+                  logSuccess('text-extraction', id, { frameCount: openingFrames.length, textItems: textCount }, Date.now() - textStart);
+                  return results;
+                } catch (err) {
+                  logFailure('text-extraction', id, err);
+                  return [] as OnScreenTextResult[];
+                }
+              })()
+            : Promise.resolve([] as OnScreenTextResult[]),
+        ]);
+
+        if (captionResult) {
+          captionQuality = captionResult;
+          captionQualityContext = buildCaptionQualityContext(captionQuality);
         }
+        onScreenTextResults = textResult;
         const onScreenTextContext = buildOnScreenTextContext(onScreenTextResults, transcript);
 
         // Build transcript confidence note for status
@@ -1260,7 +1300,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             : audioChars.hasMusic ? 'music'
             : 'none',
         });
-        send({ type: 'status', message: `Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''} [${nicheDetection.confidence} confidence]` });
+        // Niche detection used internally for agent prompts; not surfaced to user
+        console.log(`[analyze] Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''} [${nicheDetection.confidence} confidence]`);
 
         // Compute duration analysis now that we know the niche
         if (videoDuration) {
@@ -1280,100 +1321,87 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           send({ type: 'status', message: 'Repeat offender detected. Escalating intensity...' });
         }
 
-        // Run each agent sequentially
-        for (const dimension of DIMENSION_ORDER) {
-          const { name, prompt } = AGENT_PROMPTS[dimension];
+        // Helper: build prompt context and call a single agent
+        const imageContent = frames.flatMap(frame => ([
+          {
+            type: 'text' as const,
+            text: `${frame.label} (${frame.slot === 'opening' ? 'hook-sensitive sample' : 'later-story sample'})`,
+          },
+          {
+            type: 'image' as const,
+            source: {
+              type: 'base64' as const,
+              media_type: 'image/jpeg' as const,
+              data: frame.imageBase64,
+            },
+          },
+        ]));
+
+        const detectedSoundNote = detectedSound
+          ? `\n\nDETECTED SOUND: The creator is using "${sanitizePromptInput(detectedSound.name, 200)}" by ${sanitizePromptInput(detectedSound.author, 100)}. ${detectedSound.isOriginal ? 'This is ORIGINAL AUDIO — no trending sound boost, but builds creator identity.' : 'This is a LICENSED/TRENDING sound — evaluate whether it is a smart choice for this niche and content type.'}${detectedSound.soundUrl ? ` Sound page: ${detectedSound.soundUrl}` : ''}`
+          : '';
+
+        function buildAudioContext(dimension: DimensionKey): string {
+          if (dimension === 'audio' && transcript?.text && shouldUseTranscriptEvidence) {
+            const safeTranscript = sanitizePromptInput(transcript.text, 3000);
+            const segmentLines = transcript.segments
+              .slice(0, 50)
+              .map(s => `${s.start.toFixed(1)}s-${s.end.toFixed(1)}s: "${sanitizePromptInput(s.text, 500)}"`)
+              .join('\n');
+            return `\n\nAUDIO TRANSCRIPT:\n${safeTranscript}\n\nSPEECH SEGMENTS (with timestamps):\n${segmentLines}\n\nAUDIO STRUCTURE: ${audioChars.hasSpeech ? 'Voice detected' : 'No clear voice'} | ${audioChars.hasMusic ? 'Music/background audio detected' : 'No background music'}${detectedSoundNote}\n\nNow analyze the ACTUAL audio content above. Reference specific words/phrases the creator said. Quote them. If the transcript is empty, note that the video appears to have no speech.`;
+          } else if (dimension === 'audio') {
+            const pacingNote = audioChars.pacingHint
+              ? `Estimated speaking pace: ${audioChars.pacingHint} (inferred from silence gap frequency).`
+              : '';
+            const volumeNote = (audioChars.meanVolumeDB != null && audioChars.maxVolumeDB != null)
+              ? `Volume: mean ${audioChars.meanVolumeDB.toFixed(1)} dBFS, peak ${audioChars.maxVolumeDB.toFixed(1)} dBFS. ${audioChars.maxVolumeDB > -1 ? 'WARNING: audio may be clipping.' : audioChars.meanVolumeDB < -25 ? 'Audio is quiet — listener may need to turn up volume.' : 'Volume levels appear normal.'}`
+              : '';
+            const silenceNote = audioChars.silenceGapCount != null && audioChars.durationSec != null
+              ? `Detected ${audioChars.silenceGapCount} silence gaps over ${audioChars.durationSec.toFixed(1)}s of audio.`
+              : '';
+            const structureNote = [
+              audioChars.hasSpeech ? 'Voice/speech detected in audio track.' : 'No clear speech detected — may be music-only or silent content.',
+              audioChars.hasMusic ? 'Background music/audio detected.' : 'No continuous background music detected.',
+              pacingNote,
+              volumeNote,
+              silenceNote,
+            ].filter(Boolean).join(' ');
+            return `\n\n${transcriptQualityNote}\n\nAUDIO SIGNAL ANALYSIS (from ffmpeg waveform detection):\n${structureNote}\n\nAnalyze based on these audio characteristics and visual cues. If transcript quality is weak, do not invent quotes or specific spoken claims.${detectedSoundNote}`;
+          } else if (dimension === 'hook') {
+            let ctx = '';
+            if (shouldUseTranscriptEvidence && transcript?.segments?.length) {
+              const firstSegment = transcript.segments[0];
+              ctx = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstSegment.text, 500)}". Analyze whether this opening line is a strong hook.`;
+            }
+            ctx += onScreenTextContext;
+            return ctx;
+          } else if (dimension === 'authenticity' && transcript?.text) {
+            const safeTranscript = sanitizePromptInput(transcript.text, 2000);
+            return `\n\nFULL TRANSCRIPT:\n${safeTranscript}\n\nUse the transcript to judge delivery, word choice, and whether the creator sounds authentic or performed. Quote specific phrases as evidence.`;
+          } else if (dimension === 'conversion' && transcript?.text && shouldUseTranscriptEvidence) {
+            const safeTranscript = sanitizePromptInput(transcript.text, 1500);
+            return `\n\nFULL TRANSCRIPT:\n${safeTranscript}\n\nCheck if the creator includes any verbal call-to-action. Quote the CTA if found, or note its absence.`;
+          }
+          return '';
+        }
+
+        async function runAgent(dimension: DimensionKey): Promise<void> {
+          const { name, prompt: agentPrompt } = AGENT_PROMPTS[dimension];
           send({ type: 'agent', agent: dimension, status: 'analyzing', name });
 
           try {
-            const imageContent = frames.flatMap(frame => ([
-              {
-                type: 'text' as const,
-                text: `${frame.label} (${frame.slot === 'opening' ? 'hook-sensitive sample' : 'later-story sample'})`,
-              },
-              {
-                type: 'image' as const,
-                source: {
-                  type: 'base64' as const,
-                  media_type: 'image/jpeg' as const,
-                  data: frame.imageBase64,
-                },
-              },
-            ]));
-
             const escalationContext = buildEscalationContext(chronicIssues, dimension);
             const hookContext = dimension === 'hook' ? playbookContext : '';
             const hookPriorityContext = buildHookPriorityContext(dimension, agentResults.hook);
-
-            // Build audio context for relevant agents — sanitize transcript inputs
-            let audioContext = '';
-            // Append detected sound info to audio + algorithm agents when available
-            const detectedSoundNote = detectedSound
-              ? `\n\nDETECTED SOUND: The creator is using "${sanitizePromptInput(detectedSound.name, 200)}" by ${sanitizePromptInput(detectedSound.author, 100)}. ${detectedSound.isOriginal ? 'This is ORIGINAL AUDIO — no trending sound boost, but builds creator identity.' : 'This is a LICENSED/TRENDING sound — evaluate whether it is a smart choice for this niche and content type.'}${detectedSound.soundUrl ? ` Sound page: ${detectedSound.soundUrl}` : ''}`
-              : '';
-            if (dimension === 'audio' && transcript?.text && shouldUseTranscriptEvidence) {
-              const safeTranscript = sanitizePromptInput(transcript.text, 3000);
-              const segmentLines = transcript.segments
-                .slice(0, 50)
-                .map(s => `${s.start.toFixed(1)}s-${s.end.toFixed(1)}s: "${sanitizePromptInput(s.text, 500)}"`)
-                .join('\n');
-              audioContext = `\n\nAUDIO TRANSCRIPT:\n${safeTranscript}\n\nSPEECH SEGMENTS (with timestamps):\n${segmentLines}\n\nAUDIO STRUCTURE: ${audioChars.hasSpeech ? 'Voice detected' : 'No clear voice'} | ${audioChars.hasMusic ? 'Music/background audio detected' : 'No background music'}${detectedSoundNote}\n\nNow analyze the ACTUAL audio content above. Reference specific words/phrases the creator said. Quote them. If the transcript is empty, note that the video appears to have no speech.`;
-            } else if (dimension === 'audio') {
-              // No transcript — build the richest possible audio context from ffmpeg analysis.
-              // This gives the audio agent meaningful signal even without a transcription key.
-              const pacingNote = audioChars.pacingHint
-                ? `Estimated speaking pace: ${audioChars.pacingHint} (inferred from silence gap frequency).`
-                : '';
-              const volumeNote = (audioChars.meanVolumeDB != null && audioChars.maxVolumeDB != null)
-                ? `Volume: mean ${audioChars.meanVolumeDB.toFixed(1)} dBFS, peak ${audioChars.maxVolumeDB.toFixed(1)} dBFS. ${audioChars.maxVolumeDB > -1 ? 'WARNING: audio may be clipping.' : audioChars.meanVolumeDB < -25 ? 'Audio is quiet — listener may need to turn up volume.' : 'Volume levels appear normal.'}`
-                : '';
-              const silenceNote = audioChars.silenceGapCount != null && audioChars.durationSec != null
-                ? `Detected ${audioChars.silenceGapCount} silence gaps over ${audioChars.durationSec.toFixed(1)}s of audio.`
-                : '';
-              const structureNote = [
-                audioChars.hasSpeech ? 'Voice/speech detected in audio track.' : 'No clear speech detected — may be music-only or silent content.',
-                audioChars.hasMusic ? 'Background music/audio detected.' : 'No continuous background music detected.',
-                pacingNote,
-                volumeNote,
-                silenceNote,
-              ].filter(Boolean).join(' ');
-              audioContext = `\n\n${transcriptQualityNote}\n\nAUDIO SIGNAL ANALYSIS (from ffmpeg waveform detection):\n${structureNote}\n\nAnalyze based on these audio characteristics and visual cues. If transcript quality is weak, do not invent quotes or specific spoken claims.${detectedSoundNote}`;
-            } else if (dimension === 'hook') {
-              // Hook Agent: first spoken words + on-screen text detection
-              if (shouldUseTranscriptEvidence && transcript?.segments?.length) {
-                const firstSegment = transcript.segments[0];
-                audioContext = `\n\nThe creator's first spoken words are: "${sanitizePromptInput(firstSegment.text, 500)}". Analyze whether this opening line is a strong hook.`;
-              }
-              // Always append on-screen text context to Hook Agent
-              audioContext += onScreenTextContext;
-            } else if (dimension === 'algorithm' && transcript?.text) {
-              const words = sanitizePromptInput(transcript.text, 500).split(/\s+/).slice(0, 30).join(' ');
-              audioContext = `\n\nThe caption/speech mentions: "${words}". Does this align with trending topics?${detectedSoundNote}`;
-            } else if (dimension === 'authenticity' && transcript?.text) {
-              // Authenticity Agent: full transcript helps judge delivery and personality
-              const safeTranscript = sanitizePromptInput(transcript.text, 2000);
-              audioContext = `\n\nFULL TRANSCRIPT:\n${safeTranscript}\n\nUse the transcript to judge delivery, word choice, and whether the creator sounds authentic or performed. Quote specific phrases as evidence.`;
-            } else if (dimension === 'conversion' && transcript?.text && shouldUseTranscriptEvidence) {
-              // Conversion Agent: transcript helps identify verbal CTAs
-              const safeTranscript = sanitizePromptInput(transcript.text, 1500);
-              audioContext = `\n\nFULL TRANSCRIPT:\n${safeTranscript}\n\nCheck if the creator includes any verbal call-to-action. Quote the CTA if found, or note its absence.`;
-            } else if (dimension === 'caption' && transcript?.text) {
-              // Caption Agent: transcript helps assess caption-speech sync
-              const safeTranscript = sanitizePromptInput(transcript.text, 1500);
-              audioContext = `\n\nSPOKEN TRANSCRIPT (for sync analysis):\n${safeTranscript}`;
-            }
-
+            const audioContext = buildAudioContext(dimension);
             const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);
             const nicheContext = buildAgentNicheContext(nicheDetection, dimension, videoDuration?.durationSeconds);
-            const captionAuditContext = dimension === 'caption' || dimension === 'accessibility'
-              ? captionQualityContext
-              : '';
+            const captionAuditContext = dimension === 'accessibility' ? captionQualityContext : '';
             const fullPrompt = truncateForTokenLimit(
-              prompt + TONE_RULES + VIDEO_GROUNDING_RULES + hookContext + hookPriorityContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext,
+              agentPrompt + TONE_RULES + VIDEO_GROUNDING_RULES + hookContext + hookPriorityContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext,
               14000,
             );
 
-            // Retry agent call up to 2 times on transient failures
             const agentStart = Date.now();
             let agentResponse: Anthropic.Message | null = null;
             let agentLastError: unknown = null;
@@ -1436,6 +1464,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             });
           }
         }
+
+        // Run hook first (other agents depend on its result for priority context),
+        // then run the remaining 5 agents in parallel for ~5x speedup
+        await runAgent('hook');
+        const remainingDimensions = DIMENSION_ORDER.filter(d => d !== 'hook');
+        await Promise.all(remainingDimensions.map(d => runAgent(d)));
 
         const hookScore = agentResults.hook?.score;
         const hookSummary = buildHookSummary(agentResults.hook);
@@ -1652,21 +1686,17 @@ Rules:
             agent_scores: agentScores,
             findings,
             result_json: result,
-            analysis_status: 'completed',
-            processed_seconds: processedSeconds,
-            processed_minutes: Math.round((processedSeconds / 60) * 100) / 100,
-            completed_at: new Date().toISOString(),
           }).eq('id', id);
         } catch (err) {
           logFailure('supabase-save', id, err);
         }
 
-        send({ type: 'done', id });
+        send({ type: 'complete', overallScore, id });
       } catch (err) {
         logFailure('agent', id, err, { stage: 'stream-outer' });
         try {
           await supabaseServer.from('rmt_roast_sessions').update({
-            analysis_status: 'failed',
+            verdict: 'Analysis failed',
           }).eq('id', id);
         } catch (saveErr) {
           logFailure('supabase-save', id, saveErr, { status: 'failed' });
