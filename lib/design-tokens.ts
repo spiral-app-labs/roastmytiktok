@@ -32,6 +32,32 @@ export const colors = {
       ring: 'rgba(239,68,68,0.3)',
     },
   },
+  status: {
+    working: {
+      bg: 'bg-emerald-500/10',
+      border: 'border-emerald-500/25',
+      text: 'text-emerald-400',
+      emoji: '✅',
+    },
+    needsWork: {
+      bg: 'bg-red-500/10',
+      border: 'border-red-500/25',
+      text: 'text-red-400',
+      emoji: '🔴',
+    },
+    unavailable: {
+      bg: 'bg-zinc-800/40',
+      border: 'border-zinc-700/40',
+      text: 'text-zinc-500',
+      emoji: '⚪',
+    },
+    quickWin: {
+      bg: 'bg-orange-500/10',
+      border: 'border-orange-500/25',
+      text: 'text-orange-400',
+      emoji: '⚡',
+    },
+  },
 } as const;
 
 export const gradients = {

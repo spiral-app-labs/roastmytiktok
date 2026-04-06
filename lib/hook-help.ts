@@ -85,7 +85,7 @@ export interface DetectedHookType {
 export function getDetectedHookType(roast: RoastResult): DetectedHookType {
   const hook = getAgent(roast, 'hook');
   const visual = getAgent(roast, 'visual');
-  const caption = getAgent(roast, 'caption');
+  const caption = getAgent(roast, 'accessibility');
   const audio = getAgent(roast, 'audio');
   const openerLine = getOpeningLine(roast);
   const hasSpoken = openerLine !== 'No spoken opener detected in the first beat.';
@@ -198,7 +198,7 @@ export function getHookRewriteWorkflow(roast: RoastResult): HookRewriteWorkflow 
   const openerLine = workshop.openerLine;
   const bestRewrite = workshop.rewrites[0]?.line || 'lead with the clearest promise immediately.';
   const visualFinding = clean(getAgent(roast, 'visual')?.findings?.[0]) || 'frame one does not feel visually urgent yet.';
-  const captionFinding = clean(getAgent(roast, 'caption')?.findings?.[0]) || 'the mute-mode message is still too soft in the opening beat.';
+  const captionFinding = clean(getAgent(roast, 'accessibility')?.findings?.[0]) || 'the mute-mode message is still too soft in the opening beat.';
   const hookFinding = clean(getAgent(roast, 'hook')?.findings?.[0]) || 'the current opener is not giving a cold viewer a reason to stop.';
 
   const openerNeedsReplacement = openerLine !== 'No spoken opener detected in the first beat.';
@@ -235,7 +235,7 @@ export function getReshootPlanner(roast: RoastResult): ReshootPlanStep[] {
   const openerLine = getOpeningLine(roast);
   const hookRewrite = getHookWorkshop(roast).rewrites[0]?.line || 'lead with the strongest claim immediately.';
   const visualFinding = clean(getAgent(roast, 'visual')?.findings?.[0]) || 'nothing in frame one is forcing a pause yet.';
-  const captionFinding = clean(getAgent(roast, 'caption')?.findings?.[0]) || 'the text payoff is not clear in frame one.';
+  const captionFinding = clean(getAgent(roast, 'accessibility')?.findings?.[0]) || 'the text payoff is not clear in frame one.';
 
   return [
     {
@@ -267,7 +267,7 @@ export function getReshootTakes(roast: RoastResult): ReshootTake[] {
   const workshop = getHookWorkshop(roast);
   const topic = inferTopic(roast, workshop.openerLine);
   const visualFinding = clean(getAgent(roast, 'visual')?.findings?.[0]) || 'the current first frame is not stopping the scroll yet.';
-  const captionFinding = clean(getAgent(roast, 'caption')?.findings?.[0]) || 'the first-screen text is not doing enough work yet.';
+  const captionFinding = clean(getAgent(roast, 'accessibility')?.findings?.[0]) || 'the first-screen text is not doing enough work yet.';
 
   return workshop.rewrites.slice(0, 3).map((rewrite, index) => ({
     label: `take ${String.fromCharCode(65 + index)}`,
@@ -304,7 +304,7 @@ export function getHoldAssessment(roast: RoastResult): HoldAssessment {
   const hookScore = getAgent(roast, 'hook')?.score ?? roast.hookSummary?.score ?? 50;
   const visualScore = getAgent(roast, 'visual')?.score ?? 50;
   const audioScore = getAgent(roast, 'audio')?.score ?? 50;
-  const captionScore = getAgent(roast, 'caption')?.score ?? 50;
+  const captionScore = getAgent(roast, 'accessibility')?.score ?? 50;
   const blended = Math.round(hookScore * 0.5 + visualScore * 0.2 + audioScore * 0.15 + captionScore * 0.15);
 
   const holdBand: HoldBand = blended < 55 ? 'weak' : blended < 75 ? 'mixed' : 'strong';
@@ -345,7 +345,7 @@ export function getFirstFiveSecondsDiagnosis(roast: RoastResult): FirstFiveSecon
 
   const hook = getAgent(roast, 'hook');
   const visual = getAgent(roast, 'visual');
-  const caption = getAgent(roast, 'caption');
+  const caption = getAgent(roast, 'accessibility');
   const audio = getAgent(roast, 'audio');
   const openerLine = getOpeningLine(roast);
   const hookScore = hook?.score ?? roast.hookSummary?.score ?? 50;
@@ -421,7 +421,7 @@ export function getFirstFiveSecondsDiagnosis(roast: RoastResult): FirstFiveSecon
 export function getFirstGlanceChecks(roast: RoastResult): FirstGlanceCheckItem[] {
   const hook = getAgent(roast, 'hook');
   const visual = getAgent(roast, 'visual');
-  const caption = getAgent(roast, 'caption');
+  const caption = getAgent(roast, 'accessibility');
 
   return [
     {
@@ -446,7 +446,7 @@ export function getHookTypeLenses(roast: RoastResult): HookTypeLens[] {
   const hook = getAgent(roast, 'hook');
   const visual = getAgent(roast, 'visual');
   const audio = getAgent(roast, 'audio');
-  const caption = getAgent(roast, 'caption');
+  const caption = getAgent(roast, 'accessibility');
 
   const visualScore = visual?.score ?? 50;
   const spokenScore = audio?.score ?? hook?.score ?? 50;

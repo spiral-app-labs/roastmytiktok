@@ -21,14 +21,18 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // Fallback: construct partial result from individual columns
-    const agentKeys = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity'] as const;
-    const agents = agentKeys.map(key => ({
-      agent: key,
-      score: data.agent_scores?.[key] ?? 50,
-      roastText: 'Roast data not fully available for this session.',
-      findings: data.findings?.[key] ?? [],
-      improvementTip: 'Try uploading again for a full analysis.',
-    }));
+    const agentKeys = ['hook', 'visual', 'audio', 'authenticity', 'conversion', 'accessibility'] as const;
+    const agents = agentKeys.map(key => {
+      const hasScore = data.agent_scores?.[key] != null;
+      return {
+        agent: key,
+        score: hasScore ? data.agent_scores[key] : -1,
+        roastText: hasScore ? 'Roast data not fully available for this session.' : '',
+        findings: data.findings?.[key] ?? [],
+        improvementTip: hasScore ? 'Try uploading again for a full analysis.' : '',
+        ...(hasScore ? {} : { failed: true, failureReason: 'This dimension was not evaluated. Try uploading again.' }),
+      };
+    });
 
     return Response.json({
       id: data.id,

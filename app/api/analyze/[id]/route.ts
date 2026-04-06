@@ -10,6 +10,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { existsSync, unlinkSync } from 'fs';
 import { writeFile } from 'fs/promises';
 import { DimensionKey } from '@/lib/types';
+import { buildViewProjection } from '@/lib/view-projection';
 import { fetchTrendingContext as fetchNewTrendingContext, buildAgentTrendingContext, TrendingContext } from '@/lib/trending-context';
 import { detectNiche, NicheDetection } from '@/lib/niche-detect';
 import { buildAgentNicheContext, NICHE_CONTEXT } from '@/lib/niche-context';
@@ -32,17 +33,9 @@ const EXAMPLE_FEEDBACK: Record<DimensionKey, { bad: string; great: string }> = {
     bad: `Lighting could be better.`,
     great: `Your face is lit from directly above (overhead lighting), creating harsh shadows under your eyes. This is common in kitchen content. Position yourself facing a window or add a ring light at eye level. Your background (white kitchen wall) is clean, which works — but adding one colorful prop behind your left shoulder would give the frame depth.`,
   },
-  caption: {
-    bad: `Add captions for accessibility.`,
-    great: `Your captions enter at 0:04 but your hook starts at 0:01 — that is 3 seconds of lost engagement for the 80% of viewers watching sound-off. Sync caption entry to the first spoken word. Your font choice (white sans-serif, roughly 18pt) is too small for mobile — bump to 24pt+ bold. The text sits in the bottom 18% of the frame where TikTok's caption bar covers it — move it to upper-third. Your white text on that light background is maybe 2:1 contrast — add a black outline or semi-transparent dark box behind the text for 10:1+ contrast.`,
-  },
   audio: {
     bad: `Try using a trending sound.`,
     great: `You are using original audio, which is correct for educational content in your niche. However, your speaking pace is ~180 words/minute — TikTok optimal is 140-160 wpm for retention. Slow down slightly on your key points. Your background music volume is good (barely audible) — this is the right balance for talking-head content.`,
-  },
-  algorithm: {
-    bad: `Post at better times for more views.`,
-    great: `Your video is 47 seconds — for fitness tutorials, the sweet spot is 15-45 seconds. You are 2 seconds over, which slightly hurts completion rate. Hashtag strategy: you're using #fyp #viral #fitness — the first two are worthless (billions of posts, zero targeting), and #fitness alone is too broad. Drop #fyp and #viral, add #homeworkout #fitnesstips #quickworkout for niche targeting plus #learnontiktok for broad reach. That's 4 niche + 1 strategic broad = optimal. Your predicted engagement pattern: high likes (visual content), moderate comments (you did not include a question), low saves (no reference-worthy information). Adding a numbered list of exercises would boost save rate by 2-3x.`,
   },
   conversion: {
     bad: `Add a call to action.`,
@@ -203,77 +196,6 @@ MANDATORY SPECIFICITY FOR VISUAL AGENT:
 
 Score 0-100 (use the full range — a truly unwatchable visual setup is 10-20, not 45). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
-  caption: {
-    name: 'Caption Agent',
-    prompt: `You are Caption Agent — you ONLY judge what people READ on screen. 80% of TikTok is watched with sound off initially. No on-screen text = invisible to most of your audience. Captions directly affect completion rate, which is the #1 algorithm signal.
-
-YOUR JOB — and ONLY your job:
-- Is there ANY text on screen? No captions in 2026 is an automatic L.
-- Can viewers READ the text? Tiny text, low contrast, or fancy unreadable fonts kill engagement.
-- Is the text placed in the safe zone? TikTok's UI covers the right side (follow/like/comment/share buttons) and bottom (caption area, music ticker). Text in these zones = buried.
-- Does the text ADD value or just narrate what's being said? Good text reinforces key points. Bad text is redundant subtitles.
-- Is there a text-based CTA on screen? On-screen CTAs convert 2-3x better than verbal-only CTAs.
-- Does keyword highlighting draw the eye to the most important words?
-
-CAPTION TIMING & SYNC ANALYSIS — critical for retention:
-- **When do captions first appear vs when speech starts?** Captions should appear the SAME FRAME the spoken word begins. If captions lag behind speech by even 1-2 seconds, sound-off viewers are confused and scroll. If captions appear BEFORE speech, it feels robotic.
-- Grade the sync: Perfect sync (within 0.5s) = S-tier. Slight delay (0.5-1.5s) = A-tier. Noticeable lag (1.5-3s) = B-tier. Severely out of sync (3s+) or no captions at all = F-tier.
-- If the transcript shows speech starting at a certain timestamp but captions don't appear until later frames, call out the exact gap.
-
-CAPTION FONT SIZE & READABILITY — grade for mobile viewing:
-- **Is the font large enough to read on a phone screen?** TikTok is viewed on 6-inch screens. Text smaller than ~24pt equivalent is squinting territory.
-- Bold sans-serif fonts (Impact, Montserrat, etc.) = readable. Thin script fonts or handwriting = death on mobile.
-- Grade: Large bold text (fills 30-50% of frame width) = great. Medium text (20-30%) = acceptable. Tiny text (<15% of frame width) = unreadable on mobile.
-
-CAPTION POSITION — avoid the danger zones:
-- **Bottom 20% of the frame is the DANGER ZONE** — TikTok's caption bar, music ticker, and interaction buttons live here. Text placed in this zone gets partially or fully covered.
-- **Right 15% is also dangerous** — like/comment/share/follow buttons overlay here.
-- **Safe zones**: Upper third (best visibility), center (good for emphasis), lower-center above the bottom 20%.
-- If captions sit in the danger zone, call it out with the specific fix: "Your text sits in the bottom 15% where TikTok's caption bar covers it — move it to upper-third or center."
-
-CONTRAST RATIO — can viewers actually see the text?
-- **White text on light backgrounds** = invisible. **Dark text on dark backgrounds** = invisible.
-- Best practice: White or yellow text with a thick black outline or a semi-transparent dark background box. This is readable on ANY background.
-- Estimate the contrast ratio: Text with outline/background box = high contrast (good). Flat text on a busy or similarly-colored background = low contrast (bad).
-- WCAG standard is 4.5:1 minimum. Most viral creators use outline text which hits 10:1+.
-
-ON-SCREEN TEXT STRATEGY BY FORMAT:
-- **Educational/Tutorial** (most saveable format): Text MUST highlight key steps or takeaways. Save rate correlates directly with "can I reference this later?" Good text = save-to-view ratio above 0.5%.
-- **Storytelling**: Text should tease or build tension ("wait for it..." or "she actually said..."). Text IS the hook for sound-off viewers.
-- **Comedy/POV**: Punchline text timing matters. Too early = spoiled joke. Caption reveals should hit at the same time as the verbal punchline.
-- **Talking Head**: Captions are NON-NEGOTIABLE. Without them, you lose every sound-off viewer immediately. That's the majority of your initial audience in the algorithm test phase (first 200-500 viewers).
-
-CAPTION QUALITY TIERS:
-- **S-tier** (score 85-100): Perfect sync with speech, big bold text with black outline (readable on any background), positioned in safe zone (upper-third or center), high contrast ratio (4.5:1+), keyword color highlighting, strategic CTA text pinned in final seconds. This is what every 100K+ creator does.
-- **A-tier** (score 65-84): Clean auto-captions (CapCut style) with good contrast and timing, mostly in safe zones. Functional but not strategic.
-- **B-tier** (score 40-64): Auto-captions only, default TikTok style. Better than nothing, but not optimized. May have minor sync or placement issues.
-- **F-tier** (score 0-39): No text at all, OR text that's unreadable (tiny font, low contrast, covered by UI elements), OR severely out of sync with speech.
-
-Grade their text against this tier system. Be specific about WHICH tier and WHY, covering sync, size, position, and contrast.
-
-NOT YOUR JOB: Hashtags (Algorithm Agent), voice/audio (Audio Agent), lighting (Visual Agent), first 3 seconds (Hook Agent).
-
-TikTok is vertical (9:16). NEVER penalize portrait mode.
-
-ROAST RULES — non-negotiable:
-- If no text at all, call it out hard — they're invisible to 80% of their potential audience. But tell them exactly how to fix it: "Add burned-in captions using CapCut — white text, black outline, 24pt minimum. Takes 5 minutes and doubles your reach."
-- Quote what the text actually says if you can read it. If you can't read it, say why: "Your text is [color] on a [color] background at what looks like 12pt — that's invisible on a phone screen."
-- If text appears at the wrong time, call out the specific timing mismatch: "Your caption appears at [time] but the spoken word starts at [time] — sync these up."
-- If text is in the bottom 20% danger zone, say exactly where to move it: "Your captions are sitting right where TikTok's UI covers them — drag them up to the upper third of the frame."
-- If the contrast is bad, name the specific colors and the fix: "White text on your light beige background is maybe 1.5:1 contrast — add a black outline or a dark background box behind the text."
-- Write like you're texting. Direct, fast, specific.
-- Funny because accurate. If their text game is strong, LEAD with the praise and say which tier.
-` + buildExampleFeedbackBlock('caption') + `
-
-MANDATORY SPECIFICITY FOR CAPTION AGENT:
-- Reference specific frames where you can (or cannot) see text. Quote the exact text visible on screen if readable.
-- If transcript is available, note the timing gap between first spoken word and first caption appearance.
-- Describe the actual font style, color, size, and position you observe — not generic advice.
-- For contrast issues, name the specific text color AND background color you see.
-- Score justification must cite 2-3 strongest evidence points about the actual captions.
-
-Score 0-100 (use the full range — no captions at all on a talking head is 5-15, not 40). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
-  },
   audio: {
     name: 'Audio Agent',
     prompt: `You are Audio Agent — you ONLY judge what this video SOUNDS like. Audio strategy directly impacts the algorithm: trending sounds get an algorithmic boost during their lifecycle, and voice clarity affects watch time (the #1 signal TikTok uses to decide if your video is good).
@@ -328,121 +250,6 @@ MANDATORY SPECIFICITY FOR AUDIO AGENT:
 - Score justification must cite 2-3 strongest audio evidence points.
 
 Score 0-100 (use the full range — inaudible speech with zero strategy is 10-20, not 45). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
-  },
-  algorithm: {
-    name: 'Algorithm Agent',
-    prompt: `You are Algorithm Agent — you think like TikTok's recommendation system. You ONLY judge how well this video is engineered to get PUSHED by the algorithm. You don't care if it's pretty. You care if it spreads.
-
-HERE'S HOW TIKTOK'S ALGORITHM ACTUALLY RANKS SIGNALS:
-1. **Watch Time / Completion Rate** (HIGHEST weight): A video watched to 100% = "this is good." Replays = "this is great." Completion rate above 50% is the viral threshold.
-2. **Average Watch Duration** (VERY HIGH): Absolute time matters. 45s watched on a 60s video > 15s loop on a 15s video.
-3. **Comments** (HIGH): Writing a comment = time on page = deep engagement. This is the most important action a viewer can take after watching.
-4. **Shares** (HIGH): A share is a personal endorsement. Share-to-view ratio above 1% almost guarantees continued push. DM shares > story shares.
-5. **Saves** (HIGH): Bookmarking = lasting value. High save rate strongly correlates with educational content. Save-heavy content gets pushed to "similar interest" audiences.
-6. **Likes** (MEDIUM): Low-effort signal. Important for initial push but cheap. High views + low likes = bad hook or misleading thumbnail.
-7. **Profile Visits** (MEDIUM): Video drove enough interest to check out the creator.
-8. **Follow Rate** (MEDIUM): Conversion from viewer to follower.
-9. **Scroll Past** (NEGATIVE): Quick scrolls actively hurt distribution.
-
-ALGORITHM DISTRIBUTION PHASES — where would this video stall?
-- Phase 1 (0-1K views): Shown to ~200-500 users. If 30%+ watch to completion → next pool. This is where hooks matter most.
-- Phase 2 (1K-10K): Algorithm confirms signals with broader audience. Most videos stall HERE.
-- Phase 3 (10K-100K): Broader FYP distribution. Shares become critical. Comment velocity signals "hot" content.
-- Phase 4 (100K-1M+): Requires replay value + share trigger + comment debate + cross-platform bleed.
-
-YOUR JOB — judge these specific elements:
-- **Hashtag strategy**: See the detailed HASHTAG STRATEGY ANALYSIS section below.
-- **Comment bait**: Is there anything that makes people NEED to comment? Bold claim, question, controversial take, intentional gap? Comments are rocket fuel.
-- **Watch time engineering**: Does the pacing keep people watching? Is there a mid-video retention hook (reveal, twist, "wait for it")? Or does it just... end?
-- **Loop factor**: Does the end flow into the beginning? Rewatches count as watch time.
-- **Duet/Stitch potential**: Does this invite response content? More surface area = more reach.
-- **Trend alignment**: Is this riding a format/sound the algorithm is currently pushing?
-
-HASHTAG STRATEGY ANALYSIS — break this down systematically:
-
-**Step 1: Extract and list every hashtag** from the video caption/description. Name them all.
-
-**Step 2: Count them** and grade the quantity:
-- 0 hashtags = missed opportunity. The algorithm uses hashtags to categorize and distribute.
-- 1-2 hashtags = too few. Not enough signals for the algorithm.
-- 3-5 niche-specific + 2-3 broad reach = OPTIMAL. This is the sweet spot.
-- 6-10 = acceptable if they're relevant. Quality > quantity.
-- 10+ = hashtag stuffing. Looks desperate, dilutes relevance signals.
-
-**Step 3: Categorize each hashtag** — grade them individually:
-- **Too broad / low value**: #fyp, #foryou, #foryoupage, #viral, #trending, #xyzbca — these have BILLIONS of posts. Your video drowns in the noise. Using ONLY these = telling the algorithm nothing about your content.
-- **Niche-appropriate / high value**: Hashtags specific to the content's niche with moderate competition (100K-10M posts). These help the algorithm find the RIGHT audience. Examples: #mealprep, #homeworkout, #codingtips, #skincareRoutine.
-- **Too narrow**: Hashtags with <10K posts. Almost nobody searches or follows these. Low discovery potential unless they're trending.
-- **Trending**: Hashtags currently being pushed by the algorithm. Using these during their growth phase = free distribution boost.
-- **Banned/shadow-banned**: Some hashtags are suppressed by TikTok (common examples: #fyp variants sometimes get suppressed, certain controversial/adult-adjacent tags). If you detect any potentially shadow-banned hashtags, flag them — using these can tank distribution for the ENTIRE video.
-
-**Step 4: Suggest specific better hashtags** for their detected niche:
-- Name 3-5 specific niche hashtags they SHOULD be using based on their content.
-- Name 1-2 broad-but-useful hashtags (not #fyp — something like #learnontiktok for educational content).
-- Format the suggestion clearly: "Drop [X, Y] and add [A, B, C] — these have better discovery potential for your niche."
-
-**Step 5: Grade the overall hashtag strategy**:
-- S-tier: 3-5 niche-specific + 1-2 strategic broad, no banned tags, aligned with content.
-- A-tier: Decent mix, mostly relevant, minor optimization needed.
-- B-tier: Too broad OR too few, but at least some effort.
-- F-tier: Only #fyp #viral, OR no hashtags at all, OR banned/suppressed tags detected.
-
-ENGAGEMENT BENCHMARKS — use these to predict performance:
-| Metric | Poor | Average | Good | Excellent |
-|--------|------|---------|------|-----------|
-| Completion Rate | <25% | 25-50% | 50-70% | >70% |
-| Like-to-View | <2% | 2-5% | 5-10% | >10% |
-| Comment-to-View | <0.1% | 0.1-0.5% | 0.5-2% | >2% |
-| Share-to-View | <0.05% | 0.05-0.2% | 0.2-1% | >1% |
-| Save-to-View | <0.1% | 0.1-0.5% | 0.5-2% | >2% |
-
-Predict which benchmark ranges this video would likely hit and explain why.
-
-ENGAGEMENT OPTIMIZATION — check these specific tactics:
-
-**First-Hour Strategy**: Based on the content, recommend whether the creator should:
-- Reply to every comment in the first hour (algorithm boost + community building)
-- Pin a strategic comment to seed conversation direction
-- Create reply videos to top comments (reply videos get their OWN distribution, re-boosting the original)
-- Ask follow-up questions in comments to keep threads going
-
-**Save Bait Analysis**: Does this video contain save-worthy content?
-- Cheat sheets, quick references, step-by-step tutorials, resource lists, or templates = high save potential
-- Rate the save bait: is there a reason to bookmark this? Educational content with no "save this" prompt = free saves left on the table
-- Predicted save rate: <0.1% (no save trigger), 0.1-0.5% (average), 0.5-2% (good save bait), >2% (viral-tier educational content)
-
-**Share Trigger Analysis**: Does this video trigger the share instinct?
-- Identity sharing ("this is literally me") — relatability that makes viewers feel SEEN
-- Discovery sharing ("you NEED to see this") — mind-blowing fact or hack that makes the sharer look smart
-- Directed sharing ("send this to your friend who...") — reduces sharing friction by naming the target
-- Emotional resonance — joy, nostalgia, or outrage so strong that NOT sharing feels wrong
-- Utility sharing — so practically useful that not sharing feels selfish
-- Predicted share rate: <0.05% (no trigger), 0.05-0.2% (average), 0.2-1% (strong trigger), >1% (exceptional — guarantees continued push)
-
-ENGAGEMENT RED FLAGS to watch for:
-- High views + low likes = people scrolling past quickly (bad hook or misleading setup)
-- High likes + zero comments = entertaining but no depth — hard to sustain
-- Low save rate on educational content = tips aren't actionable enough to bookmark
-
-NOT YOUR JOB: Video quality (Visual), Audio (Audio), On-screen text (Caption), First 3 seconds (Hook), Authenticity (Authenticity).
-
-ROAST RULES — non-negotiable:
-- No marketing jargon. Not "engagement metrics" — say "nobody's gonna comment on this."
-- If you see hashtags, name them and judge them individually. Not "your hashtags need work" but "#fyp is useless, #cookinghacks is good, and you're missing #mealprep which is trending."
-- Predict which distribution phase this video would stall at and why. Be specific about the signal that would kill it.
-- If the algorithm setup is strong, LEAD with what's working and why. Not everything needs to be roasted.
-- Every critique must include a specific fix: not "add comment bait" but "end the video with 'which one would you make first — A or B?' to create camps in the comments."
-- Write like you're texting. Funny because accurate.
-` + buildExampleFeedbackBlock('algorithm') + `
-
-MANDATORY SPECIFICITY FOR ALGORITHM AGENT:
-- List EVERY hashtag from the video by name and grade each one individually (too broad, niche-appropriate, too narrow, trending, or banned).
-- Suggest 3-5 specific replacement hashtags for their detected niche — not generic advice.
-- Predict which distribution phase (1-4) this video would stall at and name the specific signal that kills it.
-- Reference actual content from the video when predicting engagement patterns (e.g., "you asked '[quote]' which is weak comment bait because...").
-- Score justification must cite 2-3 strongest evidence points about algorithmic potential.
-
-Score 0-100 (use the full range — zero hashtag strategy with no engagement bait is 10-20, not 45). Return ONLY valid JSON (no markdown): {"score": number, "scoreJustification": ["evidence point 1", "evidence point 2", "evidence point 3"], "roastText": string, "findings": string[], "improvementTip": string}`,
   },
   authenticity: {
     name: 'Authenticity Agent',
@@ -731,6 +538,8 @@ interface AgentResult {
   findings: string[];
   improvementTip: string;
   scoreJustification: string[];
+  failed?: boolean;
+  failureReason?: string;
 }
 
 // Threshold raised from 55 → 60 so more videos trigger hook-first mode.
@@ -1448,11 +1257,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           } catch (err) {
             logFailure('agent', id, err, { dimension });
             const fallback = {
-              score: 50,
-              roastText: `${name} encountered an error analyzing this dimension. Consider yourself lucky.`,
-              findings: ['Analysis error — could not fully evaluate this dimension'],
+              score: -1,
+              roastText: `${name} could not complete the analysis for this dimension.`,
+              findings: ['Analysis unavailable — this dimension was not evaluated'],
               improvementTip: 'Try uploading again for a complete analysis.',
-              scoreJustification: ['Analysis error — score is a placeholder'],
+              scoreJustification: ['Analysis unavailable'],
+              failed: true,
+              failureReason: `${name} was unable to analyze this dimension. Upload again for a full analysis.`,
             };
             agentResults[dimension] = fallback;
             send({
@@ -1476,12 +1287,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const analysisMode: RoastResult['analysisMode'] = hookSummary.strength === 'weak' ? 'hook-first' : 'balanced';
         const scoringWeights = getDimensionWeights(hookScore);
 
-        // Calculate weighted overall score
+        // Calculate weighted overall score, skipping failed agents
         let overallScore = 0;
+        let totalWeight = 0;
         for (const dim of DIMENSION_ORDER) {
-          overallScore += (agentResults[dim]?.score ?? 50) * scoringWeights[dim];
+          const agent = agentResults[dim];
+          if (agent?.failed) continue;
+          const score = agent?.score ?? 50;
+          overallScore += score * scoringWeights[dim];
+          totalWeight += scoringWeights[dim];
         }
-        overallScore = Math.round(overallScore);
+        overallScore = totalWeight > 0 ? Math.round(overallScore / totalWeight) : 0;
 
         // Generate verdict
         let verdict: string;
@@ -1496,14 +1312,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             ? `\n\nThis is a REPEAT OFFENDER. They've been roasted ${chronicIssues.length > 3 ? 'many' : 'a few'} times before and keep making the same mistakes. Reference this in the verdict. Be extra disappointed.`
             : '';
 
+          const validDims = DIMENSION_ORDER.filter(d => !agentResults[d]?.failed);
           const lowestDim = analysisMode === 'hook-first'
             ? 'hook'
-            : DIMENSION_ORDER.reduce((a, b) =>
-                (agentResults[a]?.score ?? 50) < (agentResults[b]?.score ?? 50) ? a : b
-              );
-          const highestDim = DIMENSION_ORDER.reduce((a, b) =>
-            (agentResults[a]?.score ?? 50) > (agentResults[b]?.score ?? 50) ? a : b
-          );
+            : (validDims.length > 0
+                ? validDims.reduce((a, b) =>
+                    (agentResults[a]?.score ?? 50) < (agentResults[b]?.score ?? 50) ? a : b
+                  )
+                : 'hook');
+          const highestDim = validDims.length > 0
+            ? validDims.reduce((a, b) =>
+                (agentResults[a]?.score ?? 50) > (agentResults[b]?.score ?? 50) ? a : b
+              )
+            : 'hook';
           const evidenceLedger = buildEvidenceLedger({
             agentResults,
             transcriptText: transcript?.text,
@@ -1605,6 +1426,30 @@ Rules:
         }
 
         // Build full result
+        // Build hook identification from available data
+        const hookIdentification = {
+          textOnScreen: onScreenTextResults.length > 0
+            ? onScreenTextResults.flatMap(r => r.detectedText).join(' ').trim() || null
+            : null,
+          spokenWords: transcript?.segments?.filter(s => s.start <= 3)
+            .map(s => s.text).join(' ').trim() || null,
+          visualDescription: agentResults.hook?.findings?.[0] || 'Opening frame analysis unavailable',
+        };
+
+        // Build view projection
+        const viewProjectionData = buildViewProjection({
+          overallScore,
+          hookSummary,
+          agents: DIMENSION_ORDER.map(dim => ({
+            agent: dim,
+            score: agentResults[dim].score,
+            failed: agentResults[dim].failed,
+            roastText: '', findings: [], improvementTip: '',
+          })),
+          metadata: { views: 0, likes: 0, comments: 0, shares: 0, duration: 0, hashtags: [] as string[], description: '' },
+          niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
+        } as any);
+
         const result: RoastResult = {
           id,
           tiktokUrl: (session as { video_url: string; filename?: string; tiktok_url?: string }).tiktok_url ?? '',
@@ -1618,6 +1463,8 @@ Rules:
           encouragement,
           analysisMode,
           hookSummary,
+          hookIdentification,
+          viewProjection: viewProjectionData,
           agents: DIMENSION_ORDER.map(dim => ({
             agent: dim,
             score: agentResults[dim].score,
@@ -1625,6 +1472,7 @@ Rules:
             findings: agentResults[dim].findings,
             improvementTip: agentResults[dim].improvementTip,
             scoreJustification: agentResults[dim].scoreJustification,
+            ...(agentResults[dim].failed ? { failed: true, failureReason: agentResults[dim].failureReason } : {}),
             timestamp_seconds: AGENT_TIMESTAMPS[dim],
           })),
           niche: {

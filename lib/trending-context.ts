@@ -124,7 +124,7 @@ export function buildAgentTrendingContext(
       }
       return base + audioExtra;
     }
-    case 'algorithm': {
+    case 'conversion': {
       let algoExtra = '';
       if (ctx.trendingFormats.length > 0) {
         const emerging = ctx.trendingFormats.filter((f) => f.status === 'emerging');

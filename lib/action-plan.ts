@@ -136,7 +136,7 @@ function normalizePriority(value: unknown, index: number): 'P1' | 'P2' | 'P3' {
 }
 
 function normalizeDimension(value: unknown, fallback: DimensionKey): DimensionKey {
-  const valid = ['hook', 'visual', 'caption', 'audio', 'algorithm', 'authenticity', 'conversion', 'accessibility'];
+  const valid = ['hook', 'visual', 'audio', 'authenticity', 'conversion', 'accessibility'];
   return typeof value === 'string' && valid.includes(value) ? (value as DimensionKey) : fallback;
 }
 
@@ -161,9 +161,7 @@ function isEvidenceBacked(value: string): boolean {
 const WHY_IT_MATTERS_BY_DIMENSION: Record<DimensionKey, string> = {
   hook: 'A stronger opening buys the retention curve enough time to earn a second watch.',
   visual: 'Cleaner visuals reduce swipe risk before the story has a chance to land.',
-  caption: 'Readable on-screen text keeps viewers oriented instead of forcing them to decode the message.',
   audio: 'Clearer audio makes the value easier to process and keeps people from bailing early.',
-  algorithm: 'Tighter topic packaging helps TikTok classify and distribute the video faster.',
   authenticity: 'A more believable delivery increases trust, comments, and rewatches.',
   conversion: 'A sharper CTA turns passive views into follows, clicks, and saves.',
   accessibility: 'Accessible delivery expands retention beyond viewers who can hear everything perfectly.',
@@ -219,7 +217,7 @@ function buildTranscriptEvidence(
     return first ? [`Opening line at ${first.start.toFixed(1)}s: "${cleanLine(first.text)}"`] : [];
   }
 
-  if (dimension === 'audio' || dimension === 'algorithm' || dimension === 'authenticity' || dimension === 'conversion') {
+  if (dimension === 'audio' || dimension === 'authenticity' || dimension === 'conversion') {
     return transcriptSegments
       .slice(0, 2)
       .map((segment) => `${segment.start.toFixed(1)}s-${segment.end.toFixed(1)}s spoken: "${cleanLine(segment.text)}"`)
@@ -233,7 +231,7 @@ function buildCaptionEvidence(
   dimension: DimensionKey,
   captionQuality?: CaptionQualityReport | null
 ): string[] {
-  if (!captionQuality || (dimension !== 'caption' && dimension !== 'accessibility')) return [];
+  if (!captionQuality || dimension !== 'accessibility') return [];
 
   return [
     `Caption timing grade: ${captionQuality.timingGrade}; first caption ${captionQuality.firstCaptionTimeSec ?? 'unknown'}s vs speech ${captionQuality.speechStartTimeSec ?? 'unknown'}s`,
@@ -254,7 +252,7 @@ function buildFallbackExample(
       : 'Lead with the result, then explain how you got it.';
   }
 
-  if (dimension === 'caption' || dimension === 'accessibility') {
+  if (dimension === 'accessibility') {
     return 'Put the first caption on screen immediately, keep it large, and keep it out of the bottom UI zone.';
   }
 

@@ -374,7 +374,7 @@ export const ScoreCard = forwardRef<HTMLDivElement, ScoreCardProps>(
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       <div style={agentScoreTextStyle(a.score)}>{a.score}</div>
                       <div style={agentNameTextStyle}>
-                        {agent?.name?.replace(' Agent', '') ?? a.agent}
+                        {agent?.displayName ?? a.agent}
                       </div>
                     </div>
                   </div>
@@ -386,7 +386,7 @@ export const ScoreCard = forwardRef<HTMLDivElement, ScoreCardProps>(
 
             {/* Footer */}
             <div style={footerStyle}>
-              <div style={footerLeftStyle}>roasted by 6 AI agents</div>
+              <div style={footerLeftStyle}>analyzed by goviralwith.ai</div>
               <div style={footerRightStyle}>
                 <span style={{ fontSize: isStory ? 20 : 17 }}>🔥</span>
                 <span style={footerRightTextStyle}>goviralwith.ai</span>

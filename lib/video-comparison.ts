@@ -72,11 +72,10 @@ function pickWinner(aValue: number, bValue: number, higherIsBetter = true): 'a' 
 
 function retentionRisk(result: RoastResult): number {
   const hook = getAgentScore(result, 'hook');
-  const caption = getAgentScore(result, 'caption');
   const audio = getAgentScore(result, 'audio');
-  const algorithm = getAgentScore(result, 'algorithm');
   const visual = getAgentScore(result, 'visual');
-  const durability = avg([hook, caption, audio, algorithm, visual]);
+  const accessibility = getAgentScore(result, 'accessibility');
+  const durability = avg([hook, audio, visual, accessibility]);
   return Math.max(5, Math.min(95, 100 - durability));
 }
 
@@ -84,8 +83,7 @@ function ctaQuality(result: RoastResult): number {
   const conversion = getAgentScore(result, 'conversion');
   if (typeof conversion === 'number') return conversion;
   return avg([
-    getAgentScore(result, 'caption'),
-    getAgentScore(result, 'algorithm'),
+    getAgentScore(result, 'accessibility'),
     getAgentScore(result, 'authenticity'),
   ]);
 }
@@ -161,8 +159,8 @@ export function compareRoasts(a: RoastResult, b: RoastResult, aName = 'video a',
       key: 'captionQuality',
       label: 'Caption Quality',
       higherIsBetter: true,
-      aValue: getAgentScore(a, 'caption') ?? 50,
-      bValue: getAgentScore(b, 'caption') ?? 50,
+      aValue: getAgentScore(a, 'accessibility') ?? 50,
+      bValue: getAgentScore(b, 'accessibility') ?? 50,
       winner: 'tie',
       summary: '',
     },
@@ -208,13 +206,13 @@ export function compareRoasts(a: RoastResult, b: RoastResult, aName = 'video a',
 
   const captionWinner = metrics.find((metric) => metric.key === 'captionQuality')?.winner;
   if (captionWinner === 'a' || captionWinner === 'b') {
-    reasons.push(buildReason('Cleaner on-screen communication', captionWinner, getAgent(captionWinner === 'a' ? a : b, 'caption'), 'The message is easier to follow with sound off.'));
+    reasons.push(buildReason('Cleaner on-screen communication', captionWinner, getAgent(captionWinner === 'a' ? a : b, 'accessibility'), 'The message is easier to follow with sound off.'));
   }
 
-  const algorithmDiff = (getAgentScore(a, 'algorithm') ?? 50) - (getAgentScore(b, 'algorithm') ?? 50);
-  if (Math.abs(algorithmDiff) > 5) {
-    const algWinner = algorithmDiff > 0 ? 'a' : 'b';
-    reasons.push(buildReason('Better chance of surviving the feed test', algWinner, getAgent(algWinner === 'a' ? a : b, 'algorithm'), 'The packaging is more likely to earn distribution.'));
+  const conversionDiff = (getAgentScore(a, 'conversion') ?? 50) - (getAgentScore(b, 'conversion') ?? 50);
+  if (Math.abs(conversionDiff) > 5) {
+    const convWinner = conversionDiff > 0 ? 'a' : 'b';
+    reasons.push(buildReason('Better chance of surviving the feed test', convWinner, getAgent(convWinner === 'a' ? a : b, 'conversion'), 'The packaging is more likely to earn distribution.'));
   }
 
   const narrative = winner === 'tie'

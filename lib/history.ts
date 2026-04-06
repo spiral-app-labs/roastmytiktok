@@ -183,16 +183,6 @@ export function getEscalatingRoast(
       3: `We've mentioned the audio on three separate roasts. A $30 lavalier mic would solve this permanently. We're placing the order in your honor.`,
       4: `Four roasts. Four audio issues. The echo is your arch-nemesis at this point. It knows you. It follows you.`,
     },
-    caption: {
-      2: `${baseRoast} The caption game was also an issue last time. Your words deserve to be read. Make them legible.`,
-      3: `Three roasts, three caption problems. The text is fighting your content instead of helping it. This is fixable in five minutes per video.`,
-      4: `Fourth time flagging the captions. They're actively working against you at this point.`,
-    },
-    algorithm: {
-      2: `${baseRoast} The algorithm struggles were present in your previous submission too. These patterns are not random — they're fixable.`,
-      3: `Three data points and the same algorithmic issues keep showing up. The algorithm isn't broken. The signal you're sending it is.`,
-      4: `The algorithm has tried to meet you halfway four times. It's giving up. You should pick this up from its end.`,
-    },
     authenticity: {
       2: `${baseRoast} The authenticity score has been a concern before. TikTok audiences are remarkably good at detecting performance.`,
       3: `Three roasts flagging the same authenticity patterns. The camera doesn't lie. Neither do we.`,

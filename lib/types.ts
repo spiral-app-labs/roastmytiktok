@@ -4,6 +4,7 @@ export interface AgentDef {
   key: DimensionKey;
   emoji: string;
   name: string;
+  displayName: string;
   oneLiner: string;
   analyzes: string;
 }
@@ -15,6 +16,24 @@ export interface AgentRoast {
   findings: string[];
   improvementTip: string;
   timestamp_seconds?: number;
+  /** True when the agent errored and the score is not real */
+  failed?: boolean;
+  /** Human-readable explanation of why the agent failed */
+  failureReason?: string;
+}
+
+export interface ViewProjection {
+  currentExpected: string;
+  improvedExpected: string;
+  multiplier: string;
+  confidence: 'low' | 'medium' | 'high';
+  basedOn: string;
+}
+
+export interface HookIdentification {
+  textOnScreen: string | null;
+  spokenWords: string | null;
+  visualDescription: string;
 }
 
 export interface ActionPlanStep {
@@ -84,6 +103,8 @@ export interface RoastResult {
   /** Which provider produced the transcript (assemblyai, whisper, or claude-audio fallback). */
   transcriptProvider?: 'assemblyai' | 'whisper' | 'claude-audio';
   /** Sound detected from the TikTok video URL (Phase 1 — free HTML extraction) */
+  viewProjection?: ViewProjection;
+  hookIdentification?: HookIdentification;
   detectedSound?: {
     name: string;
     author: string;

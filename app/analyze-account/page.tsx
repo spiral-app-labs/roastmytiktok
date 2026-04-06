@@ -17,16 +17,16 @@ import { ScoreRing } from '@/components/ScoreRing';
 
 const TIER_BENCHMARKS: Record<string, Record<DimensionKey, number>> = {
   'Beginner (<50)': {
-    hook: 35, visual: 38, caption: 32, audio: 40, algorithm: 30, authenticity: 42, conversion: 28, accessibility: 34,
+    hook: 35, visual: 38, audio: 40, authenticity: 42, conversion: 28, accessibility: 34,
   },
   'Rising (50–69)': {
-    hook: 55, visual: 58, caption: 52, audio: 60, algorithm: 50, authenticity: 62, conversion: 48, accessibility: 54,
+    hook: 55, visual: 58, audio: 60, authenticity: 62, conversion: 48, accessibility: 54,
   },
   'Pro (70–84)': {
-    hook: 75, visual: 78, caption: 72, audio: 76, algorithm: 70, authenticity: 78, conversion: 68, accessibility: 74,
+    hook: 75, visual: 78, audio: 76, authenticity: 78, conversion: 68, accessibility: 74,
   },
   'Elite (85+)': {
-    hook: 90, visual: 88, caption: 86, audio: 89, algorithm: 85, authenticity: 91, conversion: 84, accessibility: 87,
+    hook: 90, visual: 88, audio: 89, authenticity: 91, conversion: 84, accessibility: 87,
   },
 };
 

@@ -30,11 +30,58 @@ export function sanitizeUserFacingText(value: unknown, fallback: string): string
   const cleaned = cleanText(value);
   if (!cleaned) return fallback;
 
+  // Try JSON extraction FIRST — the raw string may contain leak-pattern keys
+  // (like "biggestBlocker:") that are part of the JSON structure, not actual leaks.
+  // Extract the meaningful field, then run leak detection on the extracted value.
+  const looksLikeJson = /^\s*\{/.test(cleaned) && /\}\s*$/.test(cleaned);
+  if (looksLikeJson) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (parsed && typeof parsed === 'object') {
+        const extracted =
+          (typeof parsed.roastText === 'string' && parsed.roastText.trim()) ||
+          (typeof parsed.verdict === 'string' && parsed.verdict.trim()) ||
+          (typeof parsed.text === 'string' && parsed.text.trim()) ||
+          (typeof parsed.message === 'string' && parsed.message.trim()) ||
+          '';
+        if (extracted) {
+          // Run leak check on the extracted text, not the raw JSON
+          const extractedLeaked = LEAK_PATTERNS.some((p) => p.test(extracted));
+          return extractedLeaked ? fallback : extracted;
+        }
+      }
+    } catch { /* not valid JSON — continue with normal flow */ }
+    // JSON-shaped but unparseable or no extractable field — fall back
+    return fallback;
+  }
+
+  // Catch strings that start with JSON-like prefix (possibly truncated)
+  if (/^\s*\{\s*"(score|roastText|findings|verdict)"/.test(cleaned)) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (parsed?.roastText) return parsed.roastText;
+      if (parsed?.verdict) return parsed.verdict;
+    } catch {
+      // JSON is truncated — try regex extraction of known fields
+      for (const field of ['verdict', 'roastText', 'text']) {
+        const rx = new RegExp(`"${field}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`);
+        const m = cleaned.match(rx);
+        if (m?.[1]) {
+          const extracted = m[1].replace(/\\"/g, '"').replace(/\\n/g, ' ').trim();
+          if (extracted) {
+            const extractedLeaked = LEAK_PATTERNS.some((p) => p.test(extracted));
+            return extractedLeaked ? fallback : extracted;
+          }
+        }
+      }
+    }
+    return fallback;
+  }
+
   const leaked = LEAK_PATTERNS.some((pattern) => pattern.test(cleaned));
   if (leaked) return fallback;
 
-  const withoutJsonObject = cleaned.replace(/^\{[\s\S]*\}$/g, '').trim();
-  return withoutJsonObject || fallback;
+  return cleaned;
 }
 
 export function sanitizeFindings(values: unknown, fallback: string[] = []): string[] {
@@ -77,9 +124,7 @@ export function sanitizeAgentResult(parsed: {
 const DEFAULT_ROAST_BY_DIMENSION: Record<DimensionKey, string> = {
   hook: 'The opening still is not earning the stop fast enough.',
   visual: 'The visuals are not making the story easy to trust or watch.',
-  caption: 'The on-screen text is not carrying enough of the message.',
   audio: 'The audio lane still needs a cleaner read before people trust the analysis.',
-  algorithm: 'The packaging is not giving TikTok a clean signal yet.',
   authenticity: 'The delivery still feels a little too flat to build trust fast.',
   conversion: 'The close is not turning attention into action yet.',
   accessibility: 'The video still leaves too much of the audience behind.',
@@ -88,9 +133,7 @@ const DEFAULT_ROAST_BY_DIMENSION: Record<DimensionKey, string> = {
 const DEFAULT_TIP_BY_DIMENSION: Record<DimensionKey, string> = {
   hook: 'Lead with the clearest claim, result, or text hook in the first second.',
   visual: 'Tighten the framing and clean up the first thing viewers see.',
-  caption: 'Put readable text on screen earlier and keep it out of TikTok UI zones.',
   audio: 'Make the spoken point easier to hear and easier to quote.',
-  algorithm: 'Package the idea more clearly so the platform can classify it faster.',
   authenticity: 'Sound more like a person proving one real point, not a script reading.',
   conversion: 'End with one direct ask tied to the value you just proved.',
   accessibility: 'Make the message clear even for viewers who start with sound off.',

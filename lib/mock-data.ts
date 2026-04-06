@@ -32,7 +32,7 @@ export const MOCK_ROAST: RoastResult = {
       improvementTip: 'Face a window for natural lighting, or invest in a ring light. Clean your background or use portrait mode. Shoot at eye level or slightly above.',
     },
     {
-      agent: 'caption',
+      agent: 'accessibility',
       score: 41,
       roastText: "Your captions look like they were written during an earthquake. The font choice says 'default settings' and the placement says 'I\'ll just put it wherever.' Your hashtag strategy is just #fyp and a prayer.",
       findings: [
@@ -58,7 +58,7 @@ export const MOCK_ROAST: RoastResult = {
       improvementTip: 'Record in a closet or small room with soft surfaces. Use a trending sound even at low volume. Speak faster and with more energy — TikTok rewards pace.',
     },
     {
-      agent: 'algorithm',
+      agent: 'conversion',
       score: 29,
       roastText: "The algorithm took one look at your video and said 'not today, not ever.' Your posting time was basically 3 AM in every timezone that matters. The engagement signals are giving 'please clap' energy.",
       findings: [
