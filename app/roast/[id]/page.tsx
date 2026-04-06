@@ -205,6 +205,7 @@ function RoastContent({
   const filteredActionPlan = (roast.actionPlan ?? []).filter(
     step => !failedDimensions.has(step.dimension)
   );
+  const hasPartialResults = failedDimensions.size > 0;
 
   // Sort: hook issues first (highest leverage), then visual/audio, then conversion, then authenticity/accessibility
   // Within each group, P1 > P2 > P3
@@ -235,6 +236,23 @@ function RoastContent({
             <span>analyze another video</span>
           </Link>
         </motion.div>
+
+        {/* ========== PARTIAL RESULT NOTICE ========== */}
+        {hasPartialResults && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-6 rounded-lg border border-yellow-500/25 bg-yellow-500/[0.06] px-4 py-3 flex items-start gap-2.5"
+          >
+            <svg aria-hidden="true" className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <p className="text-xs text-yellow-300/80 leading-relaxed">
+              <span className="font-semibold text-yellow-300">Partial results</span> — {failedDimensions.size} of 6 dimension{failedDimensions.size > 1 ? 's' : ''} could not be analyzed (API overload). Scores and recommendations reflect the completed dimensions only. Try uploading again for a full analysis.
+            </p>
+          </motion.div>
+        )}
 
         {/* ========== SCORE HERO ========== */}
         <motion.div

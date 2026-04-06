@@ -1307,6 +1307,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         let biggestBlocker: string = '';
         let encouragement: string = '';
         let nichePercentile: string = '';
+        // Build fallback action plan before verdict attempt so it's available in catch
+        const fallbackActionPlan = buildFallbackActionPlan({
+          agentResults,
+          transcriptSegments: transcript?.segments,
+          captionQuality,
+          priorityDimensions: analysisMode === 'hook-first' ? ['hook', 'visual', 'audio'] : [],
+        });
         try {
           const repeatContext = chronicIssues.length > 0
             ? `\n\nThis is a REPEAT OFFENDER. They've been roasted ${chronicIssues.length > 3 ? 'many' : 'a few'} times before and keep making the same mistakes. Reference this in the verdict. Be extra disappointed.`
@@ -1333,16 +1340,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             durationSec: durationAnalysis?.duration.durationSeconds ?? videoDuration?.durationSeconds,
             nicheLabel: nicheDetection.subNiche ? `${nicheDetection.niche} (${nicheDetection.subNiche})` : nicheDetection.niche,
           });
-          const fallbackActionPlan = buildFallbackActionPlan({
-            agentResults,
-            transcriptSegments: transcript?.segments,
-            captionQuality,
-            priorityDimensions: analysisMode === 'hook-first' ? ['hook', 'visual', 'audio'] : [],
-          });
-
           const nicheInfo = NICHE_CONTEXT[nicheDetection.niche];
 
-          const verdictResponse = await anthropic.messages.create({
+          // Verdict generation with retry for transient API overload
+          let verdictResponse: Anthropic.Message | null = null;
+          let verdictLastError: unknown = null;
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              verdictResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-6',
             max_tokens: 1200,
             messages: [{
@@ -1404,7 +1409,20 @@ Rules:
 - Keep the advice creator-grade, not beginner-blog-grade. Assume the creator has posted before and knows TikTok basics.
 - nichePercentile must reference the actual niche avg engagement data provided above. Do not invent numbers.`
             }],
-          });
+              });
+              break;
+            } catch (retryErr) {
+              verdictLastError = retryErr;
+              const msg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+              const isRetryable = msg.includes('overloaded') || msg.includes('529') || msg.includes('rate') || msg.includes('timeout');
+              if (!isRetryable || attempt === 2) break;
+              console.warn(`[analyze] Verdict attempt ${attempt} failed (retryable): ${msg.slice(0, 200)}`);
+              await new Promise(r => setTimeout(r, 2000 * attempt));
+            }
+          }
+          if (!verdictResponse) {
+            throw verdictLastError ?? new Error('Verdict generation returned no response');
+          }
 
           const verdictText = verdictResponse.content[0].type === 'text' ? verdictResponse.content[0].text : '';
           const parsed = parseStrategicSummary(verdictText, lowestDim, fallbackActionPlan);
@@ -1419,10 +1437,16 @@ Rules:
             encouragement = sanitizeUserFacingText(parsed.encouragement, 'There is something here, but the first fix needs to land harder.');
           } else {
             verdict = sanitizeUserFacingText(verdictText, 'Your video exists. That is the nicest thing we can say about it.');
+            // Verdict JSON unparseable — still surface the fallback action plan
+            actionPlan = sanitizeActionPlan(fallbackActionPlan);
+            nextSteps = actionPlan.map((step) => `${step.priority}: ${step.doThis}`);
           }
         } catch (verdictErr) {
           logFailure('verdict', id, verdictErr);
-          verdict = 'Your video exists. That is the nicest thing we can say about it.';
+          verdict = 'Analysis partially complete — see individual dimension scores below.';
+          // Surface agent-derived action plan so the results page is not empty
+          actionPlan = sanitizeActionPlan(fallbackActionPlan);
+          nextSteps = actionPlan.map((step) => `${step.priority}: ${step.doThis}`);
         }
 
         // Build full result

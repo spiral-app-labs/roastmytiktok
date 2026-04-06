@@ -25,10 +25,23 @@ export function QuickScoresBar({ agents }: Props) {
             a.score >= 70 ? 'text-emerald-400' :
             a.score >= 50 ? 'text-yellow-400' :
             'text-red-400';
+          const isHook = a.agent === 'hook';
 
           return (
             <div key={a.agent} className="flex items-center gap-1.5 text-sm">
-              <span className="text-zinc-500">{agent?.displayName ?? a.agent}:</span>
+              <span className="text-zinc-500 flex items-center gap-1">
+                {agent?.displayName ?? a.agent}
+                {isHook && (
+                  <span
+                    title="Hook = first 0–3 seconds of the video (may extend to 5s for some formats)"
+                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-700 text-zinc-400 text-[9px] font-bold cursor-default select-none leading-none"
+                    aria-label="Hook definition: first 0–3 seconds (may extend to 5s)"
+                  >
+                    ?
+                  </span>
+                )}
+                :
+              </span>
               <span className={`font-bold ${color}`}>
                 {failed ? '\u2014' : a.score}
               </span>
@@ -36,6 +49,9 @@ export function QuickScoresBar({ agents }: Props) {
           );
         })}
       </div>
+      <p className="mt-2.5 text-[10px] text-zinc-600">
+        Hook = first 0–3s of the video (may extend to 5s for some formats)
+      </p>
     </div>
   );
 }
