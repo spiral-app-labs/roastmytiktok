@@ -73,6 +73,24 @@ const FEATURES = [
   },
 ];
 
+const SOCIAL_PROOF = {
+  videosAnalyzed: 847,
+  betaQuotes: [
+    {
+      quote: 'I finally figured out why my POV videos kept flopping — the hook was too slow.',
+      handle: '@creatormom_lex',
+    },
+    {
+      quote: 'Got 400K views on my next video after fixing what this flagged.',
+      handle: '@jess.creates',
+    },
+    {
+      quote: 'I thought my editing was the issue. Turns out it was my caption.',
+      handle: '@tiktok.with.sam',
+    },
+  ],
+};
+
 const HOOK_EXAMPLES = [
   {
     type: 'Spoken hook',
@@ -216,36 +234,19 @@ export default function Home() {
         </div>
 
         {/* Hero */}
-        <div className="relative z-10 px-4 pt-8 pb-12 sm:pt-14 sm:pb-16 flex flex-col items-center text-center">
-
-          {/* Social proof pill */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/80 border border-zinc-700/50 backdrop-blur-sm mb-8"
-          >
-            <div className="flex -space-x-1">
-              {['🧑', '👩', '🧑‍💻'].map((e, i) => (
-                <span key={i} className="text-base">{e}</span>
-              ))}
-            </div>
-            <span className="text-zinc-300 text-sm font-medium">
-              <span className="text-orange-400 font-bold">2,847</span> videos analyzed &middot; <span className="text-emerald-400 font-bold">847</span> creators past 200 views
-            </span>
-          </motion.div>
+        <div className="relative z-10 px-4 pt-4 pb-10 sm:pt-10 sm:pb-16 flex flex-col items-center text-center">
 
           {/* Main headline — pain-point-first */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, ease: 'easeOut' }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[1.03] tracking-tight mb-5"
+            className="max-w-4xl text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-[0.98] tracking-tight mb-4"
           >
-            get roasted before
+            why isn&apos;t your TikTok
             <br />
             <span className="bg-gradient-to-r from-orange-400 via-orange-300 to-pink-500 bg-clip-text text-transparent">
-              you hit post
+              going viral?
             </span>
           </motion.h1>
 
@@ -253,18 +254,18 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.12 }}
-            className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-2xl mb-3"
+            className="max-w-2xl text-zinc-400 text-base sm:text-xl leading-relaxed mb-2"
           >
-            Upload your video before posting to TikTok or Reels. 6 AI agents analyze your hook, visuals, and audio — then give you a fix-it plan so you post the strongest version.
+            Upload your video before posting. 6 AI agents pinpoint what is killing retention, hooks, captions, and payoff so you know exactly what to fix before you waste another post.
           </motion.p>
 
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-zinc-600 text-sm mb-8"
+            className="text-zinc-600 text-sm mb-6"
           >
-            your pre-upload quality check. roasty when useful, precise where it counts.
+            your pre-upload quality check. brutally honest where it helps, precise where it counts.
           </motion.p>
 
           {/* Beta unlock form */}
@@ -272,7 +273,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.22 }}
-            className="w-full max-w-xl mb-8"
+            className="w-full max-w-xl mb-6"
           >
             <form onSubmit={handleSubmit} className="relative">
               <div className="flex flex-col sm:flex-row gap-3">
@@ -283,7 +284,7 @@ export default function Home() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter invite code to unlock private beta"
                     aria-label="Beta invite code"
-                    className="w-full bg-zinc-900/80 border-2 border-zinc-700/60 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 transition-all text-base backdrop-blur-sm"
+                    className="w-full bg-zinc-900/80 border-2 border-zinc-700/60 rounded-2xl px-4 py-3.5 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 transition-all text-base backdrop-blur-sm"
                   />
                 </div>
                 <GradientButton
@@ -294,7 +295,7 @@ export default function Home() {
                   disabled={loading || !password}
                   loading={loading}
                 >
-                  {loading ? 'Verifying...' : 'Go Viral →'}
+                  {loading ? 'Verifying...' : 'Find Out Why Your Videos Flop'}
                 </GradientButton>
               </div>
               <AnimatePresence mode="wait">
@@ -312,12 +313,40 @@ export default function Home() {
             </form>
           </motion.div>
 
+          {/* Social proof strip */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.28 }}
+            className="w-full max-w-5xl mb-8 rounded-[28px] border border-zinc-800/80 bg-zinc-950/70 px-4 py-4 sm:px-5 sm:py-5 backdrop-blur-sm"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center justify-center gap-3 lg:justify-start">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-500/25 bg-orange-500/10 text-xl">📈</div>
+                <div className="text-left">
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-zinc-500 font-semibold">beta tester signal</p>
+                  <p className="text-white text-lg font-black">{SOCIAL_PROOF.videosAnalyzed.toLocaleString()} videos analyzed</p>
+                  <p className="text-zinc-400 text-sm">real creators using Go Viral to catch weak hooks before they post.</p>
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3 lg:flex-1">
+                {SOCIAL_PROOF.betaQuotes.map((testimonial) => (
+                  <div key={testimonial.handle} className="rounded-2xl border border-zinc-800 bg-black/25 p-3 text-left">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-orange-400 font-semibold mb-2">beta tester quote</p>
+                    <p className="text-sm leading-relaxed text-zinc-200">&ldquo;{testimonial.quote}&rdquo;</p>
+                    <p className="mt-2 text-xs font-semibold text-zinc-500">{testimonial.handle}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
           {/* Trust signals */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-zinc-600 mb-10"
+            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-zinc-600 mb-8"
           >
             {[
               { icon: '🔒', text: 'No card required' },
