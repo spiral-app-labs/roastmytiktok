@@ -39,7 +39,7 @@ export interface HookIdentification {
 export interface ActionPlanStep {
   priority: 'P1' | 'P2' | 'P3';
   dimension: DimensionKey;
-  timestampLabel?: string;
+  timestampLabel?: string | null;
   timestampSeconds?: number;
   issue: string;
   algorithmicConsequence?: string;
