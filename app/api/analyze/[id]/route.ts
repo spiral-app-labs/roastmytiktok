@@ -1046,7 +1046,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         let captionQualityContext = '';
         let captionQuality = null;
         let onScreenTextResults: OnScreenTextResult[] = [];
-        const openingFrames = frames.filter(f => f.timestampSec <= 3.5);
+        const openingFrames = frames.filter(f => f.slot === 'opening');
 
         const [captionResult, textResult] = await Promise.all([
           // Caption quality
@@ -1469,9 +1469,12 @@ Rules:
 
         // Build full result
         // Build hook identification from available data
+        const openingSlotTimestamps = new Set(openingFrames.map(f => f.timestampSec));
         const hookIdentification = {
           textOnScreen: onScreenTextResults.length > 0
-            ? onScreenTextResults.flatMap(r => r.detectedText).join(' ').trim() || null
+            ? onScreenTextResults
+                .filter(r => openingSlotTimestamps.size === 0 || openingSlotTimestamps.has(r.timestampSec))
+                .flatMap(r => r.detectedText).join(' ').trim() || null
             : null,
           spokenWords: transcript?.segments?.filter(s => s.start <= 3)
             .map(s => s.text).join(' ').trim() || null,

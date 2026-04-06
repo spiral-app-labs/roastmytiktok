@@ -264,7 +264,9 @@ export function buildFallbackActionPlan(params: {
       issue: cleanLine(result.findings[0]) || firstSentence(result.roastText) || 'The current edit still has a clear execution gap.',
       evidence,
       doThis: cleanLine(result.improvementTip) || 'Rebuild this section before posting again.',
-      example: buildFallbackExample(dimension, transcriptSegments),
+      example: (index === 0 && cleanLine(result.improvementTip))
+        ? cleanLine(result.improvementTip)
+        : buildFallbackExample(dimension, transcriptSegments),
       whyItMatters: WHY_IT_MATTERS_BY_DIMENSION[dimension],
     };
   });
