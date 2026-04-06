@@ -15,6 +15,7 @@ import { buildViewProjection } from '@/lib/view-projection';
 import { getViewImpact, getEstimatedImprovedScore } from '@/lib/view-count-tiers';
 import { sanitizeUserFacingText } from '@/lib/analysis-safety';
 import { useToast } from '@/components/ui';
+import { RetentionCurve } from '@/components/RetentionCurve';
 import Link from 'next/link';
 
 function isAgentFailed(a: { failed?: boolean; findings?: string[] }): boolean {
@@ -423,6 +424,27 @@ function RoastContent({
           className="mb-8"
         >
           <QuickScoresBar agents={roast.agents} />
+        </motion.div>
+
+        {/* ========== RETENTION CURVE ========== */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0 }}
+          className="mb-8"
+        >
+          <RetentionCurve
+            hookScore={roast.agents.find(a => a.agent === 'hook')?.score ?? roast.hookSummary?.score ?? 50}
+            overallScore={roast.overallScore}
+            videoDurationSeconds={roast.metadata.duration > 0 ? roast.metadata.duration : 30}
+            timestamps={actionPlan
+              .filter(s => typeof s.timestampSeconds === 'number')
+              .slice(0, 5)
+              .map(s => ({
+                seconds: s.timestampSeconds as number,
+                label: formatTimestamp(s),
+              }))}
+          />
         </motion.div>
 
         {/* ========== UPGRADE CTA ========== */}
