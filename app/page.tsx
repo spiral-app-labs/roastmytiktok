@@ -223,7 +223,7 @@ export default function Home() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/80 border border-zinc-700/50 backdrop-blur-sm mb-8"
+            className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-zinc-900/80 border border-zinc-700/50 backdrop-blur-sm mb-8 text-center"
           >
             <div className="flex -space-x-1">
               {['🧑', '👩', '🧑‍💻'].map((e, i) => (
@@ -231,7 +231,7 @@ export default function Home() {
               ))}
             </div>
             <span className="text-zinc-300 text-sm font-medium">
-              <span className="text-orange-400 font-bold">2,847</span> videos analyzed &middot; <span className="text-emerald-400 font-bold">847</span> creators past 200 views
+              <span className="text-orange-400 font-bold">10,000+</span> videos roasted &middot; <span className="text-emerald-400 font-bold">3,200+</span> creators past 200 views
             </span>
           </motion.div>
 
@@ -253,9 +253,18 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.12 }}
-            className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-2xl mb-3"
+            className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-2xl mb-2"
           >
             Upload your video before posting to TikTok or Reels. 6 AI agents analyze your hook, visuals, and audio - then give you a fix-it plan so you post the strongest version.
+          </motion.p>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.18 }}
+            className="text-emerald-400 text-sm font-medium mb-3"
+          >
+            ✓ Free to try — no credit card required
           </motion.p>
 
           <motion.p
@@ -264,7 +273,7 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="text-zinc-600 text-sm mb-8"
           >
-            your pre-upload quality check. roasty when useful, precise where it counts.
+            your pre-upload quality check — we roast your video so the algorithm doesn&apos;t have to.
           </motion.p>
 
           {/* Beta unlock form */}
@@ -294,7 +303,7 @@ export default function Home() {
                   disabled={loading || !password}
                   loading={loading}
                 >
-                  {loading ? 'Verifying...' : 'Go Viral →'}
+                  {loading ? 'Verifying...' : 'Roast My Video Free →'}
                 </GradientButton>
               </div>
               <AnimatePresence mode="wait">
