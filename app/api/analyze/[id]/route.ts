@@ -1162,8 +1162,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             const trendingContext = buildAgentTrendingContext(trendingCtx, dimension);
             const nicheContext = buildAgentNicheContext(nicheDetection, dimension, videoDuration?.durationSeconds);
             const captionAuditContext = dimension === 'accessibility' ? captionQualityContext : '';
+            // Hook zone summary is injected for the hook agent so it has structured
+            // frame-level data about the first 3-5 seconds (lighting source, eye contact,
+            // subject appeal, text hooks, visual energy) — avoids hallucination from generic frame context.
+            const hookZoneContext = dimension === 'hook' && hookZoneSummary
+              ? `\n\nHOOK ZONE FRAME DATA (first 3-5 seconds — use this as your primary evidence):\n${hookZoneSummary}`
+              : '';
             const fullPrompt = 'VIDEO FRAME ANALYSIS:\n' + frameContext + '\n\n' + truncateForTokenLimit(
-              agentPrompt + TONE_RULES + VIDEO_GROUNDING_RULES + platformContext + hookContext + hookPriorityContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext,
+              agentPrompt + TONE_RULES + VIDEO_GROUNDING_RULES + platformContext + hookContext + hookPriorityContext + hookZoneContext + audioContext + trendingContext + nicheContext + captionAuditContext + escalationContext,
               14000,
             );
 
