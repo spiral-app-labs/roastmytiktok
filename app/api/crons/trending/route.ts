@@ -76,7 +76,7 @@ const SAMPLE_HASHTAGS: TrendingItem[] = [
   {
     type: 'hashtag',
     name: '#deinfluencing',
-    description: 'Creators telling people what NOT to buy — reverse psychology engagement',
+    description: 'Creators telling people what NOT to buy - reverse psychology engagement',
     velocity: 92,
     category: 'shopping',
     source_url: null,

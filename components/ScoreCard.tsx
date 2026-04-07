@@ -4,22 +4,13 @@ import { forwardRef } from 'react';
 import { RoastResult } from '@/lib/types';
 import { AGENTS } from '@/lib/agents';
 
-function getLetterGrade(score: number): string {
-  if (score >= 90) return 'A+';
-  if (score >= 80) return 'A';
-  if (score >= 70) return 'B';
-  if (score >= 60) return 'C';
-  if (score >= 50) return 'D';
-  return 'F';
-}
-
 function getScoreColor(score: number): string {
   if (score >= 70) return '#4ade80'; // green-400
   if (score >= 50) return '#facc15'; // yellow-400
   return '#f87171'; // red-400
 }
 
-function getGradeColor(score: number): string {
+function getRingColor(score: number): string {
   if (score >= 80) return '#4ade80';
   if (score >= 60) return '#facc15';
   if (score >= 40) return '#fb923c';
@@ -34,14 +25,13 @@ interface ScoreCardProps {
 }
 
 /**
- * ScoreCard — captured by html-to-image; uses only inline styles
+ * ScoreCard - captured by html-to-image; uses only inline styles
  * so that the DOM snapshot is fully self-contained.
  */
 export const ScoreCard = forwardRef<HTMLDivElement, ScoreCardProps>(
   ({ roast, variant = 'square' }, ref) => {
     const isStory = variant === 'story';
-    const grade = getLetterGrade(roast.overallScore);
-    const gradeColor = getGradeColor(roast.overallScore);
+    const ringColor = getRingColor(roast.overallScore);
 
     // Outer card dimensions
     const width = isStory ? 1080 : 1080;
@@ -194,7 +184,7 @@ export const ScoreCard = forwardRef<HTMLDivElement, ScoreCardProps>(
       position: 'absolute',
       inset: 0,
       borderRadius: '50%',
-      background: `conic-gradient(${gradeColor} 0deg, ${gradeColor} ${roast.overallScore * 3.6}deg, rgba(39,39,42,0.6) ${roast.overallScore * 3.6}deg 360deg)`,
+      background: `conic-gradient(${ringColor} 0deg, ${ringColor} ${roast.overallScore * 3.6}deg, rgba(39,39,42,0.6) ${roast.overallScore * 3.6}deg 360deg)`,
     };
 
     const ringInnerStyle: React.CSSProperties = {
@@ -212,7 +202,7 @@ export const ScoreCard = forwardRef<HTMLDivElement, ScoreCardProps>(
     const scoreNumStyle: React.CSSProperties = {
       fontSize: isStory ? 88 : 76,
       fontWeight: 900,
-      color: gradeColor,
+      color: ringColor,
       lineHeight: 1,
       letterSpacing: '-0.04em',
     };
@@ -221,23 +211,6 @@ export const ScoreCard = forwardRef<HTMLDivElement, ScoreCardProps>(
       fontSize: isStory ? 22 : 18,
       color: '#52525b',
       fontWeight: 600,
-    };
-
-    const gradeStyle: React.CSSProperties = {
-      position: 'absolute',
-      top: isStory ? -10 : -8,
-      right: isStory ? -10 : -8,
-      width: isStory ? 72 : 62,
-      height: isStory ? 72 : 62,
-      borderRadius: '50%',
-      background: gradeColor,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: isStory ? 26 : 22,
-      fontWeight: 900,
-      color: '#080808',
-      boxShadow: `0 0 0 4px #080808, 0 0 24px ${gradeColor}88`,
     };
 
     // Verdict
@@ -356,7 +329,6 @@ export const ScoreCard = forwardRef<HTMLDivElement, ScoreCardProps>(
                   <div style={scoreNumStyle}>{roast.overallScore}</div>
                   <div style={scoreOfStyle}>/ 100</div>
                 </div>
-                <div style={gradeStyle}>{grade}</div>
               </div>
 
               <div style={verdictStyle}>{roast.verdict}</div>

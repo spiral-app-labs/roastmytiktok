@@ -39,7 +39,7 @@ const tips: ViralTip[] = [
   },
   {
     category: 'hook',
-    tip_text: 'Text hooks on screen should be no more than 8 words. The viewer must be able to read it before they can scroll past — longer text gets skipped.',
+    tip_text: 'Text hooks on screen should be no more than 8 words. The viewer must be able to read it before they can scroll past - longer text gets skipped.',
     source: 'research',
     relevance_score: 88,
     active: true,
@@ -115,7 +115,7 @@ const tips: ViralTip[] = [
   },
   {
     category: 'audio',
-    tip_text: 'Voiceover pacing should be 150-170 words per minute — fast enough to feel energetic but slow enough to be understood. Match the energy of your niche.',
+    tip_text: 'Voiceover pacing should be 150-170 words per minute - fast enough to feel energetic but slow enough to be understood. Match the energy of your niche.',
     source: 'research',
     relevance_score: 84,
     active: true,
@@ -131,7 +131,7 @@ const tips: ViralTip[] = [
   },
   {
     category: 'audio',
-    tip_text: 'Layer ambient sound under voiceovers — coffee shop noise, rain, keyboard typing. It adds production value and keeps auditory attention.',
+    tip_text: 'Layer ambient sound under voiceovers - coffee shop noise, rain, keyboard typing. It adds production value and keeps auditory attention.',
     source: 'research',
     relevance_score: 70,
     active: true,
@@ -183,7 +183,7 @@ const tips: ViralTip[] = [
   },
   {
     category: 'timing',
-    tip_text: 'Tuesday, Thursday, and Saturday consistently outperform other days for new content. Monday and Wednesday are the most competitive — avoid unless your content is strong.',
+    tip_text: 'Tuesday, Thursday, and Saturday consistently outperform other days for new content. Monday and Wednesday are the most competitive - avoid unless your content is strong.',
     source: 'research',
     relevance_score: 79,
     active: true,
@@ -217,7 +217,7 @@ const tips: ViralTip[] = [
   },
   {
     category: 'general',
-    tip_text: 'Reply to comments with video responses — each reply-video gets its own distribution cycle AND links back to the original, creating a traffic loop.',
+    tip_text: 'Reply to comments with video responses - each reply-video gets its own distribution cycle AND links back to the original, creating a traffic loop.',
     source: 'research',
     relevance_score: 90,
     active: true,
@@ -241,7 +241,7 @@ const tips: ViralTip[] = [
   },
   {
     category: 'general',
-    tip_text: 'Your profile picture and bio are conversion tools, not decorations. Viewers who watch 3+ of your videos check your profile — make the bio answer "why should I follow?"',
+    tip_text: 'Your profile picture and bio are conversion tools, not decorations. Viewers who watch 3+ of your videos check your profile - make the bio answer "why should I follow?"',
     source: 'research',
     relevance_score: 77,
     active: true,

@@ -255,7 +255,7 @@ export default function AnalyticsPage() {
                   <span className="text-green-400">+{mostImproved.delta}</span>
                 </span>
               ) : (
-                <span className="text-zinc-600">—</span>
+                <span className="text-zinc-600">-</span>
               )
             }
             sub={mostImproved?.name.replace(' Agent', '') ?? 'Upload more to see'}

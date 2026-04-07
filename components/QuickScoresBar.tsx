@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import type { AgentRoast } from '@/lib/types';
 import { AGENTS } from '@/lib/agents';
 
@@ -15,43 +16,43 @@ function isAgentFailed(a: AgentRoast): boolean {
 
 export function QuickScoresBar({ agents }: Props) {
   return (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Score Breakdown</p>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        {agents.map(a => {
+    <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-5 py-5">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">Score Breakdown</p>
+      <div className="space-y-3">
+        {agents.map((a, idx) => {
           const agent = AGENTS.find(ag => ag.key === a.agent);
           const failed = isAgentFailed(a);
-          const color = failed ? 'text-zinc-600' :
-            a.score >= 70 ? 'text-emerald-400' :
-            a.score >= 50 ? 'text-yellow-400' :
-            'text-red-400';
-          const isHook = a.agent === 'hook';
+
+          const barColor = failed ? 'bg-zinc-700'
+            : a.score >= 70 ? 'bg-emerald-500'
+            : a.score >= 50 ? 'bg-yellow-500'
+            : 'bg-red-500';
+
+          const textColor = failed ? 'text-zinc-600'
+            : a.score >= 70 ? 'text-emerald-400'
+            : a.score >= 50 ? 'text-yellow-400'
+            : 'text-red-400';
 
           return (
-            <div key={a.agent} className="flex items-center gap-1.5 text-sm">
-              <span className="text-zinc-500 flex items-center gap-1">
+            <div key={a.agent} className="flex items-center gap-3">
+              <p className="text-xs text-zinc-400 w-24 shrink-0 truncate">
                 {agent?.displayName ?? a.agent}
-                {isHook && (
-                  <span
-                    title="Hook = first 0–3 seconds of the video (may extend to 5s for some formats)"
-                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-zinc-700 text-zinc-400 text-[9px] font-bold cursor-default select-none leading-none"
-                    aria-label="Hook definition: first 0–3 seconds (may extend to 5s)"
-                  >
-                    ?
-                  </span>
-                )}
-                :
-              </span>
-              <span className={`font-bold ${color}`}>
+              </p>
+              <div className="flex-1 h-2 rounded-full bg-zinc-800 overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full ${barColor}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: failed ? '0%' : `${a.score}%` }}
+                  transition={{ duration: 1, delay: 0.2 + idx * 0.1, ease: 'easeOut' }}
+                />
+              </div>
+              <p className={`text-xs font-bold tabular-nums w-8 text-right ${textColor}`}>
                 {failed ? '\u2014' : a.score}
-              </span>
+              </p>
             </div>
           );
         })}
       </div>
-      <p className="mt-2.5 text-[10px] text-zinc-600">
-        Hook = first 0–3s of the video (may extend to 5s for some formats)
-      </p>
     </div>
   );
 }

@@ -23,7 +23,7 @@ export default function Error({
         <p className="text-6xl">💥</p>
         <h1 className="text-2xl font-bold text-white">Something broke</h1>
         <p className="text-zinc-400 max-w-md mx-auto text-sm leading-relaxed">
-          Even our AI agents couldn&apos;t save this one. Try again — if it keeps happening, the team is probably already on it.
+          Even our AI agents couldn&apos;t save this one. Try again - if it keeps happening, the team is probably already on it.
         </p>
 
         <div className="flex items-center justify-center gap-3 pt-2">

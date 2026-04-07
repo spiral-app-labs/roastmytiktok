@@ -31,7 +31,7 @@ export function buildEvidenceLedger(params: {
     .map(([dimension, result]) => {
       // Include ALL findings (not just 2) so the verdict prompt has full evidence to cite
       const findings = result.findings.map((finding) => `- finding: ${finding}`);
-      // Include the full roastText as agent diagnosis — not just the first sentence
+      // Include the full roastText as agent diagnosis - not just the first sentence
       const roastDiagnosis = cleanLine(result.roastText).slice(0, 400);
       const tip = cleanLine(result.improvementTip);
       return [
@@ -120,7 +120,7 @@ export function parseStrategicSummary(
       verdict: cleanLine(parsed.verdict) || 'The analysis finished, but the verdict came back thin.',
       viralPotential: clampScore(parsed.viralPotential),
       biggestBlocker: cleanLine(parsed.biggestBlocker) || normalizedPlan[0]?.issue || 'The video still has one obvious bottleneck holding it back.',
-      // No longer filter out steps with empty evidence — every P1/P2/P3 should show up
+      // No longer filter out steps with empty evidence - every P1/P2/P3 should show up
       actionPlan: normalizedPlan,
       encouragement: cleanLine(parsed.encouragement) || '',
       nichePercentile: cleanLine((parsed as Record<string, unknown>).nichePercentile as string | undefined),

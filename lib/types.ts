@@ -52,10 +52,11 @@ export interface ActionPlanStep {
 export interface RoastResult {
   id: string;
   tiktokUrl: string;
+  platform?: 'tiktok' | 'reels';
   overallScore: number;
   verdict: string;
   viralPotential?: number;
-  /** e.g. "top 30% of fitness creators" — generated from niche benchmark scoring */
+  /** e.g. "top 30% of fitness creators" - generated from niche benchmark scoring */
   nichePercentile?: string;
   holdAssessment?: {
     holdBand: 'weak' | 'mixed' | 'strong';
@@ -83,7 +84,7 @@ export interface RoastResult {
     headline: string;
     distributionRisk: string;
     focusNote: string;
-    /** Plain-english explanation of WHY distribution dies early — shown in hook gate banner */
+    /** Plain-english explanation of WHY distribution dies early - shown in hook gate banner */
     earlyDropNote?: string;
   };
   agents: AgentRoast[];
@@ -102,7 +103,7 @@ export interface RoastResult {
   transcriptQualityNote?: string;
   /** Which provider produced the transcript (assemblyai, whisper, or claude-audio fallback). */
   transcriptProvider?: 'assemblyai' | 'whisper' | 'claude-audio';
-  /** Sound detected from the TikTok video URL (Phase 1 — free HTML extraction) */
+  /** Sound detected from the TikTok video URL (Phase 1 - free HTML extraction) */
   viewProjection?: ViewProjection;
   hookIdentification?: HookIdentification;
   detectedSound?: {

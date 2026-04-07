@@ -214,7 +214,7 @@ export default function RmtDebugClient({ id, debugData }: DebugClientProps) {
                 {Object.entries(complex.agentRawResults)
                   .filter(([k]) => matchesSearch(k))
                   .map(([dim, r]) => (
-                  <Collapsible key={dim} title={`${dim} — ${r.score}/100`}>
+                  <Collapsible key={dim} title={`${dim} - ${r.score}/100`}>
                     <div className="space-y-2">
                       <div className="text-sm text-gray-200">{r.roastText}</div>
                       <div className="text-xs text-gray-400 mt-2">Findings:</div>

@@ -13,7 +13,7 @@ export default async function RmtAdminDebugPage({ params, searchParams }: Props)
   const { id } = await params
   const { debug: debugLevel } = await searchParams
 
-  // Auth check — admin only
+  // Auth check - admin only
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -33,7 +33,7 @@ export default async function RmtAdminDebugPage({ params, searchParams }: Props)
   if (error || !session) {
     return (
       <div className="min-h-screen bg-gray-950 text-red-400 font-mono p-8">
-        <h1 className="text-lg font-bold mb-4">RMT Debug Viewer — Not Found</h1>
+        <h1 className="text-lg font-bold mb-4">RMT Debug Viewer - Not Found</h1>
         <p>No session found for id: <code>{id}</code></p>
         <p className="text-gray-500 mt-2 text-sm">{error?.message}</p>
       </div>

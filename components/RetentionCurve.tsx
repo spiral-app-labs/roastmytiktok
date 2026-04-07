@@ -66,11 +66,11 @@ export function RetentionCurve({
     // Retention at the 3-second hook window
     let hookDrop: number;
     if (hookScore > 70) {
-      hookDrop = 85 + ((hookScore - 70) / 30) * 10; // 85–95%
+      hookDrop = 85 + ((hookScore - 70) / 30) * 10; // 85-95%
     } else if (hookScore >= 40) {
-      hookDrop = 60 + ((hookScore - 40) / 30) * 15; // 60–75%
+      hookDrop = 60 + ((hookScore - 40) / 30) * 15; // 60-75%
     } else {
-      hookDrop = 20 + (hookScore / 40) * 15; // 20–35%
+      hookDrop = 20 + (hookScore / 40) * 15; // 20-35%
     }
     hookDrop = Math.min(100, Math.max(5, hookDrop));
 
@@ -265,7 +265,7 @@ export function RetentionCurve({
             );
           })}
 
-          {/* Shaded area under the curve — fades in after line draws */}
+          {/* Shaded area under the curve - fades in after line draws */}
           <motion.path
             d={areaPath}
             fill="url(#rc-area-grad)"

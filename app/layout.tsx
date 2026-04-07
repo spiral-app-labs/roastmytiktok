@@ -8,7 +8,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://goviralwith.ai"),
   title: {
-    default: "Go Viral — AI Agents Diagnose Why Your Videos Don't Spread",
+    default: "Go Viral - AI Agents Diagnose Why Your Videos Don't Spread",
     template: "%s | Go Viral",
   },
   description: "Six AI agents analyze your TikTok opener, diagnose why viewers leave, and give you a reshoot plan you can film today.",

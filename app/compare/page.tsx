@@ -229,7 +229,7 @@ export default function ComparePage() {
                         <span className="text-zinc-300 font-mono">{ad.bScore}</span>
                       </div>
                       <div className={`text-lg font-black ${deltaColor(ad.delta)}`}>
-                        {ad.direction === 'unchanged' ? '—' : formatDelta(ad.delta)}
+                        {ad.direction === 'unchanged' ? '-' : formatDelta(ad.delta)}
                       </div>
                     </div>
                   </motion.div>
@@ -331,7 +331,7 @@ export default function ComparePage() {
                       </div>
                     ))}
                     {comparison.reasons.length === 0 && (
-                      <p className="text-sm text-zinc-500">no clear winner across the key dimensions — both videos are performing at a similar level.</p>
+                      <p className="text-sm text-zinc-500">no clear winner across the key dimensions - both videos are performing at a similar level.</p>
                     )}
                   </div>
                 </div>

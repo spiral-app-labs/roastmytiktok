@@ -652,7 +652,7 @@ export default function UploadQueueUI() {
           try {
             const data = JSON.parse(e.data);
 
-            // Agent completed — type:'agent' status:'done'
+            // Agent completed - type:'agent' status:'done'
             if (data.type === 'agent' && data.status === 'done') {
               agentsDone++;
               const pct = progressBase + Math.round((agentsDone / totalAgents) * progressRange);
@@ -914,7 +914,7 @@ export default function UploadQueueUI() {
                       {dragOver ? '🎯' : '🎬'}
                     </motion.div>
                     <p className={`font-bold text-sm transition-colors ${dragOver ? 'text-orange-300' : 'text-zinc-300'}`}>
-                      {dragOver ? "Drop 'em — we're ready" : 'Drop TikTok videos here'}
+                      {dragOver ? "Drop 'em - we're ready" : 'Drop TikTok videos here'}
                     </p>
                     <p className="text-zinc-500 text-xs mt-1.5">
                       or{' '}
@@ -1024,7 +1024,7 @@ export default function UploadQueueUI() {
           {/* Right: Queue panel + Recent Roasts */}
           <div className="space-y-5">
 
-            {/* Queue panel — Spotify-style */}
+            {/* Queue panel - Spotify-style */}
             <AnimatePresence>
               {hasAny && (
                 <motion.div

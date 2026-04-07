@@ -158,11 +158,11 @@ export function buildAgentNicheContext(
 
     case 'audio':
       if (detection.niche === 'music') {
-        agentGuidance = `\n\nNICHE AUDIO GUIDANCE: This is a music niche video — audio quality is EVERYTHING. Original audio is expected and preferred. Judge recording quality, mixing, and musical performance with higher standards than other niches.`;
+        agentGuidance = `\n\nNICHE AUDIO GUIDANCE: This is a music niche video - audio quality is EVERYTHING. Original audio is expected and preferred. Judge recording quality, mixing, and musical performance with higher standards than other niches.`;
       } else if (['comedy', 'lifestyle', 'gaming'].includes(detection.niche)) {
         agentGuidance = `\n\nNICHE AUDIO GUIDANCE: In ${detection.niche}, trending sounds typically perform better than original audio. If they're using original audio, it needs to be genuinely engaging to compensate for missing the sound discovery boost.`;
       } else if (['education', 'tech', 'finance'].includes(detection.niche)) {
-        agentGuidance = `\n\nNICHE AUDIO GUIDANCE: In ${detection.niche}, original audio with clear speech is preferred over trending sounds. Voice clarity and delivery pace are critical — viewers are here to learn, not to vibe.`;
+        agentGuidance = `\n\nNICHE AUDIO GUIDANCE: In ${detection.niche}, original audio with clear speech is preferred over trending sounds. Voice clarity and delivery pace are critical - viewers are here to learn, not to vibe.`;
       } else {
         agentGuidance = `\n\nNICHE AUDIO GUIDANCE: In ${detection.niche}, ${detection.niche === 'food' ? 'ASMR-style sounds and clear voiceover' : 'a mix of trending sounds and voiceover'} typically perform best.`;
       }
@@ -185,7 +185,7 @@ export function buildAgentNicheContext(
       break;
 
     case 'visual':
-      agentGuidance = `\n\nNICHE VISUAL GUIDANCE: In ${detection.niche}, the best-performing formats are ${info.bestFormats.join(', ')}. Judge the visual quality against what top ${detection.niche} creators deliver. ${detection.niche === 'beauty' ? 'Lighting on skin tones is critical.' : detection.niche === 'food' ? 'Food must look appetizing — lighting and color grading matter extra.' : detection.niche === 'travel' ? 'Visual variety and cinematic quality set apart good travel content.' : `Production quality should match ${detection.niche} audience expectations.`}`;
+      agentGuidance = `\n\nNICHE VISUAL GUIDANCE: In ${detection.niche}, the best-performing formats are ${info.bestFormats.join(', ')}. Judge the visual quality against what top ${detection.niche} creators deliver. ${detection.niche === 'beauty' ? 'Lighting on skin tones is critical.' : detection.niche === 'food' ? 'Food must look appetizing - lighting and color grading matter extra.' : detection.niche === 'travel' ? 'Visual variety and cinematic quality set apart good travel content.' : `Production quality should match ${detection.niche} audience expectations.`}`;
       break;
 
     case 'authenticity':
@@ -193,15 +193,15 @@ export function buildAgentNicheContext(
       break;
 
     case 'conversion':
-      agentGuidance = `\n\nNICHE CTA GUIDANCE: For ${detection.niche} content, the best CTAs match the format. ${['education', 'tech', 'finance', 'diy', 'food'].includes(detection.niche) ? '"Save this for later" is the highest-value CTA — this niche drives saves.' : ['comedy', 'pets', 'parenting'].includes(detection.niche) ? '"Send this to someone who..." is the highest-value CTA — this niche drives shares.' : '"Follow for more" works if specific to the niche, e.g., "Follow for daily ' + detection.niche + ' tips."'}`;
+      agentGuidance = `\n\nNICHE CTA GUIDANCE: For ${detection.niche} content, the best CTAs match the format. ${['education', 'tech', 'finance', 'diy', 'food'].includes(detection.niche) ? '"Save this for later" is the highest-value CTA - this niche drives saves.' : ['comedy', 'pets', 'parenting'].includes(detection.niche) ? '"Send this to someone who..." is the highest-value CTA - this niche drives shares.' : '"Follow for more" works if specific to the niche, e.g., "Follow for daily ' + detection.niche + ' tips."'}`;
       break;
 
     case 'caption':
-      agentGuidance = `\n\nNICHE CAPTION GUIDANCE: In ${detection.niche}, ${['education', 'tech', 'finance', 'diy'].includes(detection.niche) ? 'on-screen text with key steps/takeaways is essential for save-worthiness' : ['comedy'].includes(detection.niche) ? 'punchline timing in text matters — reveal text should sync with the verbal punchline' : 'clean, readable captions are expected as a baseline'}.`;
+      agentGuidance = `\n\nNICHE CAPTION GUIDANCE: In ${detection.niche}, ${['education', 'tech', 'finance', 'diy'].includes(detection.niche) ? 'on-screen text with key steps/takeaways is essential for save-worthiness' : ['comedy'].includes(detection.niche) ? 'punchline timing in text matters - reveal text should sync with the verbal punchline' : 'clean, readable captions are expected as a baseline'}.`;
       break;
 
     case 'accessibility':
-      agentGuidance = `\n\nNICHE ACCESSIBILITY GUIDANCE: In ${detection.niche}, ${['education', 'tech', 'finance'].includes(detection.niche) ? 'captions are absolutely critical — the entire value is in the words' : ['music', 'food', 'pets', 'travel'].includes(detection.niche) ? 'visual storytelling should carry the content even without sound' : 'standard accessibility expectations apply'}.`;
+      agentGuidance = `\n\nNICHE ACCESSIBILITY GUIDANCE: In ${detection.niche}, ${['education', 'tech', 'finance'].includes(detection.niche) ? 'captions are absolutely critical - the entire value is in the words' : ['music', 'food', 'pets', 'travel'].includes(detection.niche) ? 'visual storytelling should carry the content even without sound' : 'standard accessibility expectations apply'}.`;
       break;
   }
 

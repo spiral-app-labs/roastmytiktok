@@ -6,8 +6,6 @@ import { useEffect, useState } from 'react';
 interface ScoreRingProps {
   score: number;
   size?: number;
-  /** If provided, shows the letter grade inside instead of the numeric score */
-  showGrade?: string;
 }
 
 function CountUp({ target, duration = 1.5, delay = 0.5 }: { target: number; duration?: number; delay?: number }) {
@@ -28,7 +26,7 @@ function CountUp({ target, duration = 1.5, delay = 0.5 }: { target: number; dura
   return <>{display}</>;
 }
 
-export function ScoreRing({ score, size = 180, showGrade }: ScoreRingProps) {
+export function ScoreRing({ score, size = 180 }: ScoreRingProps) {
   const strokeWidth = Math.max(3, Math.round(size / 22));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -100,29 +98,26 @@ export function ScoreRing({ score, size = 180, showGrade }: ScoreRingProps) {
         </defs>
       </svg>
 
-      {/* Inner radial glow — breaks up the flat black center */}
+      {/* Inner radial glow - breaks up the flat black center */}
       <div
         className="absolute inset-0 rounded-full"
         style={{ background: `radial-gradient(circle, ${glowColor.replace('0.3', '0.18')} 0%, transparent 70%)` }}
       />
 
       {/* Center content */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {showGrade ? (
-          <motion.span
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.8 }}
-            className="font-black fire-text select-none relative z-10"
-            style={{ fontSize: size * 0.55, lineHeight: 1 }}
-          >
-            {showGrade}
-          </motion.span>
-        ) : (
-          <span className="font-bold tracking-tight" style={{ color, fontSize: size * 0.22 }}>
-            <CountUp target={score} />
-          </span>
-        )}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <motion.span
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.8 }}
+          className="font-black tabular-nums select-none relative z-10"
+          style={{ color, fontSize: size * 0.32, lineHeight: 1 }}
+        >
+          <CountUp target={score} />
+        </motion.span>
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500 mt-1 relative z-10">
+          Viral Score
+        </span>
       </div>
     </div>
   );

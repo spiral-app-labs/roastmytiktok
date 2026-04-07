@@ -39,11 +39,11 @@ const FAQ = [
   },
   {
     q: `What file types do you support?`,
-    a: `MP4, MOV, AVI — basically anything TikTok lets you upload. Max 500MB per video.`,
+    a: `MP4, MOV, AVI - basically anything TikTok lets you upload. Max 500MB per video.`,
   },
   {
     q: `Is there a free trial for Pro?`,
-    a: `Yes — there is still a 7-day trial before the subscription kicks in.`,
+    a: `Yes - there is still a 7-day trial before the subscription kicks in.`,
   },
   {
     q: `What's the difference between free and paid?`,
@@ -51,11 +51,11 @@ const FAQ = [
   },
   {
     q: `Will this actually help me grow?`,
-    a: `We focus on the first 2-3 seconds — the hook — because that's what TikTok's algorithm tests first. Fix the hook, and the algorithm gives you more distribution. Creators who apply the reshoot plan typically see 5-40x improvement on their next video.`,
+    a: `We focus on the first 2-3 seconds - the hook - because that's what TikTok's algorithm tests first. Fix the hook, and the algorithm gives you more distribution. Creators who apply the reshoot plan typically see 5-40x improvement on their next video.`,
   },
   {
     q: `How is this different from other TikTok analytics tools?`,
-    a: `Most tools show you what happened (views, likes, retention). We show you why it happened and what to change. Six specialized AI agents give you a specific diagnosis and a reshoot plan — not just charts.`,
+    a: `Most tools show you what happened (views, likes, retention). We show you why it happened and what to change. Six specialized AI agents give you a specific diagnosis and a reshoot plan - not just charts.`,
   },
 ];
 
@@ -95,7 +95,7 @@ function PlanSignupPanel({ plan, label, buttonClass }: { plan: "monthly" | "year
         setStatus("success");
       }
     } catch {
-      setErrorMsg("Network error — please try again");
+      setErrorMsg("Network error - please try again");
       setStatus("error");
     }
   }
@@ -120,7 +120,7 @@ function PlanSignupPanel({ plan, label, buttonClass }: { plan: "monthly" | "year
             <div className="mt-3 rounded-xl border border-zinc-700 bg-zinc-950/80 p-4">
               {status === "success" ? (
                 <p className="text-sm text-zinc-300 text-center py-1">
-                  You&apos;re on the list — we&apos;ll activate your plan and email you when billing goes live.
+                  You&apos;re on the list - we&apos;ll activate your plan and email you when billing goes live.
                 </p>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-3">
@@ -460,9 +460,9 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
             [`Reshoot plan`, `✓`, `✓`, `✓`],
             [`Roast limit`, `3 total`, `Unlimited`, `Unlimited`],
             [`Saved history`, `✓`, `✓`, `✓`],
-            [`Account analysis`, `—`, `✓`, `✓`],
-            [`Priority processing`, `—`, `✓`, `✓`],
-            [`Export reports`, `—`, `—`, `✓`],
+            [`Account analysis`, `-`, `✓`, `✓`],
+            [`Priority processing`, `-`, `✓`, `✓`],
+            [`Export reports`, `-`, `-`, `✓`],
             [`Price`, `$0`, `$${monthlyPrice.toFixed(2)}/mo`, `$${yearlyMonthly.toFixed(2)}/mo`],
           ].map(([feature, free, monthly, yearly]) => (
             <div key={feature} className="contents">

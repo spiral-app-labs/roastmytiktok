@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
       hook: 'Focus primarily on the hook/opening (first 1-3 seconds). Make it a Tier 1 hook that stops the scroll. Keep the rest mostly intact unless it directly undermines the hook.',
       pacing: 'Focus on pacing and flow. Add retention hooks, remove dead air, tighten transitions. Ensure the mid-video hook is present and strong.',
       cta: 'Focus on the call-to-action. Make it specific, matched to content type, and placed effectively. Also improve caption for engagement.',
-      overall: 'Improve everything — hook, pacing, CTA, caption, and overall structure. Be comprehensive.',
-      all: 'Improve everything — hook, pacing, CTA, caption, and overall structure. Be comprehensive.',
+      overall: 'Improve everything - hook, pacing, CTA, caption, and overall structure. Be comprehensive.',
+      all: 'Improve everything - hook, pacing, CTA, caption, and overall structure. Be comprehensive.',
     };
 
     const focus = focus_area || 'overall';
@@ -64,9 +64,9 @@ ${nicheSection}
 ${trendingSection}
 
 ## RULES
-1. PRESERVE the creator's voice and personality — analyze their writing style (formal/casual, humor type, energy level) and maintain it
+1. PRESERVE the creator's voice and personality - analyze their writing style (formal/casual, humor type, energy level) and maintain it
 2. Every change must have a clear reason tied to TikTok performance data
-3. Mark each change with severity: "critical" (must fix — will significantly hurt performance), "recommended" (should fix — measurable improvement), "optional" (nice to have — marginal gain)
+3. Mark each change with severity: "critical" (must fix - will significantly hurt performance), "recommended" (should fix - measurable improvement), "optional" (nice to have - marginal gain)
 4. The improved script must be a complete, ready-to-use replacement
 5. Include a Tier 1 hook if the original doesn't have one
 6. Ensure a mid-video retention hook exists

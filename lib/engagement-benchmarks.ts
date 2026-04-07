@@ -26,7 +26,7 @@ const TIER_BENCHMARKS: TierBenchmark[] = [
   },
   {
     tier: 'Micro',
-    followerRange: '5K–100K',
+    followerRange: '5K-100K',
     avgEngagementRate: 7.5,
     goodEngagementRate: 10.0,
     excellentEngagementRate: 15.0,
@@ -34,11 +34,11 @@ const TIER_BENCHMARKS: TierBenchmark[] = [
     avgSaveRate: 1.5,
     avgShareRate: 0.6,
     optimalPostsPerWeek: 5,
-    growthNotes: 'The growth inflection zone. Algorithm is testing your content with wider audiences — shareability and saves matter most here.',
+    growthNotes: 'The growth inflection zone. Algorithm is testing your content with wider audiences - shareability and saves matter most here.',
   },
   {
     tier: 'Mid-Tier',
-    followerRange: '100K–1M',
+    followerRange: '100K-1M',
     avgEngagementRate: 5.0,
     goodEngagementRate: 7.0,
     excellentEngagementRate: 10.0,
@@ -50,7 +50,7 @@ const TIER_BENCHMARKS: TierBenchmark[] = [
   },
   {
     tier: 'Macro',
-    followerRange: '1M–10M',
+    followerRange: '1M-10M',
     avgEngagementRate: 3.5,
     goodEngagementRate: 5.0,
     excellentEngagementRate: 7.0,
@@ -168,7 +168,7 @@ export function buildBenchmarkPromptSection(
     const comparison = overallEngagement > tier.avgEngagementRate ? 'above' :
       overallEngagement < tier.avgEngagementRate * 0.9 ? 'below' : 'at';
     tierSection = `
-**TIER BENCHMARK COMPARISON — MUST reference these numbers in your analysis:**
+**TIER BENCHMARK COMPARISON - MUST reference these numbers in your analysis:**
 With ${followerCount.toLocaleString()} followers, this creator is in the ${tier.tier} tier (${tier.followerRange}).
 - Tier average engagement rate: ${tier.avgEngagementRate}%  |  This creator's engagement rate: ${overallEngagement.toFixed(1)}%  →  ${comparison} average
 - Good for this tier: ${tier.goodEngagementRate}%  |  Excellent: ${tier.excellentEngagementRate}%
@@ -188,7 +188,7 @@ Identify which metrics (likes, comments) are strong vs weak relative to their ti
   }
 
   const postingSection = `
-**POSTING STRATEGY — MUST include in overallVerdict or nicheAnalysis:**
+**POSTING STRATEGY - MUST include in overallVerdict or nicheAnalysis:**
 - Current posting frequency: ${postsPerWeek.toFixed(1)} posts/week
 - Posting consistency: ${consistencyLabel}${tier ? `\n- Optimal for ${tier.tier} tier growth: ${tier.optimalPostsPerWeek} posts/week` : ''}
 - Consistent accounts grow 30-50% faster than irregular posters at the same quality level.
@@ -198,13 +198,13 @@ You MUST say: "Your posting consistency is ${consistencyLabel}. Consistent accou
 **Best posting times (general TikTok):** Tue-Thu 10am-12pm, 7pm-9pm local time. Fri-Sat evenings for entertainment niches.`;
 
   const distributionSection = `
-**PERFORMANCE DISTRIBUTION — reference in overallVerdict:**
+**PERFORMANCE DISTRIBUTION - reference in overallVerdict:**
 - Median engagement rate: ${median.toFixed(1)}%
 - Median views (true baseline per post): ${medianViews.toLocaleString()}
 - Average views: ${Math.round(totalViews / Math.max(videos.length, 1)).toLocaleString()}${medianViews > 0 ? ` (${(totalViews / Math.max(videos.length, 1)) / medianViews >= 1.8 ? 'likely inflated by spikes' : 'close to baseline'})` : ''}
 - Top 10% engagement rate: ${top10pct.toFixed(1)}%
-- Gap: ${(top10pct - median).toFixed(1)} percentage points — ${top10pct - median > 3 ? 'wide gap indicates inconsistency — their best content proves they CAN perform, they just don\'t do it reliably' : 'narrow gap indicates consistent quality'}
-- Best video engagement: ${bestEngagement.toFixed(1)}% (${bestVideo.view_count.toLocaleString()} views)${tier ? `\n- Compare to tier average: ${bestEngagement > tier.excellentEngagementRate ? 'best video is EXCELLENT for this tier' : bestEngagement > tier.goodEngagementRate ? 'best video is GOOD for this tier' : 'best video is just average for this tier — even peaks aren\'t breaking through'}` : ''}
+- Gap: ${(top10pct - median).toFixed(1)} percentage points - ${top10pct - median > 3 ? 'wide gap indicates inconsistency - their best content proves they CAN perform, they just don\'t do it reliably' : 'narrow gap indicates consistent quality'}
+- Best video engagement: ${bestEngagement.toFixed(1)}% (${bestVideo.view_count.toLocaleString()} views)${tier ? `\n- Compare to tier average: ${bestEngagement > tier.excellentEngagementRate ? 'best video is EXCELLENT for this tier' : bestEngagement > tier.goodEngagementRate ? 'best video is GOOD for this tier' : 'best video is just average for this tier - even peaks aren\'t breaking through'}` : ''}
 You MUST treat median views as the creator's baseline and use average views only as outlier context.
 You MUST reference the gap between median and top 10% as a consistency indicator.`;
 

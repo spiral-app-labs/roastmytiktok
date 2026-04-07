@@ -5,7 +5,7 @@ import { buildBenchmarkPromptSection } from '@/lib/engagement-benchmarks';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { buildCreatorDeltaPromptSection } from '@/lib/creator-delta-analysis';
-import { detectNiche } from '@/lib/niche-detect';
+import { detectNicheFallback } from '@/lib/niche-detect';
 
 const execFileAsync = promisify(execFile);
 
@@ -102,7 +102,7 @@ function buildVideoSummary(videos: TikTokVideo[]): string {
         : 'No sound info';
 
       return [
-        `#${i + 1} — ${date}`,
+        `#${i + 1} - ${date}`,
         `  Description: ${v.description || v.title || '(no caption)'}`,
         `  Views: ${v.view_count.toLocaleString()} | Likes: ${v.like_count.toLocaleString()} | Comments: ${v.comment_count.toLocaleString()} | Engagement: ${engagement}%`,
         `  Duration: ${v.duration}s | ${sound}`,
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     const benchmarkSection = buildBenchmarkPromptSection(followerCount, videos);
     const creatorDeltaSection = buildCreatorDeltaPromptSection(videos);
-    const accountNiche = detectNiche({
+    const accountNiche = detectNicheFallback({
       caption: videos.map((v) => v.description || v.title).join(' '),
       hashtags: videos.flatMap((v) => {
         const source = `${v.description || ''} ${v.title || ''}`;
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
       audioType: videos.some((v) => v.track) ? 'music' : 'none',
     });
     const nicheAuditSection = `
-**NICHE DETECTION AUDIT — use this as a grounding hint, not a blind rule:**
+**NICHE DETECTION AUDIT - use this as a grounding hint, not a blind rule:**
 - Deterministic niche guess from captions/hashtags: ${accountNiche.niche}${accountNiche.subNiche ? ` (${accountNiche.subNiche})` : ''}
 - Confidence: ${accountNiche.confidence}
 - Signals found: ${accountNiche.signals.join(', ') || 'none'}
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
 
 ${videoSummary}
 
-ANALYSIS FRAMEWORK — use these benchmarks to evaluate:
+ANALYSIS FRAMEWORK - use these benchmarks to evaluate:
 
 ${benchmarkSection}
 
@@ -251,16 +251,16 @@ ${nicheAuditSection}
 ${creatorDeltaSection}
 
 **Format Virality Rankings** (compare their formats against this):
-1. Educational/Tutorial — highest save + share potential
-2. Storytelling — deep emotional connection, high comments
-3. POV Videos — instant immersion, shareable in-group content
-4. Duet/Stitch — piggybacks existing viral momentum
-5. Before/After — visual satisfaction, proves results
-6. Trend Participation — leverages algorithmic push
-7. Talking Head — builds authority, personality-dependent
-8. Day-in-the-Life — parasocial connection, aspirational
-9. Green Screen — contextual commentary
-10. Reaction Videos — shared emotional experience
+1. Educational/Tutorial - highest save + share potential
+2. Storytelling - deep emotional connection, high comments
+3. POV Videos - instant immersion, shareable in-group content
+4. Duet/Stitch - piggybacks existing viral momentum
+5. Before/After - visual satisfaction, proves results
+6. Trend Participation - leverages algorithmic push
+7. Talking Head - builds authority, personality-dependent
+8. Day-in-the-Life - parasocial connection, aspirational
+9. Green Screen - contextual commentary
+10. Reaction Videos - shared emotional experience
 
 **Hook Effectiveness Tiers:**
 - Tier 1 (best): Direct address/call-out, curiosity gap, problem-solution promise, visual pattern interrupt
@@ -308,10 +308,10 @@ Analyze patterns and return ONLY valid JSON (no markdown, no explanation) matchi
 }
 
 Rules:
-- topPerformingFormats: 2-4 content formats that get the most views. Group by pattern (e.g. "educational tutorial", "storytime", "POV skit"). Include 1-2 example descriptions. Compare against the format virality rankings above — are they using high-rank or low-rank formats?
-- worstPerformingFormats: 2-3 formats that underperform relative to their average. Explain WHY using specific data (e.g. "your talking head videos average Xk views vs your tutorial videos at Xk — talking head is rank #7 for virality and requires strong personality to carry").
-- recurringWeaknesses: 3-5 specific, actionable weaknesses. Not "improve your hooks" — instead "your hooks are mostly Tier 3 countdown/listicle style which ranks #8 in effectiveness — try direct address hooks like 'If you [specific trait], stop scrolling'". Reference the actual data.
-- strengths: 3-5 things this creator does well. Be specific — name the videos, the formats, the patterns.
+- topPerformingFormats: 2-4 content formats that get the most views. Group by pattern (e.g. "educational tutorial", "storytime", "POV skit"). Include 1-2 example descriptions. Compare against the format virality rankings above - are they using high-rank or low-rank formats?
+- worstPerformingFormats: 2-3 formats that underperform relative to their average. Explain WHY using specific data (e.g. "your talking head videos average Xk views vs your tutorial videos at Xk - talking head is rank #7 for virality and requires strong personality to carry").
+- recurringWeaknesses: 3-5 specific, actionable weaknesses. Not "improve your hooks" - instead "your hooks are mostly Tier 3 countdown/listicle style which ranks #8 in effectiveness - try direct address hooks like 'If you [specific trait], stop scrolling'". Reference the actual data.
+- strengths: 3-5 things this creator does well. Be specific - name the videos, the formats, the patterns.
 - nicheAnalysis: 2-3 sentences on niche positioning. Identify their primary niche from the taxonomy (Comedy, Education, Lifestyle, Fitness, Beauty, Tech, Food, Finance, Travel, Gaming, Parenting, Fashion, Pets, DIY, Music). Audit the niche guess against the captions/hashtags above, say whether the niche is clear enough for the algorithm to categorize them, and compare their engagement rate against the benchmark for their follower tier.
 - creatorDelta.topSuccessFactors: exactly 3 factors that appear disproportionately in the winner cluster versus the loser cluster. Each factor must use this creator's own posts as evidence, not generic advice.
 - creatorDelta.topViewKillers: exactly 3 factors that show up in the loser cluster and suppress views. Again, evidence must come from this creator's own history.
@@ -341,12 +341,12 @@ Rules:
       const normalized = normalizeAccountAnalysis(parsed);
       if (!normalized) {
         console.error('[analyze-account] Missing creator delta payload:', rawText.slice(0, 700));
-        return Response.json({ error: 'Analysis failed — creator delta comparison came back incomplete.' }, { status: 500 });
+        return Response.json({ error: 'Analysis failed - creator delta comparison came back incomplete.' }, { status: 500 });
       }
       analysis = normalized;
     } catch {
       console.error('[analyze-account] Failed to parse Claude response:', rawText.slice(0, 500));
-      return Response.json({ error: 'Analysis failed — could not parse AI response.' }, { status: 500 });
+      return Response.json({ error: 'Analysis failed - could not parse AI response.' }, { status: 500 });
     }
 
     // Store in Supabase

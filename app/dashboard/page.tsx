@@ -138,7 +138,7 @@ export default function DashboardPage() {
             </h1>
             <p className="text-zinc-500 text-base leading-relaxed max-w-md mx-auto">
               Upload before you post. We&apos;ll show you exactly what&apos;s holding it back
-              and how to fix it — so you post the version that blows up.
+              and how to fix it - so you post the version that blows up.
             </p>
           </motion.div>
 
@@ -151,7 +151,7 @@ export default function DashboardPage() {
             <UploadDropZone />
           </motion.div>
 
-          {/* Subtle context — what they'll get */}
+          {/* Subtle context - what they'll get */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -205,7 +205,7 @@ export default function DashboardPage() {
         {/* ─── 1. HERO: Latest Score + Upload ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
-          {/* Latest score — emotional anchor */}
+          {/* Latest score - emotional anchor */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -242,7 +242,7 @@ export default function DashboardPage() {
             </Link>
           </motion.div>
 
-          {/* Upload — primary action */}
+          {/* Upload - primary action */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -419,7 +419,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-zinc-500">Your best video</p>
-                <p className="text-sm text-white truncate">{bestEntry.filename || 'Untitled'} — <span className={`font-semibold ${scoreColor(bestEntry.overallScore)}`}>{bestEntry.overallScore}/100</span></p>
+                <p className="text-sm text-white truncate">{bestEntry.filename || 'Untitled'} - <span className={`font-semibold ${scoreColor(bestEntry.overallScore)}`}>{bestEntry.overallScore}/100</span></p>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-zinc-700 group-hover:text-zinc-400 transition-colors shrink-0" />
             </Link>

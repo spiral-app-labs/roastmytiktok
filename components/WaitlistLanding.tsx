@@ -141,7 +141,7 @@ export default function WaitlistLanding() {
           </h2>
 
           <p className="text-base md:text-lg text-zinc-400 max-w-xl mx-auto leading-relaxed">
-            Upload your video. 6 AI agents tear it apart — frame by frame, word by word, beat by beat.
+            Upload your video. 6 AI agents tear it apart - frame by frame, word by word, beat by beat.
             Your hook, your lighting, your audio, your captions. Nothing gets a pass.
             Get the brutally honest feedback that will actually make you go viral.
           </p>
@@ -209,10 +209,10 @@ export default function WaitlistLanding() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                 </span>
                 <span className="text-red-400 font-semibold">{slotsRemaining} spots left</span>
-                <span className="text-zinc-600">— founding rate locked at signup</span>
+                <span className="text-zinc-600">- founding rate locked at signup</span>
               </div>
               <p className="text-zinc-600 text-xs text-center leading-relaxed">
-                By joining, you agree to receive launch updates at this email. No spam — unsubscribe anytime.
+                By joining, you agree to receive launch updates at this email. No spam - unsubscribe anytime.
                 See our{' '}
                 <a href="/privacy" className="text-orange-400/70 hover:text-orange-400 transition-colors hover:underline">Privacy Policy</a>.
               </p>

@@ -91,7 +91,7 @@ export function ViralDiagnosisSummary({ agents, actionPlan }: Props) {
         <div className="rounded-2xl border border-orange-500/25 bg-orange-500/[0.06] p-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-lg">⚡</span>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-orange-400">Quick Wins — Highest Impact Fixes</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-orange-400">Quick Wins - Highest Impact Fixes</h3>
           </div>
           <div className="space-y-2">
             {quickWins.map((step, idx) => {
@@ -126,7 +126,7 @@ export function ViralDiagnosisSummary({ agents, actionPlan }: Props) {
               const agent = AGENTS.find(ag => ag.key === a.agent);
               return (
                 <span key={a.agent} className="flex items-center gap-1.5 rounded-lg border border-zinc-700/50 bg-zinc-900/60 px-3 py-1.5 text-xs text-zinc-500">
-                  {agent?.emoji} {agent?.name} — {a.failureReason || 'not evaluated'}
+                  {agent?.emoji} {agent?.name} - {a.failureReason || 'not evaluated'}
                 </span>
               );
             })}

@@ -178,7 +178,7 @@ async function callCaptionAnalysis(
         ...frames.flatMap(frame => ([
           {
             type: 'text' as const,
-            text: `${frame.label} (${frame.slot === 'opening' ? 'opening / hook zone — check for text overlays and title cards' : 'story zone'})`,
+            text: `${frame.label} (${frame.zone === 'hook' ? 'opening / hook zone - check for text overlays and title cards' : 'story zone'})`,
           },
           {
             type: 'image' as const,

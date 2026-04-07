@@ -46,8 +46,8 @@ const NICHE_SCHEDULES: Record<NicheCategory, {
     frequency: { min: 4, max: 7, label: '4-7x/week' },
     tips: [
       'Post during lunch breaks and evening wind-down for max shares',
-      'Friday evenings get the most shares — people send comedy to friends',
-      'Trending sounds peak within 48 hrs — post fast when you spot one',
+      'Friday evenings get the most shares - people send comedy to friends',
+      'Trending sounds peak within 48 hrs - post fast when you spot one',
     ],
   },
   education: {
@@ -58,7 +58,7 @@ const NICHE_SCHEDULES: Record<NicheCategory, {
     okayHours: [6, 20],
     frequency: { min: 3, max: 5, label: '3-5x/week' },
     tips: [
-      'Morning posts get saved more — people bookmark during commutes',
+      'Morning posts get saved more - people bookmark during commutes',
       'Midweek performs best; weekends dip for educational content',
       'Series-style content (Part 1, 2, 3) boosts saves and follows',
     ],
@@ -71,7 +71,7 @@ const NICHE_SCHEDULES: Record<NicheCategory, {
     okayHours: [8, 17],
     frequency: { min: 4, max: 6, label: '4-6x/week' },
     tips: [
-      'Monday morning routines perform well — people seek motivation',
+      'Monday morning routines perform well - people seek motivation',
       'GRWM content peaks between 7-9 AM when your audience is getting ready',
       'Sunday evening "weekly reset" content gets high saves',
     ],
@@ -85,7 +85,7 @@ const NICHE_SCHEDULES: Record<NicheCategory, {
     frequency: { min: 4, max: 6, label: '4-6x/week' },
     tips: [
       'Early morning posts catch pre-workout scrollers (5-7 AM)',
-      'Monday is the biggest day — "new week new me" energy',
+      'Monday is the biggest day - "new week new me" energy',
       'Post workout tutorials before typical gym hours in your timezone',
     ],
   },
@@ -110,7 +110,7 @@ const NICHE_SCHEDULES: Record<NicheCategory, {
     okayHours: [8, 21],
     frequency: { min: 3, max: 5, label: '3-5x/week' },
     tips: [
-      'Weekday lunch breaks are peak — tech workers scroll at noon',
+      'Weekday lunch breaks are peak - tech workers scroll at noon',
       'Product launch days: post immediately for discovery boost',
       'Coding tutorials perform better posted before work hours (7-9 AM)',
     ],
@@ -162,7 +162,7 @@ const NICHE_SCHEDULES: Record<NicheCategory, {
     okayHours: [10, 23],
     frequency: { min: 5, max: 7, label: '5-7x/week' },
     tips: [
-      'Weekend evenings are prime gaming time — post when gamers are online',
+      'Weekend evenings are prime gaming time - post when gamers are online',
       'New game releases = immediate content for algorithm boost',
       'Late night posts (10 PM+) still perform well for gaming audiences',
     ],
@@ -201,7 +201,7 @@ const NICHE_SCHEDULES: Record<NicheCategory, {
     okayHours: [10, 17],
     frequency: { min: 5, max: 7, label: '5-7x/week' },
     tips: [
-      'Cute pet content is evergreen — consistency matters more than timing',
+      'Cute pet content is evergreen - consistency matters more than timing',
       'Morning posts catch commuters looking for serotonin boosts',
       'Monday blues = peak cute pet content engagement',
     ],
@@ -214,7 +214,7 @@ const NICHE_SCHEDULES: Record<NicheCategory, {
     okayHours: [8, 17],
     frequency: { min: 3, max: 5, label: '3-5x/week' },
     tips: [
-      'Weekend mornings are prime — people plan DIY projects on weekends',
+      'Weekend mornings are prime - people plan DIY projects on weekends',
       'Before/After content always outperforms step-by-step alone',
       'Wednesday posts catch mid-week hobby scrollers',
     ],
@@ -227,7 +227,7 @@ const NICHE_SCHEDULES: Record<NicheCategory, {
     okayHours: [9, 22],
     frequency: { min: 4, max: 7, label: '4-7x/week' },
     tips: [
-      'Friday is music discovery day — new music Fridays are real on TikTok too',
+      'Friday is music discovery day - new music Fridays are real on TikTok too',
       'Evening posts catch people building playlists and vibing',
       'Cover/remix trending sounds within 24 hours for max discoverability',
     ],

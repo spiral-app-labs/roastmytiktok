@@ -44,7 +44,7 @@ export function CollapsibleSection({
       id={id}
       className={`scroll-mt-20 rounded-3xl border transition-all ${accent} ${gated && !open ? 'opacity-60 saturate-[0.5]' : ''}`}
     >
-      {/* Header — always visible, clickable to toggle */}
+      {/* Header - always visible, clickable to toggle */}
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-3 p-5 sm:p-6 text-left group"

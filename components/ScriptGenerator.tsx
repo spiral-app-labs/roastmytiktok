@@ -384,7 +384,7 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
                     <span className="font-bold text-white">Hook</span>
                   </div>
                   <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full font-semibold">
-                    0–3s
+                    0-3s
                   </span>
                 </div>
                 <p className="text-zinc-200 text-sm leading-relaxed font-medium">&ldquo;{script.hook}&rdquo;</p>

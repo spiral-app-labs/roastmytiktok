@@ -37,7 +37,7 @@ export function HookIdentification({ hookId }: Props) {
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
       <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-3">
-        🎯 your hook — what viewers see in the first 3 seconds
+        🎯 your hook - what viewers see in the first 3 seconds
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {panels.map((panel) => (

@@ -134,7 +134,7 @@ export default function AccountResultsPage() {
         >
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
             <span className="fire-text">@{analysis.handle}</span>
-            <span className="text-white"> — Pattern Report</span>
+            <span className="text-white"> - Pattern Report</span>
           </h1>
           <p className="text-zinc-400">
             {analysis.totalVideos} videos analyzed &middot; {formatNumber(analysis.avgViews)} avg views

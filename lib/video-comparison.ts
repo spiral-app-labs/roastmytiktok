@@ -127,7 +127,7 @@ function buildKeyLesson(summary: Pick<ComparisonSummary, 'improved' | 'regressed
     return `Your ${topImproved.name.toLowerCase()} got stronger (+${topImproved.delta}), but ${topRegressed.name.toLowerCase()} slipped (${topRegressed.delta}). Next video: keep the ${topImproved.name.toLowerCase()} gains and focus on fixing ${topRegressed.name.toLowerCase()}.`;
   }
   if (topImproved) {
-    return `Clear progress — ${topImproved.name.toLowerCase()} jumped by ${topImproved.delta} points. Keep doing what you changed there and start applying the same energy to your weakest dimension.`;
+    return `Clear progress - ${topImproved.name.toLowerCase()} jumped by ${topImproved.delta} points. Keep doing what you changed there and start applying the same energy to your weakest dimension.`;
   }
   if (topRegressed) {
     return `${topRegressed.name.toLowerCase()} dropped by ${Math.abs(topRegressed.delta)} points. Before your next video, revisit the improvement tips from your last roast on that dimension.`;

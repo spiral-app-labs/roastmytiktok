@@ -24,19 +24,10 @@ function isAgentFailed(a: { failed?: boolean; findings?: string[] }): boolean {
   return false;
 }
 
-function getLetterGrade(score: number): string {
-  if (score >= 90) return 'A+';
-  if (score >= 80) return 'A';
-  if (score >= 70) return 'B';
-  if (score >= 60) return 'C';
-  if (score >= 50) return 'D';
-  return 'F';
-}
-
 function getVerdictOneLiner(score: number): string {
   if (score >= 90) return "this one's primed to break out. polish the edges.";
   if (score >= 80) return "strong foundation. there's a higher ceiling here.";
-  if (score >= 70) return "real potential — hasn't cracked through yet.";
+  if (score >= 70) return "real potential - hasn't cracked through yet.";
   if (score >= 60) return "the content is there. the packaging is holding it back.";
   if (score >= 50) return "the idea works. the execution needs help.";
   if (score >= 40) return "something here wants to perform. find it and amplify it.";
@@ -250,7 +241,7 @@ function RoastContent({
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
             <p className="text-xs text-yellow-300/80 leading-relaxed">
-              <span className="font-semibold text-yellow-300">Partial results</span> — {failedDimensions.size} of 6 dimension{failedDimensions.size > 1 ? 's' : ''} could not be analyzed (API overload). Scores and recommendations reflect the completed dimensions only. Try uploading again for a full analysis.
+              <span className="font-semibold text-yellow-300">Partial results</span> - {failedDimensions.size} of 6 dimension{failedDimensions.size > 1 ? 's' : ''} could not be analyzed (API overload). Scores and recommendations reflect the completed dimensions only. Try uploading again for a full analysis.
             </p>
           </motion.div>
         )}
@@ -269,7 +260,7 @@ function RoastContent({
             transition={{ type: 'spring', stiffness: 120, damping: 16, delay: 0.2 }}
             className="inline-block mb-4"
           >
-            <ScoreRing score={roast.overallScore} size={180} showGrade={getLetterGrade(roast.overallScore)} />
+            <ScoreRing score={roast.overallScore} size={180} />
           </motion.div>
 
           {/* Verdict */}
@@ -361,32 +352,42 @@ function RoastContent({
           <ScoreCard ref={storyRef} roast={roast} variant="story" />
         </div>
 
-        {/* ========== TL;DR ========== */}
+        {/* ========== KEY TAKEAWAY ========== */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="mb-8 rounded-xl border border-zinc-800/60 bg-zinc-900/60 px-5 py-4"
+          className="mb-10 relative rounded-2xl border border-zinc-800/60 bg-zinc-900/60 overflow-hidden"
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">Summary</p>
-          <p className="text-sm text-zinc-300 leading-relaxed">{sanitizeUserFacingText(roast.verdict, 'Analysis complete — see recommendations below.')}</p>
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-500 to-pink-500" />
+          <div className="px-6 py-5 pl-7">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Key Takeaway</p>
+            <p className="text-[15px] text-zinc-200 leading-relaxed">{sanitizeUserFacingText(roast.verdict, 'Analysis complete - see recommendations below.')}</p>
+          </div>
         </motion.div>
 
-        {/* ========== RECOMMENDATIONS ========== */}
+        {/* ========== SCORE BREAKDOWN ========== */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="mb-8"
+          className="mb-10"
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Fix List</p>
+          <QuickScoresBar agents={roast.agents} />
+        </motion.div>
+
+        {/* ========== WHAT TO IMPROVE ========== */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+          className="mb-10"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">What to Improve</p>
           {actionPlan.length > 0 ? (
             <div className="space-y-3">
               {actionPlan.map((step, idx) => {
                 const isFirstHook = idx === 0 && step.dimension === 'hook';
-                const isHookSection = step.dimension === 'hook';
-                const prevIsNonHook = idx > 0 && actionPlan[idx - 1].dimension !== 'hook';
-                const showNonHookDivider = !isHookSection && prevIsNonHook === false && idx > 0 && actionPlan[idx - 1].dimension === 'hook';
                 const improvedScore = getEstimatedImprovedScore(
                   roast.overallScore,
                   step.dimension,
@@ -394,36 +395,22 @@ function RoastContent({
                 );
                 const viewImpact = getViewImpact(roast.overallScore, improvedScore);
                 return (
-                  <div key={`${step.priority}-${step.dimension}-${idx}`}>
-                    {showNonHookDivider && (
-                      <p className="text-xs font-bold uppercase tracking-widest text-zinc-600 mt-5 mb-3 px-1">Other improvements</p>
-                    )}
-                    <IssueSolutionCard
-                      step={step}
-                      timestampLabel={formatTimestamp(step)}
-                      viewProjection={isFirstHook ? viewProjection : undefined}
-                      isHighestImpact={isFirstHook}
-                      viewImpact={viewImpact}
-                    />
-                  </div>
+                  <IssueSolutionCard
+                    key={`${step.priority}-${step.dimension}-${idx}`}
+                    step={step}
+                    timestampLabel={formatTimestamp(step)}
+                    viewProjection={isFirstHook ? viewProjection : undefined}
+                    isHighestImpact={isFirstHook}
+                    viewImpact={viewImpact}
+                  />
                 );
               })}
             </div>
           ) : (
-            <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-4 text-center">
+            <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-4 text-center">
               <p className="text-sm text-zinc-400">We couldn&apos;t generate specific recommendations for this video. Try uploading again for a more detailed analysis.</p>
             </div>
           )}
-        </motion.div>
-
-        {/* ========== QUICK SCORES ========== */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-          className="mb-8"
-        >
-          <QuickScoresBar agents={roast.agents} />
         </motion.div>
 
         {/* ========== RETENTION CURVE ========== */}
@@ -431,7 +418,7 @@ function RoastContent({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.0 }}
-          className="mb-8"
+          className="mb-10"
         >
           <RetentionCurve
             hookScore={roast.agents.find(a => a.agent === 'hook')?.score ?? roast.hookSummary?.score ?? 50}

@@ -77,7 +77,7 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
   return getHistory();
 }
 
-/** Save a roast result to history — localStorage + Supabase */
+/** Save a roast result to history - localStorage + Supabase */
 export function saveToHistory(result: RoastResult, source: 'upload' | 'url', filename?: string): void {
   if (typeof window === 'undefined') return;
   const history = getHistory();
@@ -117,7 +117,7 @@ export function getEscalationLevel(occurrences: number): EscalationInfo {
   return { level: 0, label: '' };
 }
 
-/** Detect chronic issues — problems that appear 2+ times */
+/** Detect chronic issues - problems that appear 2+ times */
 export function getChronicIssues(history: HistoryEntry[]): ChronicIssue[] {
   if (history.length < 2) return [];
 
@@ -171,7 +171,7 @@ export function getEscalatingRoast(
     hook: {
       2: `${baseRoast} We've flagged your hook before. You've heard the feedback. The question now is whether you're going to act on it.`,
       3: `We've told you three times: your hook is killing you. At this point it's not a TikTok problem. It's a listening problem.`,
-      4: `Four roasts. Four times we've mentioned the hook. We're not angry — we're just disappointed. Your potential is not the problem. Your opening three seconds are.`,
+      4: `Four roasts. Four times we've mentioned the hook. We're not angry - we're just disappointed. Your potential is not the problem. Your opening three seconds are.`,
     },
     visual: {
       2: `${baseRoast} The lighting situation hasn't improved since last time. Your ring light is waiting. Your window is there. We're begging.`,
@@ -190,11 +190,11 @@ export function getEscalatingRoast(
     },
     conversion: {
       2: `${baseRoast} We mentioned the missing CTA last time too. You're leaving followers on the table every single video.`,
-      3: `Three roasts. Three videos with no clear call to action. You're basically a charity — giving content away and asking for nothing in return.`,
+      3: `Three roasts. Three videos with no clear call to action. You're basically a charity - giving content away and asking for nothing in return.`,
       4: `Four videos without telling people what to do next. At this point you're allergic to growth.`,
     },
     accessibility: {
-      2: `${baseRoast} The accessibility issues showed up last time too. That's real viewers you're losing — not a hypothetical.`,
+      2: `${baseRoast} The accessibility issues showed up last time too. That's real viewers you're losing - not a hypothetical.`,
       3: `Three roasts flagging the same accessibility gaps. Half the internet scrolls with sound off. You're invisible to them.`,
       4: `Four videos that exclude the same audiences. This isn't hard to fix. It's hard to keep ignoring.`,
     },

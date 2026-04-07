@@ -124,14 +124,14 @@ async function transcribeWithWhisper(
 ): Promise<TranscriptionResult | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.warn('[transcribe] OPENAI_API_KEY not set — skipping Whisper');
+    console.warn('[transcribe] OPENAI_API_KEY not set - skipping Whisper');
     return null;
   }
 
   // Validate file size before sending to API
   const fileSize = statSync(audioPath).size;
   if (fileSize > WHISPER_MAX_FILE_BYTES) {
-    console.warn(`[transcribe] Audio file too large for Whisper (${(fileSize / 1024 / 1024).toFixed(1)} MB > ${WHISPER_MAX_FILE_BYTES / 1024 / 1024} MB limit) — skipping`);
+    console.warn(`[transcribe] Audio file too large for Whisper (${(fileSize / 1024 / 1024).toFixed(1)} MB > ${WHISPER_MAX_FILE_BYTES / 1024 / 1024} MB limit) - skipping`);
     return null;
   }
 
@@ -238,7 +238,7 @@ async function transcribeWithAssemblyAI(
 ): Promise<TranscriptionResult | null> {
   const apiKey = process.env.ASSEMBLYAI_API_KEY;
   if (!apiKey) {
-    console.warn('[transcribe] ASSEMBLYAI_API_KEY not set — skipping AssemblyAI');
+    console.warn('[transcribe] ASSEMBLYAI_API_KEY not set - skipping AssemblyAI');
     return null;
   }
 
@@ -247,7 +247,7 @@ async function transcribeWithAssemblyAI(
   // Validate file size before uploading
   const fileSize = statSync(audioPath).size;
   if (fileSize > ASSEMBLYAI_MAX_FILE_BYTES) {
-    console.warn(`[transcribe] Audio file too large for AssemblyAI (${(fileSize / 1024 / 1024).toFixed(1)} MB > ${ASSEMBLYAI_MAX_FILE_BYTES / 1024 / 1024} MB limit) — skipping`);
+    console.warn(`[transcribe] Audio file too large for AssemblyAI (${(fileSize / 1024 / 1024).toFixed(1)} MB > ${ASSEMBLYAI_MAX_FILE_BYTES / 1024 / 1024} MB limit) - skipping`);
     return null;
   }
 
@@ -340,14 +340,14 @@ async function transcribeWithClaude(
 ): Promise<TranscriptionResult | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    console.warn('[transcribe] ANTHROPIC_API_KEY not set — skipping Claude audio fallback');
+    console.warn('[transcribe] ANTHROPIC_API_KEY not set - skipping Claude audio fallback');
     return null;
   }
 
   // Claude audio input supports up to ~25MB
   const fileSize = statSync(audioPath).size;
   if (fileSize > 25 * 1024 * 1024) {
-    console.warn(`[transcribe] Audio file too large for Claude audio fallback (${(fileSize / 1024 / 1024).toFixed(1)} MB) — skipping`);
+    console.warn(`[transcribe] Audio file too large for Claude audio fallback (${(fileSize / 1024 / 1024).toFixed(1)} MB) - skipping`);
     return null;
   }
 
@@ -401,7 +401,7 @@ Rules:
 - Transcribe every spoken word faithfully
 - Estimate timestamps as best you can (seconds from start)
 - If there is no speech, return {"text": "", "segments": []}
-- Do not add commentary or explanation — only the JSON`,
+- Do not add commentary or explanation - only the JSON`,
           },
         ],
       }],
@@ -497,7 +497,7 @@ export async function transcribeAudio(
 
   // Fallback: use Claude audio understanding if primary providers failed
   if (hasClaude) {
-    console.log('[transcribe] Primary providers failed — trying Claude audio fallback');
+    console.log('[transcribe] Primary providers failed - trying Claude audio fallback');
     try {
       const claudeResult = await transcribeWithClaude(audioPath);
       if (claudeResult?.text || claudeResult?.segments.length) return claudeResult;

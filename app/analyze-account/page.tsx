@@ -19,10 +19,10 @@ const TIER_BENCHMARKS: Record<string, Record<DimensionKey, number>> = {
   'Beginner (<50)': {
     hook: 35, visual: 38, audio: 40, authenticity: 42, conversion: 28, accessibility: 34,
   },
-  'Rising (50–69)': {
+  'Rising (50-69)': {
     hook: 55, visual: 58, audio: 60, authenticity: 62, conversion: 48, accessibility: 54,
   },
-  'Pro (70–84)': {
+  'Pro (70-84)': {
     hook: 75, visual: 78, audio: 76, authenticity: 78, conversion: 68, accessibility: 74,
   },
   'Elite (85+)': {
@@ -32,16 +32,16 @@ const TIER_BENCHMARKS: Record<string, Record<DimensionKey, number>> = {
 
 function getUserTier(avg: number): string {
   if (avg >= 85) return 'Elite (85+)';
-  if (avg >= 70) return 'Pro (70–84)';
-  if (avg >= 50) return 'Rising (50–69)';
+  if (avg >= 70) return 'Pro (70-84)';
+  if (avg >= 50) return 'Rising (50-69)';
   return 'Beginner (<50)';
 }
 
 function getNextTier(avg: number): string | null {
   if (avg >= 85) return null;
   if (avg >= 70) return 'Elite (85+)';
-  if (avg >= 50) return 'Pro (70–84)';
-  return 'Rising (50–69)';
+  if (avg >= 50) return 'Pro (70-84)';
+  return 'Rising (50-69)';
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ function generatePlaybook(entries: HistoryEntry[]): PlaybookItem[] {
       {
         emoji: '🎯',
         title: 'Roast more videos to unlock your playbook',
-        body: 'After 2+ roasts, we\'ll surface personalized patterns — what\'s working, what to fix, and exactly what to post next.',
+        body: 'After 2+ roasts, we\'ll surface personalized patterns - what\'s working, what to fix, and exactly what to post next.',
         type: 'trend',
       },
     ];
@@ -147,7 +147,7 @@ function generatePlaybook(entries: HistoryEntry[]): PlaybookItem[] {
     items.push({
       emoji: topDim.agent.emoji,
       title: `Your ${topDim.agent.name.replace(' Agent', '')} is your superpower`,
-      body: `Averaging ${topDim.avg}/100 across your roasts. This is your strongest signal — lean into it and build more videos that highlight it.`,
+      body: `Averaging ${topDim.avg}/100 across your roasts. This is your strongest signal - lean into it and build more videos that highlight it.`,
       type: 'strength',
     });
   }
@@ -157,7 +157,7 @@ function generatePlaybook(entries: HistoryEntry[]): PlaybookItem[] {
     items.push({
       emoji: '⚠️',
       title: `Fix your ${bottomDim.agent.name.replace(' Agent', '')} and watch your scores climb`,
-      body: `Averaging ${bottomDim.avg}/100 — this is your biggest drag. ${bottomDim.agent.analyzes}. One focused fix here moves the needle more than anything else.`,
+      body: `Averaging ${bottomDim.avg}/100 - this is your biggest drag. ${bottomDim.agent.analyzes}. One focused fix here moves the needle more than anything else.`,
       type: 'weakness',
     });
   }
@@ -173,7 +173,7 @@ function generatePlaybook(entries: HistoryEntry[]): PlaybookItem[] {
     if (delta >= 5) {
       items.push({
         emoji: '📈',
-        title: 'You\'re improving — don\'t stop now',
+        title: 'You\'re improving - don\'t stop now',
         body: `Your average score has gone up ${delta} points over your last ${entries.length} roasts. Whatever you changed recently is working. Keep it up.`,
         type: 'trend',
       });
@@ -181,13 +181,13 @@ function generatePlaybook(entries: HistoryEntry[]): PlaybookItem[] {
       items.push({
         emoji: '📉',
         title: 'Your scores are slipping',
-        body: `Average dropped ${Math.abs(delta)} points recently. Usually this means inconsistency in execution — revisit the fundamentals in your lowest-scoring dimension.`,
+        body: `Average dropped ${Math.abs(delta)} points recently. Usually this means inconsistency in execution - revisit the fundamentals in your lowest-scoring dimension.`,
         type: 'trend',
       });
     } else {
       items.push({
         emoji: '➡️',
-        title: 'Scores are consistent — time to level up',
+        title: 'Scores are consistent - time to level up',
         body: `You\'re holding steady around ${secondAvg}/100. Good consistency, but you\'ve got room to break into the next tier. Focus on your weakest dimension.`,
         type: 'trend',
       });
@@ -200,7 +200,7 @@ function generatePlaybook(entries: HistoryEntry[]): PlaybookItem[] {
     items.push({
       emoji: '💡',
       title: `Quick win: push your ${pick.agent.name.replace(' Agent', '')} past 70`,
-      body: `Currently at ${pick.avg}/100 — close to good. A small improvement here (${pick.agent.analyzes}) could unlock noticeably higher overall scores.`,
+      body: `Currently at ${pick.avg}/100 - close to good. A small improvement here (${pick.agent.analyzes}) could unlock noticeably higher overall scores.`,
       type: 'trend',
     });
   }
@@ -212,7 +212,7 @@ function generatePlaybook(entries: HistoryEntry[]): PlaybookItem[] {
     items.push({
       emoji: '🎲',
       title: 'Your results are too inconsistent',
-      body: `${maxScore} on your best day, ${minScore} on your worst — a ${maxScore - minScore}-point swing. TikTok rewards consistency. Build a repeatable process and stick to it.`,
+      body: `${maxScore} on your best day, ${minScore} on your worst - a ${maxScore - minScore}-point swing. TikTok rewards consistency. Build a repeatable process and stick to it.`,
       type: 'weakness',
     });
   }
@@ -438,7 +438,7 @@ function RankingCard({ entry, rank, showTrend, prevEntry }: {
           <div className="flex items-center gap-3 shrink-0">
             {showTrend && delta !== null && (
               <span className={`text-xs font-bold ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
-                {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '—'}
+                {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '-'}
               </span>
             )}
             <div className={`px-3 py-1 rounded-xl border text-sm font-black ${scoreColor(entry.overallScore)} ${scoreBg(entry.overallScore)}`}>
@@ -805,7 +805,7 @@ function TikTokAccountAnalyzer() {
           </div>
 
           {loading && (
-            <p className="text-xs text-zinc-500 animate-pulse">Fetching videos via yt-dlp + running AI analysis — this takes ~20–40 seconds...</p>
+            <p className="text-xs text-zinc-500 animate-pulse">Fetching videos via yt-dlp + running AI analysis - this takes ~20-40 seconds...</p>
           )}
 
           {error && (
@@ -867,7 +867,7 @@ export default function AnalyzeAccountPage() {
               Your <span className="fire-text">Account Analysis</span>
             </span>
           }
-          subtitle="All your roasts in one place. Private — only you can see this."
+          subtitle="All your roasts in one place. Private - only you can see this."
           backHref="/dashboard"
           backLabel="← Dashboard"
         />

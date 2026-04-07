@@ -26,7 +26,7 @@ function ScriptPreview({ script }: { script: GeneratedScript }) {
         <div className="flex items-center gap-2 mb-2">
           <span className="text-sm">🎣</span>
           <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Hook</span>
-          <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full">0–3s</span>
+          <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full">0-3s</span>
         </div>
         <p className="text-sm text-zinc-200 italic">&ldquo;{script.hook}&rdquo;</p>
       </div>

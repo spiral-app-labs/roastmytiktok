@@ -1,5 +1,5 @@
 /**
- * TikTok Sound Detection — Phase 1 (zero API cost)
+ * TikTok Sound Detection - Phase 1 (zero API cost)
  *
  * Extracts music/sound metadata from a TikTok video URL by parsing the
  * page's embedded JSON-LD / __NEXT_DATA__ / oEmbed payload.
@@ -61,12 +61,12 @@ function extractFromHtml(html: string): DetectedSound | null {
     }
   }
 
-  // Pattern 3: inline JSON blobs — look for "music":{"id":"... patterns
+  // Pattern 3: inline JSON blobs - look for "music":{"id":"... patterns
   const inlineMatch = html.match(/"music"\s*:\s*\{[^}]{10,500}\}/);
   if (inlineMatch) {
     try {
       const music = JSON.parse('{' + inlineMatch[0].slice(inlineMatch[0].indexOf(':') + 1).trim() + '}');
-      // The regex above captures the value object, not wrapped — try to parse it differently
+      // The regex above captures the value object, not wrapped - try to parse it differently
       const valueStr = inlineMatch[0].slice(inlineMatch[0].indexOf(':') + 1).trim();
       return parseMusicObject(JSON.parse(valueStr));
     } catch {
@@ -117,7 +117,7 @@ async function tryOEmbed(tiktokUrl: string): Promise<DetectedSound | null> {
     if (!res.ok) return null;
     const data = await res.json() as Record<string, unknown>;
     // oEmbed doesn't expose sound metadata directly, but the title/author fields
-    // are available as context. Not enough — fall through to HTML parse.
+    // are available as context. Not enough - fall through to HTML parse.
     void data;
     return null;
   } catch {
@@ -146,7 +146,7 @@ async function tryHtmlScrape(tiktokUrl: string): Promise<DetectedSound | null> {
 /**
  * Main export: detect the sound used in a TikTok video.
  * Returns null if no TikTok URL is available or detection fails.
- * Never throws — all errors are swallowed and logged.
+ * Never throws - all errors are swallowed and logged.
  */
 export async function detectTikTokSound(tiktokUrl: string | null | undefined): Promise<DetectedSound | null> {
   if (!tiktokUrl) return null;

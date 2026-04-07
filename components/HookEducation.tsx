@@ -13,7 +13,7 @@ import {
 } from '@/lib/hook-education';
 
 /* ------------------------------------------------------------------ */
-/*  Tooltip — hover/tap to reveal a concept definition                 */
+/*  Tooltip - hover/tap to reveal a concept definition                 */
 /* ------------------------------------------------------------------ */
 
 export function EducationalTooltip({ tooltipKey, children }: { tooltipKey: string; children: React.ReactNode }) {
@@ -49,7 +49,7 @@ export function EducationalTooltip({ tooltipKey, children }: { tooltipKey: strin
 }
 
 /* ------------------------------------------------------------------ */
-/*  Hook Hierarchy Diagram — the "fix the hook first" visual           */
+/*  Hook Hierarchy Diagram - the "fix the hook first" visual           */
 /* ------------------------------------------------------------------ */
 
 export function HookHierarchyDiagram({ isHookWeak }: { isHookWeak: boolean }) {
@@ -127,7 +127,7 @@ export function HookHierarchyDiagram({ isHookWeak }: { isHookWeak: boolean }) {
             Your hook is not clearing the gate right now.
           </p>
           <p className="text-xs text-zinc-400 mt-1">
-            That means every improvement below — better captions, stronger CTA, smarter hashtags — gets wasted because viewers never make it past the first second. Fix the hook first, then come back and polish the rest.
+            That means every improvement below - better captions, stronger CTA, smarter hashtags - gets wasted because viewers never make it past the first second. Fix the hook first, then come back and polish the rest.
           </p>
         </div>
       )}
@@ -141,7 +141,7 @@ export function HookHierarchyDiagram({ isHookWeak }: { isHookWeak: boolean }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Hook Examples Bank — strong vs weak by type                        */
+/*  Hook Examples Bank - strong vs weak by type                        */
 /* ------------------------------------------------------------------ */
 
 const TYPE_LABELS: Record<string, string> = {
@@ -240,14 +240,14 @@ export function HookExamplesBank({ detectedType }: { detectedType: DetectedHookT
       </AnimatePresence>
 
       <p className="mt-4 text-xs text-zinc-500 italic">
-        the difference is not production value — it is whether the first beat gives a cold viewer a reason to stay.
+        the difference is not production value - it is whether the first beat gives a cold viewer a reason to stay.
       </p>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  "What is a hook?" beginner explainer — always shown                */
+/*  "What is a hook?" beginner explainer - always shown                */
 /* ------------------------------------------------------------------ */
 
 export function HookExplainerBanner() {
@@ -271,7 +271,7 @@ export function HookExplainerBanner() {
       </div>
 
       <p className="mt-2 text-sm text-zinc-300 leading-relaxed">
-        A hook is the first 1–2 seconds of your video. It is the only part every viewer sees — and for most of them, it is also the last.
+        A hook is the first 1-2 seconds of your video. It is the only part every viewer sees - and for most of them, it is also the last.
         TikTok tests each video on a small batch of strangers. If they swipe away in the first second, the algorithm never shows it to more people.
       </p>
 
@@ -288,7 +288,7 @@ export function HookExplainerBanner() {
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-1">the 1-second rule</p>
                 <p className="text-xs text-zinc-300 leading-relaxed">
-                  The average TikTok viewer decides whether to keep watching within the first second. Not three seconds, not five — one. Your hook has to earn their attention before the brain even finishes processing the image.
+                  The average TikTok viewer decides whether to keep watching within the first second. Not three seconds, not five - one. Your hook has to earn their attention before the brain even finishes processing the image.
                 </p>
               </div>
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
@@ -296,7 +296,7 @@ export function HookExplainerBanner() {
                 <p className="text-xs text-zinc-300 leading-relaxed">
                   Strong hooks do one or more of these instantly: show a surprising visual, make a bold claim, ask a question the viewer wants answered, or display text that creates an{' '}
                   <EducationalTooltip tooltipKey="open-loop">open loop</EducationalTooltip>.
-                  The best hooks stack multiple types — a curiosity line over a bold visual with motion.
+                  The best hooks stack multiple types - a curiosity line over a bold visual with motion.
                 </p>
               </div>
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
@@ -310,7 +310,7 @@ export function HookExplainerBanner() {
                   <EducationalTooltip tooltipKey="mute-mode">mute-mode</EducationalTooltip> matters
                 </p>
                 <p className="text-xs text-zinc-300 leading-relaxed">
-                  About half of TikTok viewers browse with sound off. If your hook relies entirely on a spoken line, you are invisible to half your potential audience. Strong hooks work on mute — through visuals, motion, and on-screen text.
+                  About half of TikTok viewers browse with sound off. If your hook relies entirely on a spoken line, you are invisible to half your potential audience. Strong hooks work on mute - through visuals, motion, and on-screen text.
                 </p>
               </div>
             </div>

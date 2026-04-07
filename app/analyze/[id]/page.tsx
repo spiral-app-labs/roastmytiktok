@@ -464,7 +464,7 @@ export default function AnalyzePage() {
             transition={{ delay: 2 }}
             className="text-zinc-600 text-xs"
           >
-            This takes 30–60 seconds. Your roast is worth the wait. 🔥
+            This takes 30-60 seconds. Your roast is worth the wait. 🔥
           </motion.p>
         )}
       </div>

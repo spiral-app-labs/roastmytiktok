@@ -602,7 +602,7 @@ export default function ScriptStudioPage() {
                 <textarea
                   value={scriptText}
                   onChange={(e) => setScriptText(e.target.value)}
-                  placeholder="Paste your TikTok script here. Include everything — hook, dialogue, on-screen text, captions..."
+                  placeholder="Paste your TikTok script here. Include everything - hook, dialogue, on-screen text, captions..."
                   className="w-full h-48 bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-orange-500/40 focus:outline-none resize-none transition-colors font-mono"
                 />
                 <p className="text-xs text-zinc-600 mt-1">{scriptText.length} characters</p>

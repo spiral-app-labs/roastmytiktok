@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { supabaseServer } from '@/lib/supabase-server';
 
-export const alt = 'Go Viral — Results';
+export const alt = 'Go Viral - Results';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 

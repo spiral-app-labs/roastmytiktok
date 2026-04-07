@@ -209,7 +209,7 @@ export default function SettingsPage() {
   // Subscription (wired to Stripe billing portal)
   const plan = "Free";
   const isFree = plan === "Free";
-  const renewalDate = "—";
+  const renewalDate = "-";
   const roastsUsed = usage?.roastsInWindow ?? 0;
   const roastsLimit = usage?.roastLimit ?? 3;
   const totalMinutesProcessed = usage?.minutesProcessedAllTime ?? 0;

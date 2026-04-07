@@ -5,6 +5,7 @@
 
 export type AnalysisStage =
   | 'frame-extraction'
+  | 'frame-analysis'
   | 'audio-extraction'
   | 'transcription'
   | 'speech-music-detect'

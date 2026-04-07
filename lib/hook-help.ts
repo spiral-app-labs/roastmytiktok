@@ -100,7 +100,7 @@ export function getDetectedHookType(roast: RoastResult): DetectedHookType {
       label: 'curiosity / tension gap',
       confidence: (hook?.score ?? 0) >= 70 ? 'likely' : 'possible',
       explanation: 'the opener tries to create an open loop or promise a payoff, which is one of the strongest hook types when it lands.',
-      upgrade: 'make the gap sharper — name the surprising result or problem before any context so the viewer needs the explanation.',
+      upgrade: 'make the gap sharper - name the surprising result or problem before any context so the viewer needs the explanation.',
     };
   }
   if (hasSpoken && (audio?.score ?? 0) >= 55) {
@@ -117,7 +117,7 @@ export function getDetectedHookType(roast: RoastResult): DetectedHookType {
       type: 'visual',
       label: 'visual hook',
       confidence: (visual?.score ?? 0) >= 70 ? 'likely' : 'possible',
-      explanation: 'frame one has something visually distinct — color, framing, or a result that earns a pause on mute.',
+      explanation: 'frame one has something visually distinct - color, framing, or a result that earns a pause on mute.',
       upgrade: 'push the visual harder: tighter crop, brighter lighting, or show the payoff/result before explaining it.',
     };
   }
@@ -143,7 +143,7 @@ export function getDetectedHookType(roast: RoastResult): DetectedHookType {
     type: 'none',
     label: 'no clear hook type detected',
     confidence: 'unclear',
-    explanation: 'the opener does not clearly commit to any hook strategy — it may be easing into the content instead of leading with a reason to stay.',
+    explanation: 'the opener does not clearly commit to any hook strategy - it may be easing into the content instead of leading with a reason to stay.',
     upgrade: 'pick one hook type (curiosity gap, direct call-out, or result-first) and build the entire first 2 seconds around it.',
   };
 }
@@ -239,24 +239,24 @@ export function getReshootPlanner(roast: RoastResult): ReshootPlanStep[] {
 
   return [
     {
-      label: 'shot 1 — framing',
+      label: 'shot 1 - framing',
       direction: 'open on the payoff, not the setup',
-      detail: clean(`start in a tighter frame (medium close-up or closer) with motion in the first second. if possible, show the finished result, strongest reaction, or most surprising visual before you explain. fill the frame — dead space signals amateur. current issue: ${visualFinding}`),
+      detail: clean(`start in a tighter frame (medium close-up or closer) with motion in the first second. if possible, show the finished result, strongest reaction, or most surprising visual before you explain. fill the frame - dead space signals amateur. current issue: ${visualFinding}`),
     },
     {
-      label: 'spoken line — 0.5s mark',
+      label: 'spoken line - 0.5s mark',
       direction: 'replace the soft intro',
       detail: openerLine !== 'No spoken opener detected in the first beat.'
-        ? `replace "${openerLine}" with "${hookRewrite}" — deliver it within the first half-second, not after a pause.`
-        : `add a spoken opener immediately: "${hookRewrite}" — start speaking before the viewer has time to decide whether to swipe.`,
+        ? `replace "${openerLine}" with "${hookRewrite}" - deliver it within the first half-second, not after a pause.`
+        : `add a spoken opener immediately: "${hookRewrite}" - start speaking before the viewer has time to decide whether to swipe.`,
     },
     {
-      label: 'on-screen text — frame 1',
+      label: 'on-screen text - frame 1',
       direction: 'make frame one readable on mute',
       detail: clean(`put one bold line on screen in frame one that mirrors the hook. 4-7 words max, upper third of screen, high-contrast font. current issue: ${captionFinding}`),
     },
     {
-      label: 'edit note — pacing',
+      label: 'edit note - pacing',
       direction: 'cut the throat-clearing, land the promise by 1.5s',
       detail: 'remove any pause, greeting, or camera-settling beat before the first claim lands. the viewer should understand the promise within the first 1.5 seconds. if the setup takes longer than that, the hook has already failed.',
     },
@@ -280,7 +280,7 @@ export function getReshootTakes(roast: RoastResult): ReshootTake[] {
           : `show the result first, then deliver the line as voiceover or direct address over that proof. note: ${visualFinding}`,
     cameraNote:
       index === 0
-        ? 'medium close-up, eye level or slightly above. fill the frame — no dead space on the sides. if showing a result, hold it at chest height so it is in focus and centered.'
+        ? 'medium close-up, eye level or slightly above. fill the frame - no dead space on the sides. if showing a result, hold it at chest height so it is in focus and centered.'
         : index === 1
           ? 'start wide or mid-action, then cut to a tight close-up on the key detail within the first second. the camera should feel like it is already moving when the video starts.'
           : 'open on the finished result or proof in a tight, well-lit frame. deliver the voiceover off-camera or cut to direct address after the result lands.',
@@ -390,7 +390,7 @@ export function getFirstFiveSecondsDiagnosis(roast: RoastResult): FirstFiveSecon
         ? `likely drop: ${primaryStep.timestampLabel}`
         : earliestTimestampFromFindings !== null
           ? `likely drop: around ${earliestTimestampFromFindings.toFixed(1)}s`
-          : 'drop window unclear — no timestamped evidence';
+          : 'drop window unclear - no timestamped evidence';
 
   const hookRead = verdict === 'working'
     ? clean(roast.hookSummary?.headline) || `the opener works because the first beat lands a clear promise instead of easing in.`

@@ -4,13 +4,13 @@ export interface AudioCharacteristics {
   hasSpeech: boolean;
   hasMusic: boolean;
   speechPercent: number;
-  /** Estimated speaking pace category — only set when speech is detected without a full transcript. */
+  /** Estimated speaking pace category - only set when speech is detected without a full transcript. */
   pacingHint?: 'fast' | 'normal' | 'slow';
-  /** Mean audio volume in dBFS — helps audio agent characterize loudness/clarity. */
+  /** Mean audio volume in dBFS - helps audio agent characterize loudness/clarity. */
   meanVolumeDB?: number;
-  /** Max audio volume in dBFS — used to detect clipping or very quiet recordings. */
+  /** Max audio volume in dBFS - used to detect clipping or very quiet recordings. */
   maxVolumeDB?: number;
-  /** Number of detected silence gaps — correlates with speaking pace and natural pauses. */
+  /** Number of detected silence gaps - correlates with speaking pace and natural pauses. */
   silenceGapCount?: number;
   /** Audio duration in seconds. */
   durationSec?: number;

@@ -10,7 +10,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
 
-  let title = 'Go Viral — Results';
+  let title = 'Go Viral - Results';
   let description = 'See how AI agents diagnosed this TikTok video.';
 
   try {
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       .single();
 
     if (data) {
-      title = `My TikTok scored ${data.overall_score}/100 — Go Viral Analysis`;
+      title = `My TikTok scored ${data.overall_score}/100 - Go Viral Analysis`;
       if (data.verdict) {
         description = data.verdict.slice(0, 155);
       }

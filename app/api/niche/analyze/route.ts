@@ -34,7 +34,7 @@ async function scrapeCreatorMetadata(handle: string): Promise<CreatorMetadata> {
       }
     }
   } catch {
-    // Scraping failed — we'll use AI to analyze based on niche alone
+    // Scraping failed - we'll use AI to analyze based on niche alone
   }
 
   return { handle: cleanHandle, videos };

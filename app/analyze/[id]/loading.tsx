@@ -93,7 +93,7 @@ export default function AnalyzeLoading() {
               </div>
 
               <p className="text-sm leading-relaxed text-zinc-400 sm:text-base max-w-xl">
-                not just generating a roast — figuring out whether the opener earns attention,
+                not just generating a roast - figuring out whether the opener earns attention,
                 what&apos;s dragging retention, and the cleanest fix to film next.
               </p>
 
@@ -195,7 +195,7 @@ export default function AnalyzeLoading() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="grid grid-cols-1 gap-5 lg:grid-cols-[1.2fr_0.8fr]"
         >
-          {/* Left skeleton — score + verdict area */}
+          {/* Left skeleton - score + verdict area */}
           <div className="rounded-[28px] border border-zinc-800/70 bg-zinc-950/75 p-5 backdrop-blur-xl space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 rounded-full bg-zinc-800/60 animate-pulse shrink-0" />
@@ -213,7 +213,7 @@ export default function AnalyzeLoading() {
             </div>
           </div>
 
-          {/* Right skeleton — agent cards */}
+          {/* Right skeleton - agent cards */}
           <div className="rounded-[28px] border border-zinc-800/70 bg-zinc-950/75 p-5 backdrop-blur-xl space-y-3">
             <div className="h-4 w-28 rounded-lg bg-zinc-800/60 animate-pulse" />
             {Array.from({ length: 4 }).map((_, i) => (
@@ -228,7 +228,7 @@ export default function AnalyzeLoading() {
           transition={{ delay: 1.8 }}
           className="text-center text-xs text-zinc-700"
         >
-          analysis typically takes 30–90 seconds depending on video length
+          analysis typically takes 30-90 seconds depending on video length
         </motion.p>
       </div>
     </main>

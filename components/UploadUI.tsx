@@ -137,7 +137,7 @@ export default function UploadUI() {
     setUploadStatus(null);
 
     if (inputMode === 'url') {
-      setFileError('URL analysis coming soon — please upload a file for now.');
+      setFileError('URL analysis coming soon - please upload a file for now.');
       setLoading(false);
       return;
     }
@@ -324,7 +324,7 @@ export default function UploadUI() {
                           <p
                             className={`font-bold text-sm transition-colors ${dragOver ? 'text-orange-300' : 'text-zinc-300'}`}
                           >
-                            {dragOver ? "Drop it — we're ready" : 'Drop your TikTok video here'}
+                            {dragOver ? "Drop it - we're ready" : 'Drop your TikTok video here'}
                           </p>
                           <p className="text-zinc-500 text-xs mt-1.5">
                             or{' '}
@@ -534,7 +534,7 @@ export default function UploadUI() {
                       className="group block bg-zinc-800/40 border border-zinc-700/30 rounded-xl p-4 hover:border-orange-500/30 hover:bg-zinc-800/60 transition-all"
                     >
                       <div className="flex items-start gap-3">
-                        {/* Score — most prominent */}
+                        {/* Score - most prominent */}
                         <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-zinc-900/60 border border-zinc-700/40 group-hover:border-orange-500/20 transition-colors">
                           <ScoreChip score={entry.overallScore} large />
                         </div>

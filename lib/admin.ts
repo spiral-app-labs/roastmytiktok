@@ -1,6 +1,6 @@
 /**
  * Admin user detection for debug mode.
- * Server-side only — never import this in client components.
+ * Server-side only - never import this in client components.
  */
 
 const ADMIN_EMAILS = [

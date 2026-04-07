@@ -6,7 +6,7 @@ const LEAK_PATTERNS = [
   /\b(anthropic|claude-sonnet|assistant role|user role)\b/i,
   /\b(stay in your lane|not your job|your job and only your job|tone rules)\b/i,
   // Agent prompt template fragments that can bleed through if the model echoes its own instructions
-  /\bScore\s+0[-–]100\b/i,
+  /\bScore\s+0[--]100\b/i,
   /\bReturn\s+ONLY\s+valid\s+JSON\b/i,
   /\bno\s+markdown\b.*?\bjson\b/i,
   /\b(roastText|improvementTip|viralPotential|biggestBlocker|actionPlan)\s*:/i,
@@ -14,7 +14,7 @@ const LEAK_PATTERNS = [
   /\bNOT YOUR JOB\b/i,
   /\bEXAMPLE OF GREAT FEEDBACK\b/i,
   /\bHOOK-FIRST OVERRIDE\b/i,
-  /\bTONE\s*—\s*THIS IS MANDATORY\b/i,
+  /\bTONE\s*-\s*THIS IS MANDATORY\b/i,
   /\bCROSS-AGENT COHERENCE\b/i,
 ];
 
@@ -23,14 +23,19 @@ const WHITESPACE = /\s+/g;
 
 function cleanText(value: unknown): string {
   if (typeof value !== 'string') return '';
-  return value.replace(JSON_WRAPPER, ' ').replace(WHITESPACE, ' ').trim();
+  return value
+    .replace(JSON_WRAPPER, ' ')
+    .replace(/\u2014/g, '-')   // em dash to hyphen
+    .replace(/\u2013/g, '-')   // en dash to hyphen
+    .replace(WHITESPACE, ' ')
+    .trim();
 }
 
 export function sanitizeUserFacingText(value: unknown, fallback: string): string {
   const cleaned = cleanText(value);
   if (!cleaned) return fallback;
 
-  // Try JSON extraction FIRST — the raw string may contain leak-pattern keys
+  // Try JSON extraction FIRST - the raw string may contain leak-pattern keys
   // (like "biggestBlocker:") that are part of the JSON structure, not actual leaks.
   // Extract the meaningful field, then run leak detection on the extracted value.
   const looksLikeJson = /^\s*\{/.test(cleaned) && /\}\s*$/.test(cleaned);
@@ -50,8 +55,8 @@ export function sanitizeUserFacingText(value: unknown, fallback: string): string
           return extractedLeaked ? fallback : extracted;
         }
       }
-    } catch { /* not valid JSON — continue with normal flow */ }
-    // JSON-shaped but unparseable or no extractable field — fall back
+    } catch { /* not valid JSON - continue with normal flow */ }
+    // JSON-shaped but unparseable or no extractable field - fall back
     return fallback;
   }
 
@@ -62,7 +67,7 @@ export function sanitizeUserFacingText(value: unknown, fallback: string): string
       if (parsed?.roastText) return parsed.roastText;
       if (parsed?.verdict) return parsed.verdict;
     } catch {
-      // JSON is truncated — try regex extraction of known fields
+      // JSON is truncated - try regex extraction of known fields
       for (const field of ['verdict', 'roastText', 'text']) {
         const rx = new RegExp(`"${field}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`);
         const m = cleaned.match(rx);
@@ -98,7 +103,7 @@ export function sanitizeActionPlan(plan: ActionPlanStep[]): ActionPlanStep[] {
     ...step,
     priority: (['P1', 'P2', 'P3'][index] ?? step.priority) as ActionPlanStep['priority'],
     issue: sanitizeUserFacingText(step.issue, 'The current edit still has a clear execution gap.'),
-    algorithmicConsequence: sanitizeUserFacingText(step.algorithmicConsequence, 'Legitimate reason — improves retention.'),
+    algorithmicConsequence: sanitizeUserFacingText(step.algorithmicConsequence, 'Legitimate reason - improves retention.'),
     evidence: sanitizeFindings(step.evidence, []).slice(0, 3),
     doThis: sanitizeUserFacingText(step.doThis, 'Rebuild this section before posting again.'),
     example: sanitizeUserFacingText(step.example, 'Ship a tighter version that proves the promise sooner.'),
@@ -140,7 +145,7 @@ const DEFAULT_TIP_BY_DIMENSION: Record<DimensionKey, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Prompt input safety — sanitize and truncate data going INTO prompts
+// Prompt input safety - sanitize and truncate data going INTO prompts
 // ---------------------------------------------------------------------------
 
 /**

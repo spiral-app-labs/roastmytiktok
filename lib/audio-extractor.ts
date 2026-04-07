@@ -45,11 +45,11 @@ export function extractAudio(videoPath: string): string | null {
       ).trim();
       hasAudioStream = probeOutput.includes('audio');
     } catch {
-      // If probe fails, still attempt extraction — ffmpeg will handle it
+      // If probe fails, still attempt extraction - ffmpeg will handle it
     }
 
     if (!hasAudioStream) {
-      console.warn('[audio-extractor] No audio stream detected in video — video may be silent');
+      console.warn('[audio-extractor] No audio stream detected in video - video may be silent');
       return null;
     }
 
@@ -61,7 +61,7 @@ export function extractAudio(videoPath: string): string | null {
     if (existsSync(outputPath)) {
       const audioSize = statSync(outputPath).size;
       if (audioSize === 0) {
-        console.error('[audio-extractor] Extracted audio file is empty (0 bytes) — video may have no audio track');
+        console.error('[audio-extractor] Extracted audio file is empty (0 bytes) - video may have no audio track');
         unlinkSync(outputPath);
         return null;
       }

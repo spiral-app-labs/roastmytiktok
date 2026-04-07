@@ -17,7 +17,7 @@ const STRENGTH_STYLES: Record<TimeSlot['strength'], string> = {
   okay: 'bg-zinc-700/50 text-zinc-400',
 };
 
-// Track which days the user "posted" — stored in localStorage
+// Track which days the user "posted" - stored in localStorage
 function usePostingTracker() {
   const [postedDays, setPostedDays] = useState<Set<string>>(new Set());
 
@@ -169,7 +169,7 @@ function PostingTracker({ plan }: { plan: PostingPlan }) {
 
       {/* 4-week grid */}
       <div className="bg-zinc-900/70 border border-zinc-800/60 rounded-xl p-4">
-        <p className="text-xs text-zinc-500 mb-3 font-medium">Last 4 weeks — tap to log posts</p>
+        <p className="text-xs text-zinc-500 mb-3 font-medium">Last 4 weeks - tap to log posts</p>
         <div className="space-y-1.5">
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-1.5 mb-1">

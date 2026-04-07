@@ -117,10 +117,10 @@ export function buildAgentTrendingContext(
       const emergingSounds = ctx.trendingSounds.filter((s) => s.status === 'emerging');
       let audioExtra = '';
       if (emergingSounds.length > 0) {
-        audioExtra += `\n\nEMERGING SOUNDS to watch: ${emergingSounds.map((s) => `"${s.name}"`).join(', ')}. If the creator uses one of these, call it out as a smart move — early adoption gets algorithmic boost.`;
+        audioExtra += `\n\nEMERGING SOUNDS to watch: ${emergingSounds.map((s) => `"${s.name}"`).join(', ')}. If the creator uses one of these, call it out as a smart move - early adoption gets algorithmic boost.`;
       }
       if (deadSounds.length > 0) {
-        audioExtra += `\nDECLINING SOUNDS: ${deadSounds.map((s) => `"${s.name}"`).join(', ')}. If the creator uses one of these, warn them — the algorithm deprioritizes oversaturated sounds.`;
+        audioExtra += `\nDECLINING SOUNDS: ${deadSounds.map((s) => `"${s.name}"`).join(', ')}. If the creator uses one of these, warn them - the algorithm deprioritizes oversaturated sounds.`;
       }
       return base + audioExtra;
     }
@@ -129,7 +129,7 @@ export function buildAgentTrendingContext(
       if (ctx.trendingFormats.length > 0) {
         const emerging = ctx.trendingFormats.filter((f) => f.status === 'emerging');
         if (emerging.length > 0) {
-          algoExtra += `\n\nEMERGING FORMATS getting algorithmic push: ${emerging.map((f) => f.name).join(', ')}. If the video uses one of these formats, it has a distribution advantage — note it.`;
+          algoExtra += `\n\nEMERGING FORMATS getting algorithmic push: ${emerging.map((f) => f.name).join(', ')}. If the video uses one of these formats, it has a distribution advantage - note it.`;
         }
       }
       return base + algoExtra;
@@ -174,7 +174,7 @@ export function buildScriptTrendingContext(ctx: TrendingContext): string {
 
   if (parts.length === 0) return '';
 
-  return `\n\nCURRENT TRENDING CONTENT — incorporate these into the script where relevant:\n${parts.join('\n\n')}`;
+  return `\n\nCURRENT TRENDING CONTENT - incorporate these into the script where relevant:\n${parts.join('\n\n')}`;
 }
 
 function isEmpty(ctx: TrendingContext): boolean {

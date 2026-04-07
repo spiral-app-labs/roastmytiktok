@@ -8,19 +8,19 @@ export interface ViewTier {
 }
 
 export const VIEW_TIERS: ViewTier[] = [
-  { tier: 1,  label: '0–200',       representative: 100 },
-  { tier: 2,  label: '200–600',     representative: 400 },
-  { tier: 3,  label: '600–2K',      representative: 1_000 },
-  { tier: 4,  label: '2K–5K',       representative: 3_000 },
-  { tier: 5,  label: '5K–20K',      representative: 10_000 },
-  { tier: 6,  label: '20K–50K',     representative: 35_000 },
-  { tier: 7,  label: '50K–200K',    representative: 100_000 },
-  { tier: 8,  label: '200K–500K',   representative: 350_000 },
-  { tier: 9,  label: '500K–2M',     representative: 1_000_000 },
+  { tier: 1,  label: '0-200',       representative: 100 },
+  { tier: 2,  label: '200-600',     representative: 400 },
+  { tier: 3,  label: '600-2K',      representative: 1_000 },
+  { tier: 4,  label: '2K-5K',       representative: 3_000 },
+  { tier: 5,  label: '5K-20K',      representative: 10_000 },
+  { tier: 6,  label: '20K-50K',     representative: 35_000 },
+  { tier: 7,  label: '50K-200K',    representative: 100_000 },
+  { tier: 8,  label: '200K-500K',   representative: 350_000 },
+  { tier: 9,  label: '500K-2M',     representative: 1_000_000 },
   { tier: 10, label: '2M+ (viral)', representative: 5_000_000 },
 ];
 
-// Map overall score (0–100) → tier number (1–10)
+// Map overall score (0-100) → tier number (1-10)
 const SCORE_TIER_MAP: Array<{ maxScore: number; tier: number }> = [
   { maxScore: 10,  tier: 1 },
   { maxScore: 20,  tier: 2 },
@@ -88,7 +88,7 @@ export function getViewImpact(currentScore: number, improvedScore: number): View
  * Estimates the overall score after fixing a single issue,
  * based on which dimension it belongs to and its priority.
  *
- * Hook fixes are worth 3–4 tier steps; other fixes 1–2 steps.
+ * Hook fixes are worth 3-4 tier steps; other fixes 1-2 steps.
  */
 export function getEstimatedImprovedScore(
   currentScore: number,

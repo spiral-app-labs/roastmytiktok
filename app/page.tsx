@@ -51,7 +51,7 @@ const FEATURES = [
     icon: '📉',
     title: 'Drop-off diagnosis',
     problem: 'Your analytics shows where viewers leave.',
-    fix: 'We show why — and what to change in the first 3 seconds.',
+    fix: 'We show why - and what to change in the first 3 seconds.',
   },
   {
     icon: '🎣',
@@ -186,7 +186,7 @@ export default function Home() {
       <main className="min-h-screen bg-[#080808] overflow-hidden relative flex flex-col">
         {/* Rich layered background */}
         <div className="absolute inset-0 pointer-events-none">
-          {/* Primary glow — stronger than before */}
+          {/* Primary glow - stronger than before */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_-10%,rgba(251,146,60,0.18),transparent)]" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_85%_85%,rgba(236,72,153,0.12),transparent)]" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_10%_70%,rgba(139,92,246,0.07),transparent)]" />
@@ -235,7 +235,7 @@ export default function Home() {
             </span>
           </motion.div>
 
-          {/* Main headline — pain-point-first */}
+          {/* Main headline - pain-point-first */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -255,7 +255,7 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.12 }}
             className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-2xl mb-3"
           >
-            Upload your video before posting to TikTok or Reels. 6 AI agents analyze your hook, visuals, and audio — then give you a fix-it plan so you post the strongest version.
+            Upload your video before posting to TikTok or Reels. 6 AI agents analyze your hook, visuals, and audio - then give you a fix-it plan so you post the strongest version.
           </motion.p>
 
           <motion.p
@@ -353,7 +353,7 @@ export default function Home() {
                   {[
                     { icon: '📉', title: 'hook diagnosis', desc: 'frame-one clarity, scroll-stop strength, and the exact reason the opener leaks attention.' },
                     { icon: '🎯', title: 'priority fixes', desc: 'what to fix first, what is secondary, and what is not actually the problem.' },
-                    { icon: '📊', title: 'clean score + verdict', desc: 'a sharper summary you can scan in seconds — not a wall of AI text.' },
+                    { icon: '📊', title: 'clean score + verdict', desc: 'a sharper summary you can scan in seconds - not a wall of AI text.' },
                     { icon: '🎬', title: 'filmable next take', desc: 'rewrite and reshoot guidance you can actually test today.' },
                   ].map((item) => (
                     <div key={item.title} className="rounded-2xl border border-zinc-800 bg-black/25 p-4 flex gap-3">
@@ -459,11 +459,11 @@ export default function Home() {
                   </div>
                   <div className="hidden sm:grid grid-cols-3 gap-2 min-w-[180px] text-center text-[11px] shrink-0">
                     <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-                      <div className="text-red-400 font-bold">0–1s</div>
+                      <div className="text-red-400 font-bold">0-1s</div>
                       <div className="text-zinc-500 mt-1">stop scroll</div>
                     </div>
                     <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-2">
-                      <div className="text-yellow-400 font-bold">1–3s</div>
+                      <div className="text-yellow-400 font-bold">1-3s</div>
                       <div className="text-zinc-500 mt-1">earn retention</div>
                     </div>
                     <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
@@ -549,7 +549,7 @@ export default function Home() {
         {usage && usage.used > 0 && (
           usage.used >= usage.limit ? (
             <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300 flex items-center justify-between gap-3">
-              <span>Daily limit reached ({usage.used}/{usage.limit} roasts used) — upgrade for unlimited</span>
+              <span>Daily limit reached ({usage.used}/{usage.limit} roasts used) - upgrade for unlimited</span>
               <a href="/pricing" className="shrink-0 font-semibold text-amber-200 underline underline-offset-2 hover:text-white transition-colors">Upgrade</a>
             </div>
           ) : (

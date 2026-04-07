@@ -5,7 +5,7 @@ interface LoadingSkeletonProps {
   variant?: 'card' | 'text' | 'avatar' | 'custom';
   /** Number of rows (for text variant) */
   rows?: number;
-  /** Height class (e.g. 'h-4', 'h-32') — used by card and custom */
+  /** Height class (e.g. 'h-4', 'h-32') - used by card and custom */
   height?: string;
   /** Width class (e.g. 'w-full', 'w-1/2') */
   width?: string;
@@ -71,5 +71,5 @@ export function LoadingSkeleton({
   return <ShimmerBase className={`${height} ${width} ${className}`} />;
 }
 
-// Add shimmer keyframe to globals if not present — consumers must add this to their CSS:
+// Add shimmer keyframe to globals if not present - consumers must add this to their CSS:
 // @keyframes shimmer { to { transform: translateX(200%); } }

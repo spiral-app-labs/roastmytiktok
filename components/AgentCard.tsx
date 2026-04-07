@@ -167,7 +167,7 @@ export function AgentCard({ roast, index, variant = 'secondary', badge, deepLink
               </div>
             )}
 
-            {/* Roast quote — prominent, always visible */}
+            {/* Roast quote - prominent, always visible */}
             <div className={`rounded-2xl border p-4 mb-4 ${isPrimary ? 'border-red-500/15 bg-black/25' : 'border-white/6 bg-black/15'}`}>
               <p className={`text-[11px] font-bold uppercase tracking-[0.2em] mb-2 ${isPrimary ? 'text-red-400' : 'text-zinc-500'}`}>diagnosis</p>
               <p className={`leading-relaxed italic ${isPrimary ? 'text-base text-zinc-100' : 'text-sm text-zinc-300'}`}>
@@ -177,7 +177,7 @@ export function AgentCard({ roast, index, variant = 'secondary', badge, deepLink
               </p>
             </div>
 
-            {/* Findings — collapsible */}
+            {/* Findings - collapsible */}
             <button
               onClick={() => setFindingsOpen(!findingsOpen)}
               className="w-full flex items-center justify-between gap-2 mb-2 group/findings"
