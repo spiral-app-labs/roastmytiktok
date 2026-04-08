@@ -9,11 +9,9 @@ import { ScoreCard } from '@/components/ScoreCard';
 import { useScoreCardDownload } from '@/hooks/useScoreCardDownload';
 import { ViewProjection } from '@/components/ViewProjection';
 import { IssueSolutionCard } from '@/components/IssueSolutionCard';
-import { QuickScoresBar } from '@/components/QuickScoresBar';
 import { saveToHistory, getHistory } from '@/lib/history';
 import { buildViewProjection } from '@/lib/view-projection';
-import { getViewImpact, getEstimatedImprovedScore } from '@/lib/view-count-tiers';
-import { sanitizeUserFacingText } from '@/lib/analysis-safety';
+import { getFixViewImpact } from '@/lib/view-count-tiers';
 import { useToast } from '@/components/ui';
 import { RetentionCurve } from '@/components/RetentionCurve';
 import Link from 'next/link';
@@ -22,16 +20,6 @@ function isAgentFailed(a: { failed?: boolean; findings?: string[] }): boolean {
   if (a.failed) return true;
   if (a.findings?.[0]?.startsWith('Analysis error')) return true;
   return false;
-}
-
-function getVerdictOneLiner(score: number): string {
-  if (score >= 90) return "this one's primed to break out. polish the edges.";
-  if (score >= 80) return "strong foundation. there's a higher ceiling here.";
-  if (score >= 70) return "real potential - hasn't cracked through yet.";
-  if (score >= 60) return "the content is there. the packaging is holding it back.";
-  if (score >= 50) return "the idea works. the execution needs help.";
-  if (score >= 40) return "something here wants to perform. find it and amplify it.";
-  return "this is getting scrolled past in the first second.";
 }
 
 function formatTimestamp(step: NonNullable<RoastResult['actionPlan']>[number]): string {
@@ -177,7 +165,6 @@ function RoastContent({
   handleShareOnX: (score: number) => void;
 }) {
   const history = getHistory();
-  const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
   const viewProjection = useMemo(() => buildViewProjection(roast), [roast]);
 
   const [usageCount, setUsageCount] = useState<number | null>(null);
@@ -246,103 +233,29 @@ function RoastContent({
           </motion.div>
         )}
 
-        {/* ========== SCORE HERO ========== */}
+        {/* ========== SCORE + PROJECTION HERO ========== */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
-          className="text-center mb-10"
+          className="flex flex-col items-center mb-10"
         >
-          {/* Score ring */}
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 120, damping: 16, delay: 0.2 }}
-            className="inline-block mb-4"
+            className="mb-8"
           >
-            <ScoreRing score={roast.overallScore} size={180} />
+            <ScoreRing score={roast.overallScore} size={170} />
           </motion.div>
 
-          {/* Verdict */}
-          <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            className="text-base text-zinc-400 italic mb-2"
-          >
-            {getVerdictOneLiner(roast.overallScore)}
-          </motion.p>
-
-          {/* View projection (single line) */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55 }}
+            className="w-full"
           >
             <ViewProjection projection={viewProjection} />
-          </motion.div>
-
-          {/* Metadata strip */}
-          {hasMetadata && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-3 text-xs text-zinc-600"
-            >
-              <span>{roast.metadata.views.toLocaleString()} views</span>
-              <span>&middot;</span>
-              <span>{roast.metadata.likes} likes</span>
-              <span>&middot;</span>
-              <span>{roast.metadata.duration}s</span>
-            </motion.div>
-          )}
-
-          {/* Share buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.65 }}
-            className="flex flex-wrap items-center justify-center gap-2 mt-5"
-          >
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-white text-sm font-medium hover:border-orange-500/50 transition-all"
-            >
-              {copied ? <><span className="text-green-400">&#x2713;</span> Copied!</> : (
-                <>
-                  <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                  </svg>
-                  Copy Link
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => handleShareOnX(roast.overallScore)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black border border-zinc-700 text-white text-sm font-medium hover:border-white/30 transition-all"
-            >
-              <svg aria-hidden="true" className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.741l7.733-8.835L1.254 2.25H8.08l4.258 5.63L18.245 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-              Share on X
-            </button>
-            <button
-              onClick={() => download('square')}
-              disabled={downloading !== null}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 text-white text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-orange-500/25"
-            >
-              {downloading === 'square' ? (
-                <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating...</>
-              ) : (
-                <>
-                  <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
-                  Download
-                </>
-              )}
-            </button>
           </motion.div>
         </motion.div>
 
@@ -352,30 +265,6 @@ function RoastContent({
           <ScoreCard ref={storyRef} roast={roast} variant="story" />
         </div>
 
-        {/* ========== KEY TAKEAWAY ========== */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="mb-10 relative rounded-2xl border border-zinc-800/60 bg-zinc-900/60 overflow-hidden"
-        >
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-500 to-pink-500" />
-          <div className="px-6 py-5 pl-7">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Key Takeaway</p>
-            <p className="text-[15px] text-zinc-200 leading-relaxed">{sanitizeUserFacingText(roast.verdict, 'Analysis complete - see recommendations below.')}</p>
-          </div>
-        </motion.div>
-
-        {/* ========== SCORE BREAKDOWN ========== */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mb-10"
-        >
-          <QuickScoresBar agents={roast.agents} />
-        </motion.div>
-
         {/* ========== WHAT TO IMPROVE ========== */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -383,23 +272,21 @@ function RoastContent({
           transition={{ delay: 0.9 }}
           className="mb-10"
         >
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">What to Improve</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">How to fix it</p>
           {actionPlan.length > 0 ? (
             <div className="space-y-3">
               {actionPlan.map((step, idx) => {
                 const isFirstHook = idx === 0 && step.dimension === 'hook';
-                const improvedScore = getEstimatedImprovedScore(
+                const viewImpact = getFixViewImpact(
                   roast.overallScore,
                   step.dimension,
                   step.priority,
                 );
-                const viewImpact = getViewImpact(roast.overallScore, improvedScore);
                 return (
                   <IssueSolutionCard
                     key={`${step.priority}-${step.dimension}-${idx}`}
                     step={step}
                     timestampLabel={formatTimestamp(step)}
-                    viewProjection={isFirstHook ? viewProjection : undefined}
                     isHighestImpact={isFirstHook}
                     viewImpact={viewImpact}
                   />
@@ -413,25 +300,42 @@ function RoastContent({
           )}
         </motion.div>
 
-        {/* ========== RETENTION CURVE ========== */}
+        {/* ========== RETENTION CURVE (collapsed) ========== */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.0 }}
           className="mb-10"
         >
-          <RetentionCurve
-            hookScore={roast.agents.find(a => a.agent === 'hook')?.score ?? roast.hookSummary?.score ?? 50}
-            overallScore={roast.overallScore}
-            videoDurationSeconds={roast.metadata.duration > 0 ? roast.metadata.duration : 30}
-            timestamps={actionPlan
-              .filter(s => typeof s.timestampSeconds === 'number')
-              .slice(0, 5)
-              .map(s => ({
-                seconds: s.timestampSeconds as number,
-                label: formatTimestamp(s),
-              }))}
-          />
+          <details className="group">
+            <summary className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 cursor-pointer list-none transition-colors">
+              <svg
+                aria-hidden="true"
+                className="w-3.5 h-3.5 transition-transform group-open:rotate-90"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+              See where viewers drop off
+            </summary>
+            <div className="mt-3">
+              <RetentionCurve
+                hookScore={roast.agents.find(a => a.agent === 'hook')?.score ?? roast.hookSummary?.score ?? 50}
+                overallScore={roast.overallScore}
+                videoDurationSeconds={roast.metadata.duration > 0 ? roast.metadata.duration : 30}
+                timestamps={actionPlan
+                  .filter(s => typeof s.timestampSeconds === 'number')
+                  .slice(0, 5)
+                  .map(s => ({
+                    seconds: s.timestampSeconds as number,
+                    label: formatTimestamp(s),
+                  }))}
+              />
+            </div>
+          </details>
         </motion.div>
 
         {/* ========== UPGRADE CTA ========== */}
@@ -464,28 +368,66 @@ function RoastContent({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="flex flex-wrap items-center justify-center gap-3 mt-6"
+          className="mt-6 flex flex-col items-center gap-4"
         >
           <Link
             href="/"
-            className="rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 px-5 py-2.5 text-sm font-bold text-white hover:opacity-90 transition-opacity"
+            className="w-full sm:w-auto text-center rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 px-6 py-3 text-base font-bold text-white hover:opacity-90 transition-opacity shadow-lg shadow-orange-500/20"
           >
             Analyze Another Video
           </Link>
-          {history.length > 0 && (
-            <Link
-              href="/history"
-              className="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-300 hover:border-zinc-500 transition-colors"
+          <div className="flex items-center gap-3 text-xs text-zinc-500">
+            <button
+              onClick={handleCopyLink}
+              aria-label={copied ? 'Link copied' : 'Copy link'}
+              title="Copy link"
+              className="w-8 h-8 flex items-center justify-center rounded-md hover:text-zinc-300 hover:bg-zinc-900 transition-colors"
             >
-              View History ({history.length})
-            </Link>
-          )}
-          <Link
-            href="/learn"
-            className="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-300 hover:border-zinc-500 transition-colors"
-          >
-            Learn About Hooks
-          </Link>
+              {copied ? (
+                <span className="text-emerald-400 text-sm">&#x2713;</span>
+              ) : (
+                <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => handleShareOnX(roast.overallScore)}
+              aria-label="Share on X"
+              title="Share on X"
+              className="w-8 h-8 flex items-center justify-center rounded-md hover:text-zinc-300 hover:bg-zinc-900 transition-colors"
+            >
+              <svg aria-hidden="true" className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.741l7.733-8.835L1.254 2.25H8.08l4.258 5.63L18.245 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => download('square')}
+              disabled={downloading !== null}
+              aria-label="Download score image"
+              title="Download score image"
+              className="w-8 h-8 flex items-center justify-center rounded-md hover:text-zinc-300 hover:bg-zinc-900 transition-colors disabled:opacity-50"
+            >
+              {downloading === 'square' ? (
+                <span className="w-3.5 h-3.5 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />
+              ) : (
+                <svg aria-hidden="true" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              )}
+            </button>
+            {history.length > 0 && (
+              <>
+                <span aria-hidden="true" className="text-zinc-700">&middot;</span>
+                <Link
+                  href="/history"
+                  className="hover:text-zinc-300 transition-colors"
+                >
+                  View History ({history.length})
+                </Link>
+              </>
+            )}
+          </div>
         </motion.div>
       </div>
     </main>

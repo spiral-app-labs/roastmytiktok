@@ -115,13 +115,8 @@ export function RetentionCurve({
   const yGrid = [100, 75, 50, 25, 0];
 
   return (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/60 px-5 py-5">
-      <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-1">
-        Predicted Retention Curve
-      </p>
-      <p className="text-xs text-zinc-600 mb-4">
-        AI-estimated viewer drop-off based on hook strength and content quality
-      </p>
+    <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/60 px-5 py-4">
+      <p className="text-xs text-zinc-400 mb-3">Where viewers drop off</p>
 
       <div className="w-full overflow-x-auto">
         <svg
@@ -206,9 +201,8 @@ export function RetentionCurve({
             fontSize={8}
             fill="#f97316"
             fillOpacity={0.65}
-            fontWeight="600"
           >
-            HOOK ZONE
+            First 3 seconds
           </text>
           {/* Left bracket */}
           <path
@@ -311,19 +305,6 @@ export function RetentionCurve({
         </svg>
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-0.5 bg-orange-500 rounded" />
-          <span className="text-xs text-zinc-600">Predicted retention</span>
-        </div>
-        {validTimestamps.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            <div className="w-px h-3 border-l border-dashed border-zinc-600" />
-            <span className="text-xs text-zinc-600">Key moment</span>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

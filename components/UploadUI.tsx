@@ -11,6 +11,75 @@ type InputMode = 'upload' | 'url';
 
 const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150MB
 
+interface VideoThumb {
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
+/**
+ * Render the first frame of a video to a JPEG data URL plus its native pixel
+ * dimensions. Used by the loading page so users see their actual video while
+ * the analysis runs.
+ */
+function extractFirstFrameThumbnail(objUrl: string): Promise<VideoThumb> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.src = objUrl;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+    video.crossOrigin = 'anonymous';
+
+    let settled = false;
+    const cleanup = () => {
+      video.removeAttribute('src');
+      video.load();
+    };
+    const fail = (err: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    video.addEventListener('loadeddata', () => {
+      // Seek slightly past 0 so we get a real frame, not a black one
+      try { video.currentTime = Math.min(0.1, (video.duration || 1) / 2); }
+      catch (err) { fail(err); }
+    });
+
+    video.addEventListener('seeked', () => {
+      if (settled) return;
+      try {
+        const w = video.videoWidth;
+        const h = video.videoHeight;
+        if (!w || !h) throw new Error('No video dimensions');
+        // Cap longest edge to keep the data URL under sessionStorage limits
+        const maxEdge = 720;
+        const scale = Math.min(1, maxEdge / Math.max(w, h));
+        const cw = Math.round(w * scale);
+        const ch = Math.round(h * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = cw;
+        canvas.height = ch;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas 2d unavailable');
+        ctx.drawImage(video, 0, 0, cw, ch);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        settled = true;
+        cleanup();
+        resolve({ dataUrl, width: w, height: h });
+      } catch (err) {
+        fail(err);
+      }
+    });
+
+    video.addEventListener('error', () => fail(new Error('Video element error')));
+    setTimeout(() => fail(new Error('Thumbnail extraction timed out')), 10000);
+  });
+}
+
 function ScoreChip({ score, large = false }: { score: number; large?: boolean }) {
   const color =
     score >= 70
@@ -117,6 +186,15 @@ export default function UploadUI() {
     setFile(f);
     const objUrl = URL.createObjectURL(f);
     setPreviewUrl(objUrl);
+
+    // Extract first-frame thumbnail to a data URL so the loading page can display it
+    extractFirstFrameThumbnail(objUrl).then((thumb) => {
+      try {
+        sessionStorage.setItem('pendingVideoThumb', JSON.stringify(thumb));
+      } catch { /* sessionStorage may be full */ }
+    }).catch(() => {
+      // Thumbnail extraction is best-effort; loading page falls back to a placeholder.
+    });
   }, []);
 
   const handleDrop = useCallback(
@@ -162,6 +240,15 @@ export default function UploadUI() {
 
       const { id, signedUrl, token } = await res.json();
 
+      // Move the pre-extracted thumbnail under a per-id key so the loading page can pick it up
+      try {
+        const pending = sessionStorage.getItem('pendingVideoThumb');
+        if (pending) {
+          sessionStorage.setItem(`videoThumb_${id}`, pending);
+          sessionStorage.removeItem('pendingVideoThumb');
+        }
+      } catch { /* ignore */ }
+
       // Step 2: Upload directly to Supabase Storage using the signed URL
       setUploadStatus('Uploading video...');
       const uploadRes = await fetch(signedUrl, {
@@ -191,6 +278,7 @@ export default function UploadUI() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setFileError(null);
+    try { sessionStorage.removeItem('pendingVideoThumb'); } catch { /* ignore */ }
   };
 
   const recentRoasts = history.slice(0, 5);

@@ -2,12 +2,15 @@
 
 import { ToastProvider } from '@/components/ui/Toast';
 import { CookieConsent } from '@/components/CookieConsent';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ToastProvider>
-      {children}
-      <CookieConsent />
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        {children}
+        <CookieConsent />
+      </ToastProvider>
+    </ThemeProvider>
   );
 }

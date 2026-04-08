@@ -1,7 +1,7 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { getSessionId } from '@/lib/history';
@@ -34,8 +34,6 @@ export default function UploadDropZone() {
   const [agentStatuses, setAgentStatuses] = useState<Record<string, AgentStatus>>({});
   const [statusMessage, setStatusMessage] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
-
   const reset = useCallback(() => {
     setFile(null);
     setThumbnailUrl(null);
@@ -220,10 +218,10 @@ export default function UploadDropZone() {
   }, [processFile]);
 
   function scoreColor(s: number) {
-    if (s >= 80) return 'text-green-400';
-    if (s >= 60) return 'text-yellow-400';
-    if (s >= 40) return 'text-orange-400';
-    return 'text-red-400';
+    if (s >= 80) return 'text-emerald-600 dark:text-emerald-300';
+    if (s >= 60) return 'text-amber-600 dark:text-amber-300';
+    if (s >= 40) return 'text-orange-600 dark:text-orange-300';
+    return 'text-rose-600 dark:text-rose-300';
   }
 
   return (
@@ -248,17 +246,21 @@ export default function UploadDropZone() {
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
-            className={`cursor-pointer border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+            className={`cursor-pointer rounded-[28px] border p-8 text-center transition-all ${
               dragOver
-                ? 'border-orange-500 bg-orange-500/5'
-                : 'border-zinc-700/60 hover:border-zinc-600 hover:bg-white/[0.01]'
+                ? 'border-orange-300 bg-orange-50 dark:border-orange-400/30 dark:bg-orange-400/10'
+                : 'border-black/8 bg-[#fafaf9] hover:border-black/12 hover:bg-white dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/8'
             }`}
           >
-            <Upload className={`w-8 h-8 mx-auto mb-3 transition-colors ${dragOver ? 'text-orange-400' : 'text-zinc-600'}`} />
-            <p className={`text-sm font-medium transition-colors ${dragOver ? 'text-orange-300' : 'text-zinc-300'}`}>
+            <div className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
+              dragOver ? 'bg-orange-100 text-orange-600 dark:bg-orange-400/20 dark:text-orange-300' : 'bg-white text-zinc-500 ring-1 ring-black/6 dark:bg-white/10 dark:text-zinc-300 dark:ring-white/8'
+            }`}>
+              <Upload className="h-5 w-5" />
+            </div>
+            <p className={`text-sm font-medium transition-colors ${dragOver ? 'text-orange-700 dark:text-orange-200' : 'text-zinc-900 dark:text-white'}`}>
               {dragOver ? 'Drop to analyze' : 'Drop a video here or click to browse'}
             </p>
-            <p className="text-xs text-zinc-600 mt-1.5">
+            <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
               MP4, MOV · up to 150MB · results in ~30s
             </p>
           </motion.div>
@@ -271,26 +273,26 @@ export default function UploadDropZone() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="border border-zinc-800 rounded-lg p-6"
+            className="rounded-[28px] border border-black/8 bg-[#fafaf9] p-5 dark:border-white/8 dark:bg-white/5"
           >
             <div className="flex items-center gap-4">
               {thumbnailUrl && (
-                <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-zinc-900">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[20px] bg-zinc-200 dark:bg-white/10">
                   <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{file?.name}</p>
-                <p className="text-xs text-zinc-500 mt-0.5">{statusMessage}</p>
-                <div className="mt-2 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <p className="truncate text-sm font-medium text-zinc-950 dark:text-white">{file?.name}</p>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{statusMessage}</p>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-white/10">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-orange-500 to-pink-500 rounded-full"
+                    className="h-full rounded-full bg-zinc-950 dark:bg-white"
                     animate={{ width: `${progress}%` }}
                     transition={{ duration: 0.4, ease: 'easeOut' }}
                   />
                 </div>
               </div>
-              <span className="text-xs text-zinc-500 tabular-nums shrink-0">{progress}%</span>
+              <span className="shrink-0 text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{progress}%</span>
             </div>
           </motion.div>
         )}
@@ -303,61 +305,54 @@ export default function UploadDropZone() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800/50"
+            className="overflow-hidden rounded-[28px] border border-black/8 bg-white dark:border-white/8 dark:bg-white/5"
           >
-            {/* Hero thumbnail with glow */}
             <div className="relative">
               {thumbnailUrl ? (
-                <div className="relative aspect-video max-h-[280px] overflow-hidden">
-                  {/* Glow layer */}
+                <div className="relative aspect-video max-h-[280px] overflow-hidden bg-[#f5f5f2] dark:bg-zinc-950/60">
                   <div className="absolute inset-0 z-0">
                     <img
                       src={thumbnailUrl}
                       alt=""
-                      className="w-full h-full object-cover blur-3xl scale-110 opacity-40"
+                      className="h-full w-full scale-110 object-cover opacity-25 blur-3xl"
                     />
                   </div>
-                  {/* Actual thumbnail */}
                   <img
                     src={thumbnailUrl}
                     alt=""
-                    className="relative z-10 w-full h-full object-contain"
+                    className="relative z-10 h-full w-full object-contain"
                   />
-                  {/* Bottom gradient fade */}
-                  <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-zinc-950 to-transparent z-20" />
-                  {/* Progress percentage overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 z-20 h-24 bg-gradient-to-t from-white to-transparent dark:from-[#111318] dark:to-transparent" />
                   <motion.div
-                    className="absolute top-4 right-4 z-30 bg-black/60 backdrop-blur-sm rounded-full px-3 py-1.5"
+                    className="absolute right-4 top-4 z-30 rounded-full border border-black/8 bg-white/90 px-3 py-1.5 backdrop-blur-sm dark:border-white/8 dark:bg-zinc-950/80"
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    <span className="text-sm font-bold text-white tabular-nums">{progress}%</span>
+                    <span className="font-display text-sm font-bold tabular-nums text-zinc-950 dark:text-white">{progress}%</span>
                   </motion.div>
                 </div>
               ) : (
-                <div className="aspect-video max-h-[280px] bg-zinc-900 flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 text-zinc-700 animate-spin" />
+                <div className="flex aspect-video max-h-[280px] items-center justify-center bg-[#f5f5f2] dark:bg-zinc-950/60">
+                  <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
                 </div>
               )}
             </div>
 
-            {/* Status + progress bar */}
-            <div className="px-5 pt-3 pb-2">
+            <div className="px-5 pb-2 pt-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-orange-400/90 font-medium truncate flex-1">{statusMessage}</p>
-                <p className="text-[11px] text-zinc-600 ml-3 shrink-0 tabular-nums">{file?.name}</p>
+                <p className="flex-1 truncate text-xs font-medium text-zinc-900 dark:text-white">{statusMessage}</p>
+                <p className="ml-3 shrink-0 text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{file?.name}</p>
               </div>
-              <div className="h-1 bg-zinc-800/80 rounded-full overflow-hidden">
+              <div className="h-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-white/10">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-orange-500 via-pink-500 to-orange-400 rounded-full"
+                  className="h-full rounded-full bg-zinc-950 dark:bg-white"
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
                 />
               </div>
             </div>
 
-            {/* Agent grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-zinc-800/30 mx-4 mb-4 mt-2 rounded-lg overflow-hidden">
+            <div className="mx-4 mb-4 mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-[20px] bg-black/6 dark:bg-white/8 sm:grid-cols-3">
               {AGENTS.map((agent, i) => {
                 const as = agentStatuses[agent.key];
                 const isDone = as?.status === 'done';
@@ -369,45 +364,42 @@ export default function UploadDropZone() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.06, duration: 0.3 }}
-                    className={`flex items-center gap-2.5 px-3 py-2.5 transition-colors duration-300 ${
+                    className={`flex items-center gap-2.5 px-3 py-3 transition-colors duration-300 ${
                       isDone
-                        ? 'bg-green-500/[0.04]'
+                        ? 'bg-emerald-50 dark:bg-emerald-400/10'
                         : isAnalyzing
-                          ? 'bg-orange-500/[0.04]'
-                          : 'bg-zinc-950'
+                          ? 'bg-orange-50 dark:bg-orange-400/10'
+                          : 'bg-white dark:bg-[#111318]'
                     }`}
                   >
-                    {/* Status indicator */}
-                    <div className="shrink-0 w-5 h-5 flex items-center justify-center">
+                    <div className="flex h-5 w-5 shrink-0 items-center justify-center">
                       {isDone ? (
                         <motion.div
                           initial={{ scale: 0, rotate: -90 }}
                           animate={{ scale: 1, rotate: 0 }}
                           transition={{ type: 'spring', stiffness: 300 }}
-                          className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center"
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-400/20"
                         >
-                          <Check className="w-3 h-3 text-green-400" />
+                          <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-300" />
                         </motion.div>
                       ) : isAnalyzing ? (
-                        <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin text-orange-500 dark:text-orange-300" />
                       ) : (
-                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
                       )}
                     </div>
 
-                    {/* Agent info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs">{agent.emoji}</span>
-                        <span className={`text-xs font-medium truncate transition-colors duration-300 ${
-                          isDone ? 'text-zinc-300' : isAnalyzing ? 'text-white' : 'text-zinc-600'
+                        <span className={`truncate text-xs font-medium transition-colors duration-300 ${
+                          isDone ? 'text-zinc-900 dark:text-white' : isAnalyzing ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400'
                         }`}>
                           {agent.name.replace(' Agent', '')}
                         </span>
                       </div>
                     </div>
 
-                    {/* Score */}
                     {isDone && as.score != null && (
                       <motion.span
                         initial={{ opacity: 0, scale: 0.5 }}
@@ -432,13 +424,13 @@ export default function UploadDropZone() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="border border-green-500/20 bg-green-500/5 rounded-lg p-6"
+            className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-400/20 dark:bg-emerald-400/10"
           >
             <div className="flex items-center gap-3 mb-4">
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{file?.name}</p>
-                <p className="text-xs text-green-400/80">
+                <p className="truncate text-sm font-medium text-zinc-950 dark:text-white">{file?.name}</p>
+                <p className="text-xs text-emerald-700 dark:text-emerald-300">
                   Analysis complete{score !== null ? ` · Score: ${score}/100` : ''}
                 </p>
               </div>
@@ -446,13 +438,13 @@ export default function UploadDropZone() {
             <div className="flex gap-2">
               <Link
                 href={`/roast/${resultId}`}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 dark:bg-white dark:text-zinc-950"
               >
                 View Results
               </Link>
               <button
                 onClick={reset}
-                className="px-4 py-2.5 rounded-lg bg-[#18181b] border border-zinc-800 text-zinc-300 text-sm font-medium hover:border-zinc-700 transition-all"
+                className="rounded-full border border-black/8 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-white/8 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10"
               >
                 Upload Another
               </button>
@@ -467,26 +459,26 @@ export default function UploadDropZone() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="border border-red-500/20 bg-red-500/5 rounded-lg p-6"
+            className="rounded-[28px] border border-rose-200 bg-rose-50 p-6 dark:border-rose-400/20 dark:bg-rose-400/10"
           >
             <div className="flex items-center gap-3 mb-3">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-              <p className="text-sm text-red-400">{error}</p>
-              <button onClick={reset} className="ml-auto shrink-0 text-zinc-500 hover:text-white transition-colors">
-                <X className="w-4 h-4" />
+              <AlertCircle className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-300" />
+              <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p>
+              <button onClick={reset} className="ml-auto shrink-0 text-zinc-500 transition-colors hover:text-zinc-950 dark:hover:text-white">
+                <X className="h-4 w-4" />
               </button>
             </div>
             {error?.includes('limit') ? (
               <Link
                 href="/pricing"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-2 rounded-full bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 dark:bg-white dark:text-zinc-950"
               >
                 Upgrade Plan
               </Link>
             ) : (
               <button
                 onClick={reset}
-                className="px-4 py-2.5 rounded-lg bg-[#18181b] border border-zinc-800 text-zinc-300 text-sm font-medium hover:border-zinc-700 transition-all"
+                className="rounded-full border border-black/8 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-white/8 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10"
               >
                 Try Again
               </button>
@@ -497,11 +489,11 @@ export default function UploadDropZone() {
 
       {/* Terms (only on idle) */}
       {state === 'idle' && (
-        <p className="text-zinc-600 text-[11px] text-center mt-3">
+        <p className="mt-3 text-center text-[11px] text-zinc-500 dark:text-zinc-400">
           By uploading, you agree to our{' '}
-          <Link href="/terms" className="text-zinc-500 hover:text-orange-400 transition-colors">Terms</Link>
+          <Link href="/terms" className="text-zinc-700 transition-colors hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white">Terms</Link>
           {' & '}
-          <Link href="/privacy" className="text-zinc-500 hover:text-orange-400 transition-colors">Privacy</Link>.
+          <Link href="/privacy" className="text-zinc-700 transition-colors hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white">Privacy</Link>.
         </p>
       )}
     </div>

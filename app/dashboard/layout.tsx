@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import AppShell from '@/components/AppShell';
 
 export const metadata: Metadata = {
-  title: 'Dashboard',
+  title: 'Find What Goes Viral',
   description: 'Upload TikToks and get AI-powered roasts with hook rewrites, reshoot plans, and honest scores.',
   alternates: { canonical: '/dashboard' },
 };

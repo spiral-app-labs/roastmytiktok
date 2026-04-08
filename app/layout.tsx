@@ -1,9 +1,37 @@
 import type { Metadata } from "next";
+import { Poppins, Ubuntu } from "next/font/google";
 import AppNav from "@/components/AppNav";
 import { Providers } from "@/components/Providers";
-import Link from "next/link";
 import { HomeJsonLd } from "@/components/JsonLd";
 import "./globals.css";
+
+const ubuntu = Ubuntu({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-ubuntu",
+  display: "swap",
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
+const themeScript = `
+  (function() {
+    try {
+      var stored = localStorage.getItem('rmt-theme');
+      var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var resolvedTheme = stored === 'light' || stored === 'dark'
+        ? stored
+        : (systemDark ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+      document.documentElement.style.colorScheme = resolvedTheme;
+    } catch (e) {}
+  })();
+`;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://goviralwith.ai"),
@@ -13,7 +41,10 @@ export const metadata: Metadata = {
   },
   description: "Six AI agents analyze your TikTok opener, diagnose why viewers leave, and give you a reshoot plan you can film today.",
   manifest: "/manifest.json",
-  themeColor: "#fb923c",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f5f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+  ],
   alternates: {
     canonical: "/",
   },
@@ -25,11 +56,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased dark">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${ubuntu.variable} ${poppins.variable} h-full antialiased`}
+    >
       <head>
         <HomeJsonLd />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-full flex flex-col bg-[#09090b] text-white">
+      <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
         <Providers>
         <a
           href="#main-content"
