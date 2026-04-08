@@ -193,12 +193,7 @@ export default function AnalyzePage() {
             firstFiveSecondsDiagnosis,
             agents: agentResults,
             metadata: {
-              views: 0,
-              likes: 0,
-              comments: 0,
-              shares: 0,
               duration: 0,
-              hashtags: [],
               description: 'Uploaded video',
             },
           };

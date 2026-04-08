@@ -1021,7 +1021,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         let frameContext = '';
         let hookZoneSummary = '';
         let captionQualityContext = '';
-        let captionQuality = null;
+        const captionQuality = null;
         let onScreenTextResults: OnScreenTextResult[] = [];
         const openingFrames = frames.filter(f => f.zone === 'hook');
 
@@ -1435,7 +1435,7 @@ Rules:
         };
 
         // Build view projection
-        const viewProjectionData = buildViewProjection({
+        const viewProjectionInput: Pick<RoastResult, 'overallScore' | 'hookSummary' | 'agents' | 'metadata' | 'niche'> = {
           overallScore,
           hookSummary,
           agents: DIMENSION_ORDER.map(dim => ({
@@ -1444,9 +1444,10 @@ Rules:
             failed: agentResults[dim].failed,
             roastText: '', findings: [], improvementTip: '',
           })),
-          metadata: { views: 0, likes: 0, comments: 0, shares: 0, duration: 0, hashtags: [] as string[], description: '' },
+          metadata: { duration: 0, description: '' },
           niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
-        } as any);
+        };
+        const viewProjectionData = buildViewProjection(viewProjectionInput as RoastResult);
 
         const result: RoastResult = {
           id,
@@ -1485,12 +1486,7 @@ Rules:
           transcriptQualityNote,
           ...(transcript ? { transcriptConfidence: transcript.confidence, transcriptProvider: transcript.provider } : {}),
           metadata: {
-            views: 0,
-            likes: 0,
-            comments: 0,
-            shares: 0,
             duration: videoDuration?.durationSeconds ?? 0,
-            hashtags: [],
             description: 'Uploaded video',
           },
         };
@@ -1524,7 +1520,6 @@ Rules:
         try {
           const agentScores = Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d].score]));
           const findings = Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d].findings]));
-          const processedSeconds = Number(videoDuration?.durationSeconds ?? result.metadata.duration ?? 0);
 
           await supabaseServer.from('rmt_roast_sessions').update({
             overall_score: overallScore,
