@@ -16,19 +16,17 @@ export function buildViewProjection(roast: RoastResult): ViewProjection {
   const tier = VIEW_RANGES.find(t => score <= t.maxScore) ?? VIEW_RANGES[VIEW_RANGES.length - 1];
 
   // Adjust confidence based on how much data we have
-  const hasMetadata = roast.metadata.views > 0;
   const hasNiche = !!roast.niche?.detected;
   const failedCount = roast.agents.filter(a => a.failed).length;
 
   let confidence: ViewProjection['confidence'] = 'medium';
-  if (hasMetadata && hasNiche && failedCount === 0) confidence = 'high';
-  else if (failedCount >= 2 || (!hasMetadata && !hasNiche)) confidence = 'low';
+  if (hasNiche && failedCount === 0) confidence = 'high';
+  else if (failedCount >= 2 || !hasNiche) confidence = 'low';
 
   const basedOn = [
     `overall score ${score}/100`,
     `hook strength ${hookScore}/100`,
     hasNiche ? `${roast.niche!.detected} niche` : null,
-    hasMetadata ? `current performance data` : null,
   ].filter(Boolean).join(', ');
 
   return {

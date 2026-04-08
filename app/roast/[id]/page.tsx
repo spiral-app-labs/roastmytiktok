@@ -177,7 +177,7 @@ function RoastContent({
   handleShareOnX: (score: number) => void;
 }) {
   const history = getHistory();
-  const hasMetadata = roast.metadata.views > 0 || roast.metadata.likes > 0;
+  const hasMetadata = roast.metadata.duration > 0;
   const viewProjection = useMemo(() => buildViewProjection(roast), [roast]);
 
   const [usageCount, setUsageCount] = useState<number | null>(null);
@@ -289,13 +289,9 @@ function RoastContent({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
               className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-3 text-xs text-zinc-600"
-            >
-              <span>{roast.metadata.views.toLocaleString()} views</span>
-              <span>&middot;</span>
-              <span>{roast.metadata.likes} likes</span>
-              <span>&middot;</span>
-              <span>{roast.metadata.duration}s</span>
-            </motion.div>
+          >
+            <span>{roast.metadata.duration}s</span>
+          </motion.div>
           )}
 
           {/* Share buttons */}

@@ -41,12 +41,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       verdict: data.verdict ?? '',
       agents,
       metadata: {
-        views: 0,
-        likes: 0,
-        comments: 0,
-        shares: 0,
         duration: 0,
-        hashtags: [],
         description: data.source === 'upload' ? 'Uploaded video' : 'TikTok URL',
       },
     });

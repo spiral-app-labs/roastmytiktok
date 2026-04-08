@@ -687,8 +687,8 @@ export default function UploadQueueUI() {
                     verdict: capturedVerdict,
                     agents: capturedAgents,
                     metadata: {
-                      views: 0, likes: 0, comments: 0, shares: 0,
-                      duration: 0, hashtags: [], description: 'Uploaded video',
+                      duration: 0,
+                      description: 'Uploaded video',
                     },
                   };
                   sessionStorage.setItem(`roast_${roastId}`, JSON.stringify(result));
