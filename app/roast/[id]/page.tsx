@@ -14,6 +14,7 @@ import { buildViewProjection } from '@/lib/view-projection';
 import { getFixViewImpact } from '@/lib/view-count-tiers';
 import { useToast } from '@/components/ui';
 import { RetentionCurve } from '@/components/RetentionCurve';
+import { HookAnalysisPanel } from '@/components/HookAnalysisPanel';
 import Link from 'next/link';
 
 function isAgentFailed(a: { failed?: boolean; findings?: string[] }): boolean {
@@ -166,14 +167,13 @@ function RoastContent({
 }) {
   const history = getHistory();
   const viewProjection = useMemo(() => buildViewProjection(roast), [roast]);
-
-  const [usageCount, setUsageCount] = useState<number | null>(null);
-  const [isPaid, setIsPaid] = useState(false);
-  useEffect(() => {
+  const usageCount = history.length;
+  const [isPaid] = useState(() => {
+    if (typeof document === 'undefined') return false;
     const hasPaidCookie = document.cookie.split(';').some(c => c.trim().startsWith('rmt_paid_bypass=1'));
     const hasPlan = !!localStorage.getItem('plan');
-    setIsPaid(hasPaidCookie || hasPlan);
-  }, []);
+    return hasPaidCookie || hasPlan;
+  });
 
   const { squareRef, storyRef, download, downloading } = useScoreCardDownload(roast);
 
@@ -264,6 +264,18 @@ function RoastContent({
           <ScoreCard ref={squareRef} roast={roast} variant="square" />
           <ScoreCard ref={storyRef} roast={roast} variant="story" />
         </div>
+
+        {roast.hookAnalysis ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.72 }}
+          >
+            <HookAnalysisPanel hookAnalysis={roast.hookAnalysis} hookIdentification={roast.hookIdentification} />
+          </motion.div>
+        ) : null}
+
+        <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Full Video Analysis</p>
 
         {/* ========== WHAT TO IMPROVE ========== */}
         <motion.div
