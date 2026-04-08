@@ -291,56 +291,77 @@ function isHookMechanism(value: unknown): value is HookMechanism {
 }
 
 function sanitizeHookAnalysis(raw: unknown): HookAnalysis {
-  const parsed = (raw && typeof raw === 'object') ? raw as Record<string, any> : {};
+  const parsed: Record<string, unknown> = (raw && typeof raw === 'object') ? raw as Record<string, unknown> : {};
   const hookTypes = Array.isArray(parsed.hookTypes)
     ? parsed.hookTypes.filter(isHookMechanism).slice(0, HOOK_MECHANISMS.length)
     : [];
-  const confidenceLevel = parsed.confidence?.level;
+  const confidence = (parsed.confidence && typeof parsed.confidence === 'object')
+    ? parsed.confidence as Record<string, unknown>
+    : undefined;
+  const keyWord = (parsed.keyWord && typeof parsed.keyWord === 'object')
+    ? parsed.keyWord as Record<string, unknown>
+    : undefined;
+  const curiosityGap = (parsed.curiosityGap && typeof parsed.curiosityGap === 'object')
+    ? parsed.curiosityGap as Record<string, unknown>
+    : undefined;
+  const identityCallout = (parsed.identityCallout && typeof parsed.identityCallout === 'object')
+    ? parsed.identityCallout as Record<string, unknown>
+    : undefined;
+  const patternInterrupt = (parsed.patternInterrupt && typeof parsed.patternInterrupt === 'object')
+    ? parsed.patternInterrupt as Record<string, unknown>
+    : undefined;
+  const hookToPayoffAlignment = (parsed.hookToPayoffAlignment && typeof parsed.hookToPayoffAlignment === 'object')
+    ? parsed.hookToPayoffAlignment as Record<string, unknown>
+    : undefined;
+  const confidenceLevel = confidence?.level;
 
   return {
     hookTypes,
     dominantMechanism: isHookMechanism(parsed.dominantMechanism) ? parsed.dominantMechanism : 'none',
     keyWord: {
-      text: sanitizeUserFacingText(parsed.keyWord?.text ?? 'No single word is carrying the opener.', 'No single word is carrying the opener.'),
-      why: sanitizeUserFacingText(parsed.keyWord?.why ?? 'The opener does not have a sharp verbal lever yet.', 'The opener does not have a sharp verbal lever yet.'),
+      text: sanitizeUserFacingText(keyWord?.text ?? 'No single word is carrying the opener.', 'No single word is carrying the opener.'),
+      why: sanitizeUserFacingText(keyWord?.why ?? 'The opener does not have a sharp verbal lever yet.', 'The opener does not have a sharp verbal lever yet.'),
     },
     curiosityGap: {
-      present: Boolean(parsed.curiosityGap?.present),
-      explanation: sanitizeUserFacingText(parsed.curiosityGap?.explanation ?? 'There is no clear unresolved question in the opener.', 'There is no clear unresolved question in the opener.'),
+      present: Boolean(curiosityGap?.present),
+      explanation: sanitizeUserFacingText(curiosityGap?.explanation ?? 'There is no clear unresolved question in the opener.', 'There is no clear unresolved question in the opener.'),
     },
     identityCallout: {
-      present: Boolean(parsed.identityCallout?.present),
-      who: sanitizeUserFacingText(parsed.identityCallout?.who ?? 'The opener does not clearly call out a specific viewer.', 'The opener does not clearly call out a specific viewer.'),
+      present: Boolean(identityCallout?.present),
+      who: sanitizeUserFacingText(identityCallout?.who ?? 'The opener does not clearly call out a specific viewer.', 'The opener does not clearly call out a specific viewer.'),
     },
     patternInterrupt: {
-      present: Boolean(parsed.patternInterrupt?.present),
-      explanation: sanitizeUserFacingText(parsed.patternInterrupt?.explanation ?? 'Nothing in the opening clearly breaks the scroll.', 'Nothing in the opening clearly breaks the scroll.'),
+      present: Boolean(patternInterrupt?.present),
+      explanation: sanitizeUserFacingText(patternInterrupt?.explanation ?? 'Nothing in the opening clearly breaks the scroll.', 'Nothing in the opening clearly breaks the scroll.'),
     },
     hookToPayoffAlignment: {
-      status: parsed.hookToPayoffAlignment?.status === 'aligned' || parsed.hookToPayoffAlignment?.status === 'misaligned' || parsed.hookToPayoffAlignment?.status === 'partial'
-        ? parsed.hookToPayoffAlignment.status
+      status: hookToPayoffAlignment?.status === 'aligned' || hookToPayoffAlignment?.status === 'misaligned' || hookToPayoffAlignment?.status === 'partial'
+        ? hookToPayoffAlignment.status
         : 'partial',
-      explanation: sanitizeUserFacingText(parsed.hookToPayoffAlignment?.explanation ?? 'The opener and the payoff only partially line up from the available evidence.', 'The opener and the payoff only partially line up from the available evidence.'),
+      explanation: sanitizeUserFacingText(hookToPayoffAlignment?.explanation ?? 'The opener and the payoff only partially line up from the available evidence.', 'The opener and the payoff only partially line up from the available evidence.'),
     },
     strengthScore: Math.max(1, Math.min(10, Math.round(Number(parsed.strengthScore ?? 5)))),
     rewrites: Array.isArray(parsed.rewrites)
       ? parsed.rewrites
-          .map((rewrite: any) => ({
-            hook: sanitizeUserFacingText(rewrite?.hook ?? '', ''),
-            why: sanitizeUserFacingText(rewrite?.why ?? '', ''),
-          }))
+          .map((rewrite: unknown) => {
+            const parsedRewrite = (rewrite && typeof rewrite === 'object') ? rewrite as Record<string, unknown> : {};
+            return {
+              hook: sanitizeUserFacingText(parsedRewrite.hook ?? '', ''),
+              why: sanitizeUserFacingText(parsedRewrite.why ?? '', ''),
+            };
+          })
           .filter((rewrite: { hook: string; why: string }) => rewrite.hook.length > 0)
           .slice(0, 3)
       : [],
     confidence: {
       level: confidenceLevel === 'high' || confidenceLevel === 'medium' || confidenceLevel === 'low' ? confidenceLevel : 'medium',
-      reason: sanitizeUserFacingText(parsed.confidence?.reason ?? 'Hook confidence is limited by the opening evidence quality.', 'Hook confidence is limited by the opening evidence quality.'),
+      reason: sanitizeUserFacingText(confidence?.reason ?? 'Hook confidence is limited by the opening evidence quality.', 'Hook confidence is limited by the opening evidence quality.'),
     },
   };
 }
 
 function parseExtractionResponse(text: string, dimension: DimensionKey): ExtractionOutput {
-  const parsed = JSON.parse(extractJsonObject(text)) as Partial<ExtractionOutput>;
+  const parsed = JSON.parse(extractJsonObject(text)) as Partial<ExtractionOutput> & { hookAnalysis?: unknown };
   const level = parsed.confidence?.level;
   return {
     score: Math.max(0, Math.min(100, Math.round(Number(parsed.score ?? 0)))),
@@ -352,7 +373,7 @@ function parseExtractionResponse(text: string, dimension: DimensionKey): Extract
       level: level === 'high' || level === 'medium' || level === 'low' ? level : 'medium',
       reason: sanitizeUserFacingText(parsed.confidence?.reason ?? 'The available evidence is mixed.', 'The available evidence is mixed.'),
     },
-    ...(dimension === 'hook' ? { hookAnalysis: sanitizeHookAnalysis((parsed as any).hookAnalysis) } : {}),
+    ...(dimension === 'hook' ? { hookAnalysis: sanitizeHookAnalysis(parsed.hookAnalysis) } : {}),
   };
 }
 
