@@ -160,9 +160,9 @@ export default function HistoryPage() {
           >
             <EmptyState
               icon="🎬"
-              title="No roasts yet"
-              description="Upload your first TikTok and let the AI agents tear it apart. It'll make you better. Probably."
-              cta={{ label: 'Get Roasted', icon: '🔥', href: '/' }}
+              title="Upload your first video"
+              description="We'll analyze your hook, pacing, audio, and CTAs — and tell you the #1 thing to fix before you post."
+              cta={{ label: 'Upload your first video', icon: '↑', href: '/dashboard' }}
             />
           </motion.div>
         )}
