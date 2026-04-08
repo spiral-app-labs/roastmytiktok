@@ -43,6 +43,20 @@ export interface HookIdentification {
   visualDescription: string;
 }
 
+export interface HookDimensionScore {
+  score: number;
+  justification: string;
+}
+
+export interface HookAnalysis {
+  visual: HookDimensionScore;
+  audio: HookDimensionScore;
+  narrative: HookDimensionScore;
+  overallScore: number;
+  summary: string;
+  topFixes: string[];
+}
+
 export interface ActionPlanStep {
   priority: 'P1' | 'P2' | 'P3';
   dimension: DimensionKey;
@@ -94,6 +108,7 @@ export interface RoastResult {
     /** Plain-english explanation of WHY distribution dies early - shown in hook gate banner */
     earlyDropNote?: string;
   };
+  hookAnalysis?: HookAnalysis;
   agents: AgentRoast[];
   niche?: {
     detected: string;

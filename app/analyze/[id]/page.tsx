@@ -65,6 +65,13 @@ const AGENT_LOADING_MESSAGES: Record<string, string[]> = {
   ],
 };
 
+const DEFAULT_LOADING_MESSAGES = [
+  `Waking up the AI agents...`,
+  `Tracing the weak spots in the video...`,
+  `Figuring out what earns the next second of attention...`,
+  `Packaging the roast into something useful...`,
+];
+
 function RotatingMessage({ messages }: { messages: string[] }) {
   const [index, setIndex] = useState(0);
 
@@ -120,6 +127,7 @@ export default function AnalyzePage() {
     let encouragement = '';
     let analysisMode: RoastResult['analysisMode'] = 'balanced';
     let hookSummary: RoastResult['hookSummary'] | undefined;
+    let hookAnalysis: RoastResult['hookAnalysis'] | undefined;
     let firstFiveSecondsDiagnosis: RoastResult['firstFiveSecondsDiagnosis'] | undefined;
 
     const sessionId = getSessionId();
@@ -166,6 +174,7 @@ export default function AnalyzePage() {
           encouragement = data.encouragement ?? '';
           analysisMode = data.analysisMode ?? 'balanced';
           hookSummary = data.hookSummary;
+          hookAnalysis = data.hookAnalysis;
           firstFiveSecondsDiagnosis = data.firstFiveSecondsDiagnosis;
         }
 
@@ -187,6 +196,7 @@ export default function AnalyzePage() {
             encouragement,
             analysisMode,
             hookSummary,
+            hookAnalysis,
             firstFiveSecondsDiagnosis,
             agents: agentResults,
             metadata: {
