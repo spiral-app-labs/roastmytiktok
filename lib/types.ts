@@ -1,5 +1,10 @@
 export type DimensionKey = 'hook' | 'visual' | 'audio' | 'authenticity' | 'conversion' | 'accessibility';
 
+export interface AgentConfidence {
+  level: 'low' | 'medium' | 'high';
+  reason: string;
+}
+
 export interface AgentDef {
   key: DimensionKey;
   emoji: string;
@@ -15,6 +20,8 @@ export interface AgentRoast {
   roastText: string;
   findings: string[];
   improvementTip: string;
+  scoreJustification?: string[];
+  confidence?: AgentConfidence;
   timestamp_seconds?: number;
   /** True when the agent errored and the score is not real */
   failed?: boolean;
@@ -114,12 +121,7 @@ export interface RoastResult {
     musicId: string | null;
   } | null;
   metadata: {
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
     duration: number;
-    hashtags: string[];
     description: string;
   };
 }

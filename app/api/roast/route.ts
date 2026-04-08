@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MOCK_ROAST } from '@/lib/mock-data';
 import { checkRateLimit, isPaidUser } from '@/lib/rate-limit';
 
 const FREE_LIMIT = { name: 'roast-free', max: 3, windowMs: 24 * 60 * 60 * 1000 };
@@ -18,10 +17,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'TikTok URL is required' }, { status: 400 });
   }
 
-  // V1 MVP: return mock data immediately
-  // TODO: integrate Python analysis script + Claude roast generation
-  return NextResponse.json({
-    ...MOCK_ROAST,
-    tiktokUrl: url,
-  });
+  return NextResponse.json(
+    { error: 'TikTok URL analysis coming soon', code: 'NOT_IMPLEMENTED' },
+    { status: 501 }
+  );
 }
