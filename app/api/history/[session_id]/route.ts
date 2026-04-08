@@ -9,7 +9,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ session
 
   const { data, error } = await supabaseServer
     .from('rmt_roast_sessions')
-    .select('id, created_at, overall_score, verdict, source, filename, tiktok_url, agent_scores, findings')
+    .select('id, created_at, overall_score, verdict, source, filename, tiktok_url, agent_scores, findings, result_json')
     .eq('session_id', session_id)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -19,17 +19,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ session
     return Response.json({ error: 'Failed to fetch history' }, { status: 500 });
   }
 
-  const entries = (data ?? []).map(row => ({
-    id: row.id,
-    date: row.created_at,
-    overallScore: row.overall_score,
-    verdict: row.verdict ?? '',
-    source: row.source,
-    filename: row.filename ?? undefined,
-    url: row.tiktok_url ?? undefined,
-    agentScores: row.agent_scores ?? {},
-    findings: row.findings ?? {},
-  }));
+  const entries = (data ?? []).map(row => {
+    const resultJson = (row.result_json ?? null) as { viralPotential?: number } | null;
+    return {
+      id: row.id,
+      date: row.created_at,
+      overallScore: row.overall_score,
+      viralPotential: resultJson?.viralPotential ?? undefined,
+      verdict: row.verdict ?? '',
+      source: row.source,
+      filename: row.filename ?? undefined,
+      url: row.tiktok_url ?? undefined,
+      agentScores: row.agent_scores ?? {},
+      findings: row.findings ?? {},
+    };
+  });
 
   return Response.json({ entries });
 }

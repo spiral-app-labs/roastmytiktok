@@ -6,6 +6,10 @@ export interface HistoryEntry {
   id: string;
   date: string;
   overallScore: number;
+  /** Distinct viral potential score (0-100) produced by the verdict pass.
+   * Legacy entries saved before this field existed will have it undefined -
+   * consumers should fall back to overallScore. */
+  viralPotential?: number;
   verdict: string;
   source: 'upload' | 'url';
   filename?: string;
@@ -87,6 +91,7 @@ export function saveToHistory(result: RoastResult, source: 'upload' | 'url', fil
     id: result.id,
     date: new Date().toISOString(),
     overallScore: result.overallScore,
+    viralPotential: result.viralPotential,
     verdict: result.verdict,
     source,
     filename,

@@ -8,13 +8,11 @@ import {
   LayoutDashboard,
   Clock,
   BarChart3,
-  Upload,
   Settings,
   LogOut,
   Menu,
   X,
   Flame,
-  ArrowUpRight,
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 
@@ -129,22 +127,7 @@ export default function Sidebar() {
           })}
         </nav>
 
-        <div className="rounded-[28px] border border-black/6 bg-[#fafaf9] p-4 text-zinc-950 transition-colors dark:border-white/8 dark:bg-white/5 dark:text-white">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">Quick action</p>
-          <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-            Start a new analysis and keep the feedback loop tight while the draft is still fresh.
-          </p>
-          <Link
-            href="/dashboard#upload"
-            onClick={() => setMobileOpen(false)}
-            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-zinc-950 px-4 py-2.5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 dark:bg-zinc-950 dark:text-white dark:shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
-          >
-            <Upload className="h-4 w-4" />
-            Upload video
-          </Link>
-        </div>
-
-        <div className="mt-5 flex items-center justify-between px-1">
+        <div className="mt-4 flex items-center justify-between px-1">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">Appearance</p>
             <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Light or dark</p>
@@ -152,31 +135,21 @@ export default function Sidebar() {
           <ThemeToggle />
         </div>
 
-        <div className="mt-4 rounded-[28px] border border-black/6 bg-white p-4 transition-colors dark:border-white/8 dark:bg-white/5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-700 dark:bg-white/10 dark:text-zinc-100">
-              {userInitial}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-zinc-950 dark:text-white">{userEmail ?? 'Beta User'}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Signed in workspace</p>
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/10 dark:hover:text-white"
-              title="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+        <div className="mt-3 flex items-center gap-2.5 rounded-2xl border border-black/6 bg-white px-3 py-2 transition-colors dark:border-white/8 dark:bg-white/5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-700 dark:bg-white/10 dark:text-zinc-100">
+            {userInitial}
           </div>
-          <Link
-            href="/settings"
-            onClick={() => setMobileOpen(false)}
-            className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white"
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-950 dark:text-white">
+            {userEmail ?? 'Beta User'}
+          </p>
+          <button
+            onClick={handleSignOut}
+            className="rounded-full p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-white/10 dark:hover:text-white"
+            title="Sign out"
+            aria-label="Sign out"
           >
-            Manage workspace
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </aside>
     </>
