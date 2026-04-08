@@ -26,6 +26,47 @@ export const maxDuration = 120; // allow up to 2 min for analysis
 
 type AgentConfidenceLevel = AgentConfidence['level'];
 
+type HookMechanism =
+  | 'curiosity_gap'
+  | 'identity_callout'
+  | 'pattern_interrupt'
+  | 'emotional'
+  | 'pov'
+  | 'spoken_absurdity'
+  | 'visual_interrupt'
+  | 'text_overlay';
+
+interface HookAnalysis {
+  hookTypes: HookMechanism[];
+  dominantMechanism: HookMechanism | 'none';
+  keyWord: {
+    text: string;
+    why: string;
+  };
+  curiosityGap: {
+    present: boolean;
+    explanation: string;
+  };
+  identityCallout: {
+    present: boolean;
+    who: string;
+  };
+  patternInterrupt: {
+    present: boolean;
+    explanation: string;
+  };
+  hookToPayoffAlignment: {
+    status: 'aligned' | 'misaligned' | 'partial';
+    explanation: string;
+  };
+  strengthScore: number;
+  rewrites: Array<{
+    hook: string;
+    why: string;
+  }>;
+  confidence: AgentConfidence;
+}
+
 interface PromptEvidenceBundle {
   frameFacts: string[];
   firstFrameVisual: string | null;
@@ -54,12 +95,24 @@ interface ExtractionOutput {
     level: AgentConfidenceLevel;
     reason: string;
   };
+  hookAnalysis?: HookAnalysis;
 }
 
 interface ExplanationOutput {
   roastText: string;
   improvementTip: string;
 }
+
+const HOOK_MECHANISMS: HookMechanism[] = [
+  'curiosity_gap',
+  'identity_callout',
+  'pattern_interrupt',
+  'emotional',
+  'pov',
+  'spoken_absurdity',
+  'visual_interrupt',
+  'text_overlay',
+];
 
 interface AgentResult {
   score: number;
@@ -68,6 +121,7 @@ interface AgentResult {
   improvementTip: string;
   scoreJustification: string[];
   confidence: AgentConfidence;
+  hookAnalysis?: HookAnalysis;
   failed?: boolean;
   failureReason?: string;
 }
@@ -82,14 +136,14 @@ type AgentPromptSpec = {
 const AGENT_PROMPTS: Record<DimensionKey, AgentPromptSpec> = {
   hook: {
     name: 'Hook Agent',
-    extractionTask: 'Split the hook analysis into two jobs. Job A is factual extraction only. Judge whether the opener stops the right viewer and holds them long enough to reach the payoff. Classify which hook mechanisms are actually present, identify the single strongest word or phrase, assess curiosity gap, identity callout, pattern interrupt, and hook-to-payoff alignment. Ground every claim in first-frame facts, first spoken words, opening text overlay, opening motion or sound, and the hook-zone summary.',
-    explanationTask: 'Job B is creator-facing explanation constrained by Job A. Write specific, opinionated advice about why this hook works or fails for this niche, then point to the first change that matters most.',
+    extractionTask: 'You are Hook Agent. Judge only the opening hook of this short-form video: the first frame and the first 1-3 seconds. Job A is factual extraction only. Decide whether the opener gives the right viewer an immediate reason to stop, understand who the content is for, and keep watching long enough to reach the payoff. Do not judge the full video. Do not judge later pacing, CTA quality, thumbnail quality, comment bait, or general production beyond how they affect the opening beat. Use only the provided first-frame facts, first spoken words, first on-screen text, opening motion or sound, hook-zone summary, and opening-specific evidence. If transcript quality is weak or evidence is missing, say so directly instead of guessing. Classify the hook mechanisms actually present using only these labels: curiosity_gap, identity_callout, pattern_interrupt, emotional, pov, spoken_absurdity, visual_interrupt, text_overlay. Use multi-label classification when needed, then choose one dominantMechanism. Identify the single most important word or short phrase in the opener and explain why it carries the hook. Explicitly assess whether there is a real curiosity gap, whether there is a clear identity callout, whether there is a pattern interrupt, and whether the hook aligns with the likely payoff. Score strengthScore from 1-10 for the intended audience in this niche, not generic virality. Give 2-3 concrete rewrite hooks tailored to this exact topic and niche. Use different strategic angles when possible. Do not use generic templates. Reference actual evidence from the opening. Quote the creator’s first spoken words when available. Mention first-frame text overlay when available. Separate what is observed from what is inferred.',
+    explanationTask: 'Job B is creator-facing explanation constrained by Job A only. Explain why the hook works or fails for this niche using the extracted hook types, dominant mechanism, key word, curiosity gap, identity callout, pattern interrupt, hook-to-payoff alignment, strength score, rewrites, and confidence. Be specific, opinionated, and actionable. If the hook is strong, say why without forcing criticism. If it is weak, identify the first change that matters most. Do not mention prompt mechanics, schemas, or unsupported statistics. Do not diagnose thumbnail strategy or comment bait.',
     fewShot: `Extraction example:
 Input bundle says firstFrameVisual shows a static medium shot, firstSpokenLine is "today i want to talk about my skincare routine", firstOnScreenText is null, openingMotionOrSound says "no clear opening motion cue", and hookZoneSummary says visual energy stays low.
-Output: {"score":31,"scoreJustification":["The first spoken line explains the topic instead of creating tension","No opening text, motion, or visual interrupt creates stop power","The hook promise is broad and does not create a strong reason to keep watching"],"findings":["The opener is informational, not interruptive","There is no real curiosity gap for a skincare viewer"],"observedStrength":"The topic is visible quickly, so the viewer is not confused.","primaryFix":"Lead with a sharper claim or problem statement before you explain the routine.","confidence":{"level":"high","reason":"The first frame, first line, and lack of opening text all point in the same direction."}}
+Output: {"score":31,"scoreJustification":["The first spoken line explains the topic instead of creating tension","No opening text, motion, or visual interrupt creates stop power","The hook promise is broad and does not create a strong reason to keep watching"],"findings":["The opener is informational, not interruptive","There is no real curiosity gap for a skincare viewer"],"observedStrength":"The topic is visible quickly, so the viewer is not confused.","primaryFix":"Lead with a sharper claim or problem statement before you explain the routine.","confidence":{"level":"high","reason":"The first frame, first line, and lack of opening text all point in the same direction."},"hookAnalysis":{"hookTypes":[],"dominantMechanism":"none","keyWord":{"text":"skincare routine","why":"It states the topic, but it does not add tension or novelty."},"curiosityGap":{"present":false,"explanation":"The viewer already knows the creator is about to explain a routine, so there is no unresolved question pulling them forward."},"identityCallout":{"present":false,"who":"It speaks to anyone, not a specific skincare viewer with a problem."},"patternInterrupt":{"present":false,"explanation":"The opening stays visually and verbally flat, so nothing clearly breaks the scroll."},"hookToPayoffAlignment":{"status":"partial","explanation":"The video appears to discuss skincare, but the opener does not promise a distinct payoff worth waiting for."},"strengthScore":3,"rewrites":[{"hook":"If your skin looks worse after a 10-step routine, this is probably why.","why":"Adds a direct problem and gives skincare viewers a reason to stay for the fix."},{"hook":"The best thing I did for my skin was cutting this one step.","why":"Creates curiosity around a specific change without overexplaining the setup."}],"confidence":{"level":"high","reason":"The available opening evidence is explicit and consistent."}}}
 
 Explanation example:
-Output: {"roastText":"Your opener tells me the category, but it does not force a skincare viewer to care yet. \"Today I want to talk about my skincare routine\" is safe, and safe hooks get swiped.","improvementTip":"Open on the mistake, result, or opinion first, then explain the routine after the viewer has a reason to stay."}`,
+Output: {"roastText":"Your opener tells me the category, but it does not force a skincare viewer to care yet. \"Today I want to talk about my skincare routine\" is safe, and safe hooks get swiped. There is no real curiosity gap, no identity callout, and no pattern interrupt doing any work for you.","improvementTip":"Open on the mistake, result, or opinion first, then explain the routine after the viewer has a reason to stay."}`,
   },
   visual: {
     name: 'Visual Agent',
@@ -166,7 +220,7 @@ function buildExtractionPrompt(dimension: DimensionKey, bundle: PromptEvidenceBu
   const spec = AGENT_PROMPTS[dimension];
   const outputSchema = dimension === 'hook'
     ? `Return ONLY valid JSON:
-{"score": number, "scoreJustification": string[], "findings": string[], "observedStrength": string, "primaryFix": string, "confidence": {"level": "high" | "medium" | "low", "reason": string}}`
+{"score": number, "scoreJustification": string[], "findings": string[], "observedStrength": string, "primaryFix": string, "confidence": {"level": "high" | "medium" | "low", "reason": string}, "hookAnalysis": {"hookTypes": ["curiosity_gap" | "identity_callout" | "pattern_interrupt" | "emotional" | "pov" | "spoken_absurdity" | "visual_interrupt" | "text_overlay"], "dominantMechanism": "curiosity_gap" | "identity_callout" | "pattern_interrupt" | "emotional" | "pov" | "spoken_absurdity" | "visual_interrupt" | "text_overlay" | "none", "keyWord": {"text": string, "why": string}, "curiosityGap": {"present": boolean, "explanation": string}, "identityCallout": {"present": boolean, "who": string}, "patternInterrupt": {"present": boolean, "explanation": string}, "hookToPayoffAlignment": {"status": "aligned" | "misaligned" | "partial", "explanation": string}, "strengthScore": number, "rewrites": [{"hook": string, "why": string}], "confidence": {"level": "high" | "medium" | "low", "reason": string}}}`
     : `Return ONLY valid JSON:
 {"score": number, "scoreJustification": string[], "findings": string[], "observedStrength": string, "primaryFix": string, "confidence": {"level": "high" | "medium" | "low", "reason": string}}`;
   return buildPromptBlock(
@@ -232,7 +286,60 @@ function extractJsonObject(text: string): string {
   return jsonStr.slice(startIdx, endIdx + 1);
 }
 
-function parseExtractionResponse(text: string): ExtractionOutput {
+function isHookMechanism(value: unknown): value is HookMechanism {
+  return typeof value === 'string' && HOOK_MECHANISMS.includes(value as HookMechanism);
+}
+
+function sanitizeHookAnalysis(raw: unknown): HookAnalysis {
+  const parsed = (raw && typeof raw === 'object') ? raw as Record<string, any> : {};
+  const hookTypes = Array.isArray(parsed.hookTypes)
+    ? parsed.hookTypes.filter(isHookMechanism).slice(0, HOOK_MECHANISMS.length)
+    : [];
+  const confidenceLevel = parsed.confidence?.level;
+
+  return {
+    hookTypes,
+    dominantMechanism: isHookMechanism(parsed.dominantMechanism) ? parsed.dominantMechanism : 'none',
+    keyWord: {
+      text: sanitizeUserFacingText(parsed.keyWord?.text ?? 'No single word is carrying the opener.', 'No single word is carrying the opener.'),
+      why: sanitizeUserFacingText(parsed.keyWord?.why ?? 'The opener does not have a sharp verbal lever yet.', 'The opener does not have a sharp verbal lever yet.'),
+    },
+    curiosityGap: {
+      present: Boolean(parsed.curiosityGap?.present),
+      explanation: sanitizeUserFacingText(parsed.curiosityGap?.explanation ?? 'There is no clear unresolved question in the opener.', 'There is no clear unresolved question in the opener.'),
+    },
+    identityCallout: {
+      present: Boolean(parsed.identityCallout?.present),
+      who: sanitizeUserFacingText(parsed.identityCallout?.who ?? 'The opener does not clearly call out a specific viewer.', 'The opener does not clearly call out a specific viewer.'),
+    },
+    patternInterrupt: {
+      present: Boolean(parsed.patternInterrupt?.present),
+      explanation: sanitizeUserFacingText(parsed.patternInterrupt?.explanation ?? 'Nothing in the opening clearly breaks the scroll.', 'Nothing in the opening clearly breaks the scroll.'),
+    },
+    hookToPayoffAlignment: {
+      status: parsed.hookToPayoffAlignment?.status === 'aligned' || parsed.hookToPayoffAlignment?.status === 'misaligned' || parsed.hookToPayoffAlignment?.status === 'partial'
+        ? parsed.hookToPayoffAlignment.status
+        : 'partial',
+      explanation: sanitizeUserFacingText(parsed.hookToPayoffAlignment?.explanation ?? 'The opener and the payoff only partially line up from the available evidence.', 'The opener and the payoff only partially line up from the available evidence.'),
+    },
+    strengthScore: Math.max(1, Math.min(10, Math.round(Number(parsed.strengthScore ?? 5)))),
+    rewrites: Array.isArray(parsed.rewrites)
+      ? parsed.rewrites
+          .map((rewrite: any) => ({
+            hook: sanitizeUserFacingText(rewrite?.hook ?? '', ''),
+            why: sanitizeUserFacingText(rewrite?.why ?? '', ''),
+          }))
+          .filter((rewrite: { hook: string; why: string }) => rewrite.hook.length > 0)
+          .slice(0, 3)
+      : [],
+    confidence: {
+      level: confidenceLevel === 'high' || confidenceLevel === 'medium' || confidenceLevel === 'low' ? confidenceLevel : 'medium',
+      reason: sanitizeUserFacingText(parsed.confidence?.reason ?? 'Hook confidence is limited by the opening evidence quality.', 'Hook confidence is limited by the opening evidence quality.'),
+    },
+  };
+}
+
+function parseExtractionResponse(text: string, dimension: DimensionKey): ExtractionOutput {
   const parsed = JSON.parse(extractJsonObject(text)) as Partial<ExtractionOutput>;
   const level = parsed.confidence?.level;
   return {
@@ -245,6 +352,7 @@ function parseExtractionResponse(text: string): ExtractionOutput {
       level: level === 'high' || level === 'medium' || level === 'low' ? level : 'medium',
       reason: sanitizeUserFacingText(parsed.confidence?.reason ?? 'The available evidence is mixed.', 'The available evidence is mixed.'),
     },
+    ...(dimension === 'hook' ? { hookAnalysis: sanitizeHookAnalysis((parsed as any).hookAnalysis) } : {}),
   };
 }
 
@@ -878,6 +986,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
             const extraction = parseExtractionResponse(
               await runModel(buildExtractionPrompt(dimension, promptBundle), 900),
+              dimension,
             );
             const explanation = parseExplanationResponse(
               await runModel(buildExplanationPrompt(dimension, promptBundle, extraction), 700),
@@ -895,6 +1004,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               roastText: `${sanitized.roastText}${repeatIssue}`,
               scoreJustification: extraction.scoreJustification,
               confidence: extraction.confidence,
+              ...(extraction.hookAnalysis ? { hookAnalysis: extraction.hookAnalysis } : {}),
             };
 
             if (!result.findings.length) {
@@ -1166,6 +1276,7 @@ Rules:
           analysisMode,
           hookSummary,
           hookIdentification,
+          ...(agentResults.hook?.hookAnalysis ? { hookAnalysis: agentResults.hook.hookAnalysis } : {}),
           viewProjection: viewProjectionData,
           agents: DIMENSION_ORDER.map(dim => ({
             agent: dim,
@@ -1175,6 +1286,7 @@ Rules:
             improvementTip: agentResults[dim].improvementTip,
             scoreJustification: agentResults[dim].scoreJustification,
             confidence: agentResults[dim].confidence,
+            ...(agentResults[dim].hookAnalysis ? { hookAnalysis: agentResults[dim].hookAnalysis } : {}),
             ...(agentResults[dim].failed ? { failed: true, failureReason: agentResults[dim].failureReason } : {}),
             timestamp_seconds: AGENT_TIMESTAMPS[dim],
           })),
