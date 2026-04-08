@@ -1,111 +1,86 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import UploadQueueUI from '@/components/UploadQueueUI';
 import { AccountCTA } from '@/components/AccountCTA';
-import { GlassCard, GradientButton } from '@/components/ui';
+import { SampleDiagnosisPreview } from '@/components/SampleDiagnosisPreview';
+import { GradientButton } from '@/components/ui';
 
-// Floating particle for background
-function Particle({ delay, duration, x, y, size, color }: { delay: number; duration: number; x: number; y: number; size: number; color: string }) {
-  return (
-    <motion.div
-      className="absolute rounded-full pointer-events-none"
-      style={{
-        left: `${x}%`,
-        top: `${y}%`,
-        width: size,
-        height: size,
-        background: `radial-gradient(circle, rgba(${color},0.35) 0%, transparent 70%)`,
-      }}
-      animate={{
-        y: [0, -35, 0],
-        x: [0, 12, -8, 0],
-        opacity: [0.2, 0.6, 0.2],
-        scale: [1, 1.25, 1],
-      }}
-      transition={{
-        duration,
-        delay,
-        repeat: Infinity,
-        ease: 'easeInOut',
-      }}
-    />
-  );
-}
-
-const AGENTS_PREVIEW = [
-  { emoji: '💀', name: 'Hook Agent', desc: 'Judges your first 3 seconds' },
-  { emoji: '🎨', name: 'Visual Agent', desc: 'Rates your cinematography (or lack of it)' },
-  { emoji: '🎧', name: 'Audio Agent', desc: 'Performs autopsies on audio choices' },
-  { emoji: '👁️', name: 'Authenticity Agent', desc: 'Detects cringe at molecular level' },
-  { emoji: '💰', name: 'Conversion Agent', desc: 'Destroys your CTA strategy' },
-  { emoji: '♿', name: 'Accessibility Agent', desc: 'Checks if everyone can enjoy your content' },
-];
-
-
-
-const FEATURES = [
+const DIAGNOSIS_DIMENSIONS = [
   {
-    icon: '📉',
-    title: 'Drop-off diagnosis',
-    problem: 'Your analytics shows where viewers leave.',
-    fix: 'We show why - and what to change in the first 3 seconds.',
+    title: 'Hook',
+    score: '41/100',
+    detail: 'Frame one does not tell the viewer why they should stop scrolling.',
   },
   {
-    icon: '🎣',
-    title: 'Hook rewrite workshop',
-    problem: 'Weak openers are the #1 reason videos die at 200 views.',
-    fix: 'Get 3+ stronger hooks you can say on camera today.',
+    title: 'Pacing',
+    score: '58/100',
+    detail: 'The idea is useful, but the setup takes too long to reach the payoff.',
   },
   {
-    icon: '🎬',
-    title: 'Reshoot planner',
-    problem: "Knowing what's wrong isn't enough.",
-    fix: 'Concrete shot, text, and delivery guidance to film right now.',
+    title: 'Audio',
+    score: '67/100',
+    detail: 'Voice is clear, but the first line lands flat and lacks urgency.',
   },
   {
-    icon: '🔬',
-    title: '6-agent deep analysis',
-    problem: 'Generic AI feedback misses what actually kills retention.',
-    fix: 'Six specialized agents each tear apart a different dimension.',
+    title: 'Captions',
+    score: '52/100',
+    detail: 'On-screen text arrives after the first swipe decision is already made.',
+  },
+  {
+    title: 'CTA',
+    score: '71/100',
+    detail: 'The ask is decent, but few viewers make it far enough to hear it.',
   },
 ];
 
-const HOOK_EXAMPLES = [
+const FIX_LOOP = [
   {
-    type: 'Spoken hook',
-    strong: '"this mistake is why your videos die at 300 views."',
-    weak: '"hey guys, so today i wanted to talk about..."',
+    step: '01',
+    title: 'Upload the draft before you post',
+    detail: 'Drop in the exact cut you plan to publish and let the system inspect the opening, pacing, text, and delivery.',
   },
   {
-    type: 'Visual hook',
-    strong: 'Open on the finished result or a fast zoom in frame 1.',
-    weak: 'Static selfie and a dead stare while you get into position.',
+    step: '02',
+    title: 'See the blocker ranked by impact',
+    detail: 'Instead of a generic summary, you get one primary issue, supporting evidence, and what is secondary.',
   },
   {
-    type: 'Text hook (on-screen)',
-    strong: 'Bold text in frame 1: "3 things that kill retention instantly"',
-    weak: 'Tiny text appears at 0:03, after the scroll already happened.',
-  },
-  {
-    type: 'Curiosity hook',
-    strong: '"the reason your videos cap at 200 is almost never the content itself."',
-    weak: '"hey, today I wanted to share something about TikTok growth with you."',
+    step: '03',
+    title: 'Film the next take with a sharper brief',
+    detail: 'Use the rewrite, reshoot note, and priority order to fix the next version before distribution dies.',
   },
 ];
 
-// Particle positions (stable, SSR-safe)
-const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
-  id: i,
-  x: (i * 37 + 11) % 100,
-  y: (i * 53 + 7) % 100,
-  size: 50 + (i * 17 % 90),
-  delay: (i * 0.4) % 3,
-  duration: 5 + (i * 0.7 % 4),
-  color: i % 3 === 0 ? '251,146,60' : i % 3 === 1 ? '236,72,153' : '139,92,246',
-}));
+const CREATOR_PROOF = [
+  {
+    label: 'Solo creators',
+    detail: 'Use the diagnosis before posting to catch weak hooks and overlong setups while the video is still easy to fix.',
+  },
+  {
+    label: 'Agencies and editors',
+    detail: 'Use the sample result as a QC layer when several cuts are moving fast and subjective feedback is not enough.',
+  },
+  {
+    label: 'In-house social teams',
+    detail: 'Use the priority stack to align on the next take instead of arguing over five competing edits.',
+  },
+];
+
+const ACCESS_OPTIONS = [
+  {
+    title: 'Start with diagnosis',
+    detail: 'Sign in to upload a draft, run a limited beta diagnosis, and save results to your workspace.',
+    cta: 'Analyze my video',
+  },
+  {
+    title: 'Already in the beta',
+    detail: 'Have an invite code already? Enter it after you commit so the landing page can stay product-first.',
+    cta: 'Enter invite code',
+  },
+];
 
 export default function Home() {
   const [bypassed, setBypassed] = useState(false);
@@ -114,12 +89,14 @@ export default function Home() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
+  const [isGateOpen, setIsGateOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     let cancelled = false;
+
     fetch('/api/bypass/check')
-      .then((r) => r.json())
+      .then((response) => response.json())
       .then((data) => {
         if (!cancelled) {
           setBypassed(data.bypassed === true);
@@ -129,50 +106,70 @@ export default function Home() {
       .catch(() => {
         if (!cancelled) setChecked(true);
       });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Fetch usage when bypassed
   useEffect(() => {
     if (!bypassed) return;
+
     fetch('/api/usage')
-      .then((r) => r.json())
+      .then((response) => response.json())
       .then((data) => {
-        const snap = data?.usage;
-        if (snap) {
+        const snapshot = data?.usage;
+        if (snapshot) {
           setUsage({
-            used: snap.totals.roastsInWindow,
-            limit: snap.caps.roastLimit ?? 3,
+            used: snapshot.totals.roastsInWindow,
+            limit: snapshot.caps.roastLimit ?? 3,
           });
         }
       })
       .catch(() => {});
   }, [bypassed]);
 
-  // Cycle testimonials
-  useEffect(() => {
-    if (bypassed || !checked) return;
-    const t = setInterval(() => {
-    }, 4000);
-    return () => clearInterval(t);
-  }, [bypassed, checked]);
+  const openGate = () => {
+    setError('');
+    setPassword('');
+    setIsGateOpen(true);
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const closeGate = () => {
+    if (loading) return;
+    setIsGateOpen(false);
+    setError('');
+  };
+
+  const goToLogin = () => {
+    router.push('/login?redirect=%2Fdashboard');
+  };
+
+  const scrollToSample = () => {
+    const section = document.getElementById('sample-result');
+    section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError('');
 
-    const res = await fetch('/api/bypass', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    });
+    try {
+      const response = await fetch('/api/bypass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
 
-    if (res.ok) {
-      setBypassed(true);
-      router.refresh();
-    } else {
-      setError('Wrong password. This is a private beta.');
+      if (response.ok) {
+        setBypassed(true);
+        setIsGateOpen(false);
+        router.refresh();
+      } else {
+        setError('Invite code not recognized. Sign in or use a valid beta code.');
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -183,391 +180,338 @@ export default function Home() {
 
   if (!bypassed) {
     return (
-      <main className="min-h-screen bg-[#080808] overflow-hidden relative flex flex-col">
-        {/* Rich layered background */}
-        <div className="absolute inset-0 pointer-events-none">
-          {/* Primary glow - stronger than before */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_-10%,rgba(251,146,60,0.18),transparent)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_85%_85%,rgba(236,72,153,0.12),transparent)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_10%_70%,rgba(139,92,246,0.07),transparent)]" />
-          {/* Subtle grid overlay */}
-          <div
-            className="absolute inset-0 opacity-[0.025]"
-            style={{
-              backgroundImage: 'linear-gradient(rgba(251,146,60,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(251,146,60,0.5) 1px, transparent 1px)',
-              backgroundSize: '80px 80px',
-            }}
-          />
-          {PARTICLES.map((p) => (
-            <Particle key={p.id} {...p} />
-          ))}
+      <main className="relative min-h-screen overflow-hidden bg-[#080808] text-white">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,146,60,0.15),transparent_36%)]" />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/25 to-transparent" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px] opacity-30" />
+          <div className="absolute -left-20 top-[18rem] h-72 w-72 rounded-full bg-orange-500/8 blur-3xl" />
+          <div className="absolute -right-12 top-[32rem] h-80 w-80 rounded-full bg-red-500/8 blur-3xl" />
         </div>
 
-        {/* Top bar */}
-        <div className="relative z-10 px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-white font-black text-lg tracking-tight">Go Viral</span>
-            <span className="text-zinc-600 text-xs font-medium">with AI</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
-            <span className="text-orange-400 text-xs font-semibold">Private Beta</span>
-          </div>
-        </div>
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col px-4 pb-24 pt-8 sm:px-6 sm:pt-12">
+          <section className="grid gap-12 border-b border-white/6 pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, ease: 'easeOut' }}
+              className="max-w-2xl"
+            >
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-orange-300">
+                <span className="h-2 w-2 rounded-full bg-orange-400" />
+                Pre-post video diagnosis
+              </div>
 
-        {/* Hero */}
-        <div className="relative z-10 px-4 pt-8 pb-12 sm:pt-14 sm:pb-16 flex flex-col items-center text-center">
+              <h1 className="max-w-3xl text-5xl font-black leading-[0.98] tracking-tight text-white sm:text-6xl lg:text-7xl">
+                Find the virality blocker
+                <span className="block bg-gradient-to-r from-orange-300 via-orange-400 to-red-500 bg-clip-text text-transparent">
+                  before you hit post.
+                </span>
+              </h1>
 
-          {/* Social proof pill */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-zinc-900/80 border border-zinc-700/50 backdrop-blur-sm mb-8 text-center"
-          >
-            <div className="flex -space-x-1">
-              {['🧑', '👩', '🧑‍💻'].map((e, i) => (
-                <span key={i} className="text-base">{e}</span>
-              ))}
-            </div>
-            <span className="text-zinc-300 text-sm font-medium">
-              <span className="text-orange-400 font-bold">10,000+</span> videos roasted &middot; <span className="text-emerald-400 font-bold">3,200+</span> creators past 200 views
-            </span>
-          </motion.div>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-300 sm:text-xl">
+                Upload a draft and get a ranked diagnosis of what hurts reach first, what to fix next, and how to film a stronger next take.
+              </p>
 
-          {/* Main headline - pain-point-first */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, ease: 'easeOut' }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[1.03] tracking-tight mb-5"
-          >
-            get roasted before
-            <br />
-            <span className="bg-gradient-to-r from-orange-400 via-orange-300 to-pink-500 bg-clip-text text-transparent">
-              you hit post
-            </span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.12 }}
-            className="text-zinc-400 text-lg sm:text-xl leading-relaxed max-w-2xl mb-2"
-          >
-            Upload your video before posting to TikTok or Reels. 6 AI agents analyze your hook, visuals, and audio - then give you a fix-it plan so you post the strongest version.
-          </motion.p>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.18 }}
-            className="text-emerald-400 text-sm font-medium mb-3"
-          >
-            ✓ Free to try — no credit card required
-          </motion.p>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-zinc-600 text-sm mb-8"
-          >
-            your pre-upload quality check — we roast your video so the algorithm doesn&apos;t have to.
-          </motion.p>
-
-          {/* Beta unlock form */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.22 }}
-            className="w-full max-w-xl mb-8"
-          >
-            <form onSubmit={handleSubmit} className="relative">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter invite code to unlock private beta"
-                    aria-label="Beta invite code"
-                    className="w-full bg-zinc-900/80 border-2 border-zinc-700/60 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 transition-all text-base backdrop-blur-sm"
-                  />
-                </div>
-                <GradientButton
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  className="sm:px-8 whitespace-nowrap"
-                  disabled={loading || !password}
-                  loading={loading}
-                >
-                  {loading ? 'Verifying...' : 'Roast My Video Free →'}
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <GradientButton variant="primary" size="lg" className="sm:min-w-[210px]" onClick={openGate}>
+                  Upload a video
+                </GradientButton>
+                <GradientButton variant="secondary" size="lg" className="sm:min-w-[210px]" onClick={scrollToSample}>
+                  View sample result
                 </GradientButton>
               </div>
-              <AnimatePresence mode="wait">
-                {error && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    className="text-red-400 text-sm text-center mt-3"
-                  >
-                    {error}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </form>
-          </motion.div>
 
-          {/* Trust signals */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-zinc-600 mb-10"
-          >
-            {[
-              { icon: '🔒', text: 'No card required' },
-              { icon: '⚡', text: 'Results in ~60s' },
-              { icon: '🎯', text: 'Analysis-first, not generic AI fluff' },
-              { icon: '🔥', text: '6 specialized agents' },
-            ].map((f) => (
-              <span key={f.text} className="flex items-center gap-1.5">
-                <span>{f.icon}</span>
-                <span>{f.text}</span>
-              </span>
-            ))}
-          </motion.div>
+              <div className="mt-6 flex flex-wrap gap-3 text-sm text-zinc-400">
+                <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5">Hook, pacing, audio, captions, CTA</span>
+                <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5">Priority-ranked fixes</span>
+                <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5">Private beta access after click</span>
+              </div>
+            </motion.div>
 
-          {/* Before/after + steps grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-full max-w-5xl mb-8"
-          >
-            <div className="grid grid-cols-1 gap-3 text-left lg:grid-cols-[1.15fr_0.85fr]">
-              {/* What you get card */}
-              <div className="rounded-[28px] border border-zinc-800/80 bg-zinc-950/70 p-5 sm:p-6 backdrop-blur-sm">
-                <div className="flex items-center justify-between gap-4 mb-5">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-400">what you get back</p>
-                    <h3 className="mt-2 text-2xl font-black text-white">a clear read on why this post dies or spreads</h3>
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.12, ease: 'easeOut' }}
+              className="lg:justify-self-end"
+            >
+              <SampleDiagnosisPreview />
+            </motion.div>
+          </section>
+
+          <section id="diagnose" className="grid gap-6 border-b border-white/6 py-20 lg:grid-cols-[0.72fr_1.28fr]">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-orange-300">What we diagnose</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                The first-screen review should feel like evidence, not vibes.
+              </h2>
+              <p className="mt-4 max-w-md text-base leading-relaxed text-zinc-400">
+                Each dimension is scored independently so you can see what is actually killing reach versus what only needs cleanup later.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {DIAGNOSIS_DIMENSIONS.map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-3xl border border-white/8 bg-white/[0.035] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.22)]"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <h3 className="text-lg font-semibold text-white">{item.title}</h3>
+                    <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-300">
+                      {item.score}
+                    </span>
                   </div>
-                  <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-500/25 bg-orange-500/10 text-2xl shrink-0">🔥</div>
+                  <p className="mt-3 text-sm leading-relaxed text-zinc-400">{item.detail}</p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    { icon: '📉', title: 'hook diagnosis', desc: 'frame-one clarity, scroll-stop strength, and the exact reason the opener leaks attention.' },
-                    { icon: '🎯', title: 'priority fixes', desc: 'what to fix first, what is secondary, and what is not actually the problem.' },
-                    { icon: '📊', title: 'clean score + verdict', desc: 'a sharper summary you can scan in seconds - not a wall of AI text.' },
-                    { icon: '🎬', title: 'filmable next take', desc: 'rewrite and reshoot guidance you can actually test today.' },
-                  ].map((item) => (
-                    <div key={item.title} className="rounded-2xl border border-zinc-800 bg-black/25 p-4 flex gap-3">
-                      <span className="text-lg mt-0.5 shrink-0">{item.icon}</span>
-                      <div>
-                        <p className="text-sm font-semibold text-zinc-100">{item.title}</p>
-                        <p className="mt-1 text-sm leading-relaxed text-zinc-500">{item.desc}</p>
-                      </div>
-                    </div>
-                  ))}
+              ))}
+            </div>
+          </section>
+
+          <section id="sample-result" className="grid gap-8 border-b border-white/6 py-20 lg:grid-cols-[1.02fr_0.98fr] lg:items-start">
+            <div className="order-2 lg:order-1">
+              <SampleDiagnosisPreview />
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-orange-300">Sample result</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                A result page built around the fix, not the spectacle.
+              </h2>
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-zinc-400">
+                The diagnostic surface leads with the blocker, shows evidence from the draft, and narrows the next take into something filmable the same day.
+              </p>
+
+              <div className="mt-8 space-y-4">
+                <div className="rounded-3xl border border-orange-500/15 bg-orange-500/[0.06] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-300">Primary blocker</p>
+                  <p className="mt-2 text-lg font-semibold text-white">The hook spends 1.8 seconds getting oriented instead of making a promise.</p>
+                </div>
+                <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Evidence callout</p>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                    Timestamped proof anchors the recommendation: frame one is a desk-wide shot, the payoff only appears at `00:03`, and the first spoken line sounds like setup instead of tension.
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Next take brief</p>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                    The result pairs a stronger opening line with a reshoot instruction so the next version has a clear first frame, faster payoff, and a more visible caption stack.
+                  </p>
                 </div>
               </div>
+            </div>
+          </section>
 
-              {/* Steps */}
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-3">
-                {[
-                  { step: '1', icon: '🔑', title: 'unlock beta', desc: 'enter your invite code to get inside the private product.' },
-                  { step: '2', icon: '👤', title: 'create your account', desc: 'sign in with google or magic link so your results stay attached to you.' },
-                  { step: '3', icon: '🚀', title: 'pick your path', desc: 'start free for limited analyses or choose a monthly beta plan.' },
-                ].map((item) => (
-                  <div key={item.step} className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-4 backdrop-blur-sm flex items-start gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/15 border border-orange-500/25 text-sm font-bold text-orange-400 shrink-0 mt-0.5">
-                      {item.step}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-[0.15em] text-zinc-300">{item.title}</p>
-                      <p className="mt-1 text-sm leading-relaxed text-zinc-500">{item.desc}</p>
+          <section id="how-it-works" className="border-b border-white/6 py-20">
+            <div className="max-w-2xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-orange-300">How the fix loop works</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                Diagnose the draft. Fix the priority. Post the stronger cut.
+              </h2>
+            </div>
+
+            <div className="mt-10 grid gap-4 lg:grid-cols-3">
+              {FIX_LOOP.map((item) => (
+                <div key={item.step} className="rounded-3xl border border-white/8 bg-white/[0.035] p-6">
+                  <span className="text-sm font-semibold uppercase tracking-[0.18em] text-orange-300">{item.step}</span>
+                  <h3 className="mt-4 text-xl font-semibold text-white">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-zinc-400">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section id="creator-proof" className="border-b border-white/6 py-20">
+            <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-orange-300">Creator proof</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                  Built for teams that need the next take to be clearer, not louder.
+                </h2>
+                <p className="mt-4 max-w-md text-base leading-relaxed text-zinc-400">
+                  The product works best when the goal is concrete: identify the blocker, rewrite the opening, and ship the improved cut with fewer debates.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                {CREATOR_PROOF.map((item) => (
+                  <div key={item.label} className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
+                    <h3 className="text-lg font-semibold text-white">{item.label}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-zinc-400">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section id="pricing" className="py-20">
+            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-orange-300">Pricing and access</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                  Access starts with a real product action, not a homepage gate.
+                </h2>
+                <p className="mt-4 max-w-md text-base leading-relaxed text-zinc-400">
+                  The first click moves you into sign-in or beta access. Public marketing stays focused on the diagnosis itself.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {ACCESS_OPTIONS.map((item) => (
+                  <div key={item.title} className="rounded-3xl border border-white/8 bg-white/[0.035] p-6">
+                    <h3 className="text-xl font-semibold text-white">{item.title}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-zinc-400">{item.detail}</p>
+                    <div className="mt-6">
+                      <GradientButton variant={item.title === 'Start with diagnosis' ? 'primary' : 'secondary'} size="lg" onClick={openGate}>
+                        {item.cta}
+                      </GradientButton>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          </motion.div>
+          </section>
         </div>
 
-        {/* Below-fold content */}
-        <div className="relative z-10 flex-1 px-4 pb-20">
-          <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-
-            {/* Left: Features + agents + success stories */}
+        <AnimatePresence>
+          {isGateOpen && (
             <motion.div
-              initial={{ opacity: 0, x: -24 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.35, ease: 'easeOut' }}
-              className="space-y-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
+              onClick={closeGate}
             >
-              {/* Problem → fix features */}
-              <div id="how-it-works" className="scroll-mt-28 rounded-[28px] border border-zinc-800/80 bg-zinc-950/55 p-4 sm:p-5">
-                <div className="mb-4">
-                  <p className="text-zinc-500 text-[11px] uppercase tracking-[0.24em] font-semibold">why creators keep using it</p>
-                  <h3 className="mt-1 text-xl font-black text-white">problem → fix → expected result</h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {FEATURES.map((f) => (
-                    <GlassCard key={f.title} variant="surface" className="p-4 border border-zinc-800/70 bg-black/20">
-                      <div className="text-xl mb-2">{f.icon}</div>
-                      <div className="text-white font-semibold text-sm mb-2">{f.title}</div>
-                      <div className="text-zinc-600 text-xs mb-1.5">{f.problem}</div>
-                      <div className="text-zinc-300 text-xs leading-relaxed">
-                        <span className="text-orange-400 font-semibold">→ </span>{f.fix}
-                      </div>
-                    </GlassCard>
-                  ))}
-                </div>
-              </div>
-
-              {/* Agent previews */}
-              <div id="agents" className="space-y-2 scroll-mt-28">
-                <p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold">6 agents judging your video</p>
-                <div className="flex flex-wrap gap-2">
-                  {AGENTS_PREVIEW.map((a) => (
-                    <div
-                      key={a.name}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/70 border border-zinc-800 text-xs text-zinc-300 hover:border-orange-500/30 transition-colors"
-                    >
-                      <span>{a.emoji}</span>
-                      <span className="font-medium">{a.name}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-zinc-600 text-xs">Each agent specializes in a different dimension of what makes or kills a video.</p>
-              </div>
-
-            </motion.div>
-
-            {/* Right: Hook school + testimonials */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.42, ease: 'easeOut' }}
-              className="space-y-5"
-            >
-              {/* Hook school */}
-              <GlassCard variant="surface" className="p-5 lg:p-6 border border-orange-500/20 bg-gradient-to-br from-zinc-900/90 to-zinc-950/80">
-                <div className="flex items-start justify-between gap-4 mb-4">
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.98 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-lg rounded-[2rem] border border-white/10 bg-[#111111] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)]"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.24em] text-orange-400 font-semibold mb-2">hook school</p>
-                    <h3 className="text-white text-xl font-black">your first 3 seconds decide everything.</h3>
-                    <p className="text-zinc-400 text-sm mt-2 max-w-xl">
-                      analytics shows where they leave. Go Viral shows <span className="text-zinc-200 font-medium">why</span> and what to change.
-                      if the opener flops, your CTA, caption, and payoff never get a chance.
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-300">Continue to diagnosis</p>
+                    <h2 className="mt-2 text-2xl font-black text-white">Start with sign-in or use your beta code.</h2>
                   </div>
-                  <div className="hidden sm:grid grid-cols-3 gap-2 min-w-[180px] text-center text-[11px] shrink-0">
-                    <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-                      <div className="text-red-400 font-bold">0-1s</div>
-                      <div className="text-zinc-500 mt-1">stop scroll</div>
-                    </div>
-                    <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-2">
-                      <div className="text-yellow-400 font-bold">1-3s</div>
-                      <div className="text-zinc-500 mt-1">earn retention</div>
-                    </div>
-                    <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
-                      <div className="text-emerald-400 font-bold">3s+</div>
-                      <div className="text-zinc-500 mt-1">CTA works</div>
-                    </div>
+                  <button
+                    type="button"
+                    onClick={closeGate}
+                    className="rounded-full border border-white/10 px-3 py-1 text-sm text-zinc-400 transition-colors hover:text-white"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <p className="mt-4 text-sm leading-relaxed text-zinc-400">
+                  The landing page stays public and product-led. Access decisions happen here, after the user commits to analyzing a real video.
+                </p>
+
+                <div className="mt-6 rounded-3xl border border-white/8 bg-white/[0.03] p-5">
+                  <p className="text-sm font-semibold text-white">New to Go Viral?</p>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                    Sign in to upload a draft, save diagnoses, and continue into the private beta flow.
+                  </p>
+                  <div className="mt-4">
+                    <GradientButton variant="primary" size="lg" className="w-full" onClick={goToLogin}>
+                      Analyze my video
+                    </GradientButton>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {HOOK_EXAMPLES.map((example, idx) => (
-                    <div key={`${example.type}-${idx}`} className="rounded-xl border border-zinc-800 bg-black/20 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">{example.type}</p>
-                      <div className="space-y-2 text-sm">
-                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
-                          <span className="text-emerald-400 font-semibold">strong:</span>{' '}
-                          <span className="text-zinc-200">{example.strong}</span>
-                        </div>
-                        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-                          <span className="text-red-400 font-semibold">weak:</span>{' '}
-                          <span className="text-zinc-300">{example.weak}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </GlassCard>
+                <form onSubmit={handleSubmit} className="mt-4 rounded-3xl border border-white/8 bg-white/[0.03] p-5">
+                  <label htmlFor="invite-code" className="text-sm font-semibold text-white">
+                    Already have beta access?
+                  </label>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                    Enter your invite code to unlock upload immediately.
+                  </p>
 
+                  <input
+                    id="invite-code"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Enter invite code"
+                    className="mt-4 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-orange-500/40 focus:outline-none"
+                  />
 
-              {/* Trust / money-back strip */}
-              <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/50 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <span className="text-emerald-400 text-base">✓</span>
-                  <span>No card required to start</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <span className="text-emerald-400 text-base">✓</span>
-                  <span>Cancel anytime during beta</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <span className="text-emerald-400 text-base">✓</span>
-                  <span>goviralwith.ai</span>
-                </div>
-              </div>
+                  <div className="mt-4">
+                    <GradientButton
+                      type="submit"
+                      variant="secondary"
+                      size="lg"
+                      className="w-full"
+                      disabled={loading || !password.trim()}
+                      loading={loading}
+                    >
+                      Unlock beta
+                    </GradientButton>
+                  </div>
+
+                  {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+                </form>
+              </motion.div>
             </motion.div>
-          </div>
-        </div>
+          )}
+        </AnimatePresence>
       </main>
     );
   }
 
-  // Logged-in / bypassed state
   return (
     <div className="flex flex-col items-stretch">
-      <div className="max-w-3xl mx-auto w-full px-4 pt-8 sm:pt-10 space-y-5">
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-700/50 text-xs text-zinc-400 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
-            6 AI agents ready
+      <div className="mx-auto w-full max-w-3xl space-y-5 px-4 pt-8 sm:pt-10">
+        <div className="space-y-3 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-700/50 bg-zinc-900/80 px-3 py-1.5 text-xs font-medium text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
+            Diagnosis workspace ready
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-            check your video{' '}
-            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">before you post.</span>
+          <h1 className="text-3xl font-black leading-tight text-white sm:text-4xl">
+            Check your video
+            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent"> before you post.</span>
           </h1>
-          <p className="text-zinc-400 text-base max-w-lg mx-auto">
-            Upload your video before posting to TikTok or Reels. Get an instant diagnosis, stronger hook options, and a reshoot plan you can film today.
+          <p className="mx-auto max-w-lg text-base text-zinc-400">
+            Upload your draft before posting to TikTok or Reels. Get a ranked diagnosis, stronger hook options, and a next-take brief you can film today.
           </p>
         </div>
+
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-zinc-500">
           {[
-            { icon: '📉', text: 'Drop-off diagnosis' },
-            { icon: '🎣', text: 'Hook rewrites' },
-            { icon: '🎬', text: 'Reshoot plan' },
-            { icon: '📊', text: 'Score + grade' },
-          ].map((f) => (
-            <span key={f.text} className="flex items-center gap-1.5">
-              <span>{f.icon}</span>
-              <span>{f.text}</span>
+            { icon: '01', text: 'Primary blocker' },
+            { icon: '02', text: 'Hook rewrite' },
+            { icon: '03', text: 'Reshoot brief' },
+            { icon: '04', text: 'Priority stack' },
+          ].map((item) => (
+            <span key={item.text} className="flex items-center gap-2">
+              <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-300">
+                {item.icon}
+              </span>
+              <span>{item.text}</span>
             </span>
           ))}
         </div>
+
         <AccountCTA />
+
         {usage && usage.used > 0 && (
           usage.used >= usage.limit ? (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300 flex items-center justify-between gap-3">
-              <span>Daily limit reached ({usage.used}/{usage.limit} roasts used) - upgrade for unlimited</span>
-              <a href="/pricing" className="shrink-0 font-semibold text-amber-200 underline underline-offset-2 hover:text-white transition-colors">Upgrade</a>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+              <span>Daily diagnosis limit reached ({usage.used}/{usage.limit} used).</span>
+              <a href="/pricing" className="font-semibold text-amber-200 underline underline-offset-2 transition-colors hover:text-white">
+                Upgrade
+              </a>
             </div>
           ) : (
-            <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/60 px-4 py-2.5 text-sm text-zinc-400 text-center">
-              {usage.used} of {usage.limit} free roasts used today
+            <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/60 px-4 py-2.5 text-center text-sm text-zinc-400">
+              {usage.used} of {usage.limit} diagnoses used today
             </div>
           )
         )}
       </div>
+
       <UploadQueueUI />
     </div>
   );

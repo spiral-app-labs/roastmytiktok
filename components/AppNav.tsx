@@ -70,12 +70,12 @@ export default function AppNav() {
     { href: '/analyze-account', label: 'Account Analysis' },
     { href: '/calendar', label: 'Calendar' },
     { href: '/history', label: 'History' },
-    { href: '/settings', label: '⚙️ Settings' },
+    { href: '/settings', label: 'Settings' },
   ];
 
   const marketingLinks = [
+    { href: '/#sample-result', label: 'Sample Result' },
     { href: '/#how-it-works', label: 'How it works' },
-    { href: '/#agents', label: 'Agents' },
     { href: '/pricing', label: 'Pricing' },
   ];
 
@@ -126,7 +126,7 @@ export default function AppNav() {
                 href="/dashboard"
                 className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-orange-500 via-orange-400 to-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(249,115,22,0.28)] transition-transform hover:-translate-y-0.5"
               >
-                New Roast
+                New Diagnosis
               </Link>
             </>
           ) : (
@@ -138,7 +138,7 @@ export default function AppNav() {
                 href="/dashboard"
                 className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-orange-500 via-orange-400 to-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(249,115,22,0.28)] transition-transform hover:-translate-y-0.5"
               >
-                Roast a TikTok
+                Upload Video
               </Link>
             </>
           )}
