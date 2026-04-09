@@ -84,13 +84,13 @@ function LoginForm() {
           {isSubscribeIntent && (
             <div className="mb-5 px-4 py-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-center">
               <p className="text-sm font-semibold text-orange-400">
-                {plan === 'yearly' ? '🔥 Yearly beta plan selected' : '🔥 Monthly beta plan selected'}
+                {plan === 'yearly' ? '🔥 Yearly plan selected' : '🔥 Monthly plan selected'}
               </p>
-              <p className="text-xs text-zinc-400 mt-1">Sign in to save your plan choice and continue beta onboarding. billing is activated after sign-in, not through a fake checkout screen.</p>
+              <p className="text-xs text-zinc-400 mt-1">Sign in to save your plan choice and continue onboarding. billing is activated after sign-in.</p>
             </div>
           )}
           <h1 className="text-xl font-bold text-white text-center mb-6">
-            {isSubscribeIntent ? 'Sign in to continue to beta onboarding' : 'Sign in to continue'}
+            {isSubscribeIntent ? 'Sign in to continue to onboarding' : 'Sign in to continue'}
           </h1>
 
           {error && (

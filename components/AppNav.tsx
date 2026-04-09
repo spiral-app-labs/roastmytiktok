@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 const APP_ROUTE_PREFIXES = ['/dashboard', '/history', '/analytics', '/analyze', '/roast', '/analyze-account', '/account', '/calendar', '/settings', '/compare', '/scripts'];
-const MARKETING_ROOT_PATHS = ['/', '/login', '/bypass'];
+const MARKETING_ROOT_PATHS = ['/', '/login'];
 
 function isAppRoute(pathname: string) {
   return APP_ROUTE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -26,16 +26,11 @@ export default function AppNav() {
 
     async function resolveAccess() {
       try {
-        const [bypassRes, sessionRes] = await Promise.allSettled([
-          fetch('/api/bypass/check', { cache: 'no-store' }).then((res) => res.json()),
-          createClient().auth.getSession(),
-        ]);
-
-        const bypassed = bypassRes.status === 'fulfilled' && bypassRes.value?.bypassed === true;
-        const signedIn = sessionRes.status === 'fulfilled' && !!sessionRes.value.data.session?.user;
+        const sessionRes = await createClient().auth.getSession();
+        const signedIn = !!sessionRes.data.session?.user;
 
         if (!cancelled) {
-          setHasAccess(bypassed || signedIn);
+          setHasAccess(signedIn);
           setResolved(true);
         }
       } catch {
@@ -70,12 +65,12 @@ export default function AppNav() {
     { href: '/analyze-account', label: 'Account Analysis' },
     { href: '/calendar', label: 'Calendar' },
     { href: '/history', label: 'History' },
-    { href: '/settings', label: '⚙️ Settings' },
+    { href: '/settings', label: 'Settings' },
   ];
 
   const marketingLinks = [
+    { href: '/#sample-result', label: 'Sample Result' },
     { href: '/#how-it-works', label: 'How it works' },
-    { href: '/#agents', label: 'Agents' },
     { href: '/pricing', label: 'Pricing' },
   ];
 
@@ -126,7 +121,7 @@ export default function AppNav() {
                 href="/dashboard"
                 className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-orange-500 via-orange-400 to-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(249,115,22,0.28)] transition-transform hover:-translate-y-0.5"
               >
-                New Roast
+                New Diagnosis
               </Link>
             </>
           ) : (
@@ -135,10 +130,10 @@ export default function AppNav() {
                 History
               </Link>
               <Link
-                href="/dashboard"
+                href="/login?redirect=%2Fdashboard"
                 className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-orange-500 via-orange-400 to-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(249,115,22,0.28)] transition-transform hover:-translate-y-0.5"
               >
-                Roast a TikTok
+                Upload Video
               </Link>
             </>
           )}
