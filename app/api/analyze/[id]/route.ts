@@ -391,7 +391,10 @@ function summarizeFrame(frame: FrameAnalysis): string {
   const face = frame.peopleCount > 0 ? ` face=${frame.framing} ${frame.faceFillPercent}% eyeContact=${frame.eyeContact}` : ' no-face';
   const motion = frame.sceneChanged ? ' scene-change' : ` motion=${frame.motionType}`;
   const captions = frame.captionsPresent ? ` captions=${frame.captionStyle ?? 'present'} readable=${frame.captionReadable}` : ' captions=none';
-  return `${frame.timestampSec.toFixed(1)}s ${frame.sceneDescription}; lighting=${frame.lightingQuality}; energy=${frame.visualEnergy};${face};${motion};${captions}; background=${frame.backgroundClutter}.${text}`;
+  const presence = frame.attractivenessSignal && frame.attractivenessSignal !== 'none'
+    ? ` presence=${frame.attractivenessSignal}${frame.attractivenessReason ? `(${frame.attractivenessReason})` : ''}`
+    : '';
+  return `${frame.timestampSec.toFixed(1)}s ${frame.sceneDescription}; lighting=${frame.lightingQuality}${frame.lightingSource ? `/${frame.lightingSource}` : ''}; energy=${frame.visualEnergy};${face};${motion};${captions}; background=${frame.backgroundClutter};${presence}.${text}`;
 }
 
 function buildPatternInterruptEvents(analysis: FrameAnalysis[]): string[] {
@@ -420,6 +423,10 @@ function buildHookZoneSummary(analysis: FrameAnalysis[]): string {
   const textHooks = hookFrames
     .filter(frame => frame.textOnScreen.length > 0)
     .map(frame => `"${frame.textOnScreen.join(' / ')}" @ ${frame.timestampSec.toFixed(1)}s`);
+  const presenceFrames = hookFrames
+    .filter(frame => frame.attractivenessSignal === 'strong' || frame.attractivenessSignal === 'moderate')
+    .map(frame => `${frame.timestampSec.toFixed(1)}s ${frame.attractivenessSignal}${frame.attractivenessReason ? ` (${frame.attractivenessReason})` : ''}`);
+  const lightingSources = Array.from(new Set(hookFrames.map(frame => frame.lightingSource).filter(Boolean)));
 
   return [
     `${hookFrames.length} sampled opening frames`,
@@ -427,6 +434,8 @@ function buildHookZoneSummary(analysis: FrameAnalysis[]): string {
     `eyeContactFrames=${hookFrames.filter(frame => frame.eyeContact).length}/${hookFrames.length}`,
     `textHooks=${textHooks.length > 0 ? textHooks.join(', ') : 'none'}`,
     `visualEnergy=${hookFrames.map(frame => frame.visualEnergy).join(', ')}`,
+    `lightingSources=${lightingSources.length > 0 ? lightingSources.join(', ') : 'unclear'}`,
+    `presenceSignals=${presenceFrames.length > 0 ? presenceFrames.join(', ') : 'none'}`,
   ].join(' | ');
 }
 

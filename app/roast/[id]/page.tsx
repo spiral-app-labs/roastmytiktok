@@ -170,9 +170,8 @@ function RoastContent({
   const usageCount = history.length;
   const [isPaid] = useState(() => {
     if (typeof document === 'undefined') return false;
-    const hasPaidCookie = document.cookie.split(';').some(c => c.trim().startsWith('rmt_paid_bypass=1'));
     const hasPlan = !!localStorage.getItem('plan');
-    return hasPaidCookie || hasPlan;
+    return hasPlan;
   });
 
   const { squareRef, storyRef, download, downloading } = useScoreCardDownload(roast);

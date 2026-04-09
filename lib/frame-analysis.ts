@@ -25,6 +25,7 @@ export interface FrameAnalysis {
   // Lighting
   lightingQuality: 'excellent' | 'good' | 'fair' | 'poor';
   lightingDirection: string;          // "front", "side", "overhead", "backlit", "natural window", "ring light"
+  lightingSource?: string;           // "window light", "ring light", "overhead room light", etc.
   lightingIssues: string[];           // ["harsh shadows under eyes", "overexposed background", "underlit left side"]
   lightingTemperature: 'warm' | 'neutral' | 'cool';
 
@@ -66,6 +67,8 @@ export interface FrameAnalysis {
   hasBrandElements: boolean;
   productionTier: 'professional' | 'semi-pro' | 'casual' | 'low-effort';
   visualEnergy: 'high' | 'medium' | 'low';  // dynamic/exciting vs static/calm
+  attractivenessSignal?: 'strong' | 'moderate' | 'weak' | 'none';
+  attractivenessReason?: string;
 }
 
 export interface FrameAnalysisResult {
@@ -79,7 +82,12 @@ export interface FrameAnalysisResult {
 // Gemini 2.5 Flash vision analysis
 // ---------------------------------------------------------------------------
 
-const FRAME_ANALYSIS_PROMPT = `You are a video frame analysis system. Analyze each frame and return structured data.
+const FRAME_ANALYSIS_PROMPT = `You are a video frame analysis system. Analyze each frame and return structured data grounded only in what is literally visible.
+
+Do not infer performance outcomes, creator intent, social status, profession, or personality.
+Do not assume attractiveness, trustworthiness, confidence, or authority unless there is a direct visual reason you can describe.
+When something is unclear, say so in the structured fields instead of guessing.
+Prefer concrete observations over vague praise.
 
 For each frame image provided, extract the following information as accurately as possible:
 
@@ -87,7 +95,7 @@ SCENE: What is happening in this frame? Describe the scene in 1-2 sentences. Wha
 
 PEOPLE: How many people are visible? What are their facial expressions? Are they making eye contact with the camera? Describe their body language. How is the person framed (close-up, medium, wide)? What percentage of the frame does the main face fill (0 if no face)?
 
-LIGHTING: Rate the lighting quality (excellent/good/fair/poor). What direction is the light coming from? Are there any lighting issues (shadows, overexposure, backlighting)? Is the lighting warm, neutral, or cool?
+LIGHTING: Rate the lighting quality (excellent/good/fair/poor). What direction is the light coming from? What is the most likely light source visible or implied (window, ring light, overhead room light, daylight, mixed, unclear)? Are there any lighting issues (shadows, overexposure, backlighting)? Is the lighting warm, neutral, or cool?
 
 COLOR: How saturated are the colors (vibrant/normal/muted/desaturated)? What is the color temperature (warm/neutral/cool)? Is there a color grade or filter applied? What are the 2-3 dominant colors?
 
@@ -101,10 +109,10 @@ CAMERA: What angle is the camera at (eye level, high, low)? What kind of camera 
 
 MOTION: Compared to the previous frame, what changed? Is this a new scene/shot or continuation?
 
-PRODUCTION: Is there a watermark? Any brand elements? Rate the overall production tier (professional/semi-pro/casual/low-effort). Rate the visual energy level (high/medium/low).
+PRODUCTION: Is there a watermark? Any brand elements? Rate the overall production tier (professional/semi-pro/casual/low-effort). Rate the visual energy level (high/medium/low). If the person's presence is visually compelling in a way that could help stop scrolling, rate attractivenessSignal as strong/moderate/weak/none and explain the literal reason in attractivenessReason (for example: sharp eye contact, flattering lighting, expressive face, striking styling, or none/unclear). Do not speculate beyond what the frame supports.
 
 Return ONLY a valid JSON array with one object per frame. Each object must have these exact keys:
-timestampSec, zone, sceneDescription, setting, settingType, peopleCount, facialExpressions, eyeContact, bodyLanguage, framing, faceFillPercent, lightingQuality, lightingDirection, lightingIssues, lightingTemperature, colorSaturation, colorTemperature, colorGrade, dominantColors, textOnScreen, textPosition, textReadable, textContrast, captionsPresent, captionStyle, captionReadable, captionInSafeZone, backgroundDescription, backgroundClutter, distractingElements, cameraAngle, cameraWork, compositionQuality, compositionNotes, motionType, sceneChanged, hasWatermark, hasBrandElements, productionTier, visualEnergy
+timestampSec, zone, sceneDescription, setting, settingType, peopleCount, facialExpressions, eyeContact, bodyLanguage, framing, faceFillPercent, lightingQuality, lightingDirection, lightingSource, lightingIssues, lightingTemperature, colorSaturation, colorTemperature, colorGrade, dominantColors, textOnScreen, textPosition, textReadable, textContrast, captionsPresent, captionStyle, captionReadable, captionInSafeZone, backgroundDescription, backgroundClutter, distractingElements, cameraAngle, cameraWork, compositionQuality, compositionNotes, motionType, sceneChanged, hasWatermark, hasBrandElements, productionTier, visualEnergy, attractivenessSignal, attractivenessReason
 
 Preserve frame order. Use the timestamp and zone from each frame label.`;
 
@@ -204,12 +212,15 @@ export function buildFrameContext(analysis: FrameAnalysis[]): string {
     if (f.peopleCount > 0) {
       lines.push(`People: ${f.peopleCount} | Expressions: ${f.facialExpressions.join(', ')} | Framing: ${f.framing} | Face fill: ${f.faceFillPercent}%${f.eyeContact ? ' | Eye contact: yes' : ''}`);
       lines.push(`Body language: ${f.bodyLanguage}`);
+      if (f.attractivenessSignal && f.attractivenessSignal !== 'none') {
+        lines.push(`Scroll-stopping presence: ${f.attractivenessSignal}${f.attractivenessReason ? ' | Reason: ' + f.attractivenessReason : ''}`);
+      }
     } else {
       lines.push('People: none visible');
     }
 
     // Lighting
-    lines.push(`Lighting: ${f.lightingQuality} quality, ${f.lightingDirection}, ${f.lightingTemperature} temperature${f.lightingIssues.length ? ' | Issues: ' + f.lightingIssues.join(', ') : ''}`);
+    lines.push(`Lighting: ${f.lightingQuality} quality, ${f.lightingDirection}, ${f.lightingTemperature} temperature${f.lightingSource ? ' | Source: ' + f.lightingSource : ''}${f.lightingIssues.length ? ' | Issues: ' + f.lightingIssues.join(', ') : ''}`);
 
     // Color
     lines.push(`Color: ${f.colorSaturation} saturation, ${f.colorTemperature}, ${f.colorGrade} | Dominant: ${f.dominantColors.join(', ')}`);
@@ -288,6 +299,8 @@ export function buildHookZoneSummary(analysis: FrameAnalysis[]): string {
   const textHooks = hookFrames.filter(f => f.textOnScreen.length > 0);
   const sceneCuts = hookFrames.filter(f => f.sceneChanged).length;
   const avgEnergy = hookFrames.reduce((sum, f) => sum + (f.visualEnergy === 'high' ? 3 : f.visualEnergy === 'medium' ? 2 : 1), 0) / hookFrames.length;
+  const strongPresenceFrames = hookFrames.filter(f => f.attractivenessSignal === 'strong' || f.attractivenessSignal === 'moderate');
+  const lightingSources = Array.from(new Set(hookFrames.map(f => f.lightingSource).filter(Boolean)));
 
   const lines = [
     `Hook zone summary (${hookFrames.length} frames, 0-5s):`,
@@ -297,6 +310,8 @@ export function buildHookZoneSummary(analysis: FrameAnalysis[]): string {
     `First frame: ${hookFrames[0].sceneDescription}`,
     `Eye contact: ${hookFrames.some(f => f.eyeContact) ? 'yes' : 'no'}`,
     `Lighting consistency: ${new Set(hookFrames.map(f => f.lightingQuality)).size === 1 ? 'consistent' : 'varies'}`,
+    `Lighting sources: ${lightingSources.length > 0 ? lightingSources.join(', ') : 'unclear'}`,
+    `Compelling on-camera presence: ${strongPresenceFrames.length > 0 ? strongPresenceFrames.map(f => `${f.timestampSec.toFixed(1)}s ${f.attractivenessSignal}${f.attractivenessReason ? ` (${f.attractivenessReason})` : ''}`).join(', ') : 'none noted'}`,
   ];
 
   return lines.join('\n');

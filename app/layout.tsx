@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Poppins, Ubuntu } from "next/font/google";
 import AppNav from "@/components/AppNav";
 import { Providers } from "@/components/Providers";
@@ -67,12 +68,12 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
         <Providers>
-        <a
+        <Link
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-orange-500 focus:px-4 focus:py-2 focus:text-white focus:text-sm focus:font-semibold focus:outline-none"
         >
           Skip to main content
-        </a>
+        </Link>
         <AppNav />
         <div id="main-content">
         {children}

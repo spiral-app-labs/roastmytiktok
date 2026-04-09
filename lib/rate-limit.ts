@@ -78,8 +78,10 @@ export function checkRateLimit(req: NextRequest, opts: RateLimitOptions): NextRe
 }
 
 /**
- * Check if a request has a paid bypass cookie (indicating paid user).
+ * Paid entitlements are not verified server-side in code yet.
+ * Launch posture is conservative: do not trust legacy client cookies.
  */
 export function isPaidUser(req: NextRequest): boolean {
-  return req.cookies.get('rmt_paid_bypass')?.value === '1';
+  void req;
+  return false;
 }

@@ -48,19 +48,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function checkAccess() {
-      try {
-        const bypassRes = await fetch('/api/bypass/check');
-        const bypassData = await bypassRes.json();
-        if (bypassData.bypassed) {
-          setHistory(getHistory());
-          setAuthorized(true);
-          setChecking(false);
-          return;
-        }
-      } catch {
-        /* ignore */
-      }
-
       const supabase = createClient();
       const {
         data: { session },

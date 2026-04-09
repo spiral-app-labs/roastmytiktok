@@ -142,7 +142,7 @@ function PlanSignupPanel({ plan, label, buttonClass }: { plan: "monthly" | "year
                     disabled={status === "loading"}
                     className="w-full py-2.5 rounded-lg font-semibold text-sm fire-gradient text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
-                    {status === "loading" ? "Saving…" : "Lock in beta rate →"}
+                    {status === "loading" ? "Saving…" : "Save founding rate →"}
                   </button>
                 </form>
               )}
@@ -318,7 +318,7 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
         >
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-zinc-300 mb-1">Monthly</h2>
-            <p className="text-zinc-500 text-sm">Unlimited analysis in beta once your plan is activated</p>
+            <p className="text-zinc-500 text-sm">Unlimited analysis once your plan is activated</p>
           </div>
 
           <div className="mb-8">
@@ -329,7 +329,7 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
           <div className="mb-8">
             <PlanSignupPanel
               plan="monthly"
-              label="Choose Monthly Beta"
+              label="Choose Monthly"
               buttonClass="block w-full text-center py-3 px-6 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all"
             />
           </div>
@@ -358,7 +358,7 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
 
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-white mb-1">Yearly</h2>
-            <p className="text-zinc-500 text-sm">Save 20% once yearly beta billing is activated</p>
+            <p className="text-zinc-500 text-sm">Save 20% once yearly billing is activated</p>
           </div>
 
           <div className="mb-1">
@@ -394,11 +394,11 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
           <div className="mb-3">
             <PlanSignupPanel
               plan="yearly"
-              label="Choose Yearly Beta →"
+              label="Choose Yearly →"
               buttonClass="block w-full text-center py-4 px-6 rounded-xl font-bold fire-gradient text-white hover:opacity-90 transition-opacity text-base shadow-lg shadow-orange-500/20"
             />
           </div>
-          <p className="text-center text-xs text-zinc-500 mb-8">We&apos;ll email you when billing activates. You&apos;re locked in at the beta rate.</p>
+          <p className="text-center text-xs text-zinc-500 mb-8">We&apos;ll email you when billing activates. Your founding rate is saved.</p>
 
           <div className="space-y-3 flex-1">
             <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-2">Everything in Monthly, plus</p>
@@ -420,14 +420,14 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
       >
         <div className="grid gap-4 md:grid-cols-[1.2fr,2fr]">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">beta checkout path</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">signup path</p>
             <h3 className="text-2xl font-bold text-white">the signup and payment path is explicit, even before self-serve billing is live.</h3>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               ['1', 'create account', 'sign in first so your roasts, history, and plan choice are tied to your account.'],
-              ['2', 'choose a plan', 'free stays card-free. monthly or yearly marks the beta plan you want activated.'],
-              ['3', 'activate billing in onboarding', 'during private beta, paid billing is finalized in onboarding instead of pretending there is a live checkout flow today.'],
+              ['2', 'choose a plan', 'free stays card-free. monthly or yearly marks the plan you want activated.'],
+              ['3', 'activate billing in onboarding', 'paid billing is finalized in onboarding until self-serve checkout is switched on.'],
             ].map(([step, title, desc]) => (
               <div key={step} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
                 <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full border border-orange-500/25 bg-orange-500/10 text-sm font-bold text-orange-400">{step}</div>
@@ -518,7 +518,7 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
         className="text-center max-w-lg mx-auto"
       >
         <h3 className="text-2xl font-bold text-white mb-2">Ready to see what&apos;s actually killing your videos?</h3>
-        <p className="text-zinc-500 text-sm mb-6">Start free with no card, or save a paid beta plan now and finish billing during onboarding.</p>
+        <p className="text-zinc-500 text-sm mb-6">Start free with no card, or save a paid plan now and finish billing during onboarding.</p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/dashboard"
@@ -530,10 +530,10 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
             href="/login"
             className="inline-block py-4 px-10 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all text-base"
           >
-Choose Paid Beta
+Choose Paid Plan
           </Link>
         </div>
-        <p className="text-zinc-600 text-xs mt-4">Free stays card-free. Paid beta billing is activated after sign-in during onboarding.</p>
+        <p className="text-zinc-600 text-xs mt-4">Free stays card-free. Paid billing is activated after sign-in during onboarding.</p>
       </motion.div>
     </main>
   );
