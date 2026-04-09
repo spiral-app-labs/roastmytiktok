@@ -90,7 +90,7 @@ export function cacheThumbnail(id: string, dataUrl: string): void {
       localStorage.setItem(key, dataUrl);
       touchIndex(id);
       return;
-    } catch (err) {
+    } catch {
       // QuotaExceededError — evict oldest and retry
       if (!evictOldest()) return;
     }
@@ -212,7 +212,7 @@ export function extractFirstFrame(
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
 const SIGNED_URL_TTL_MS = 50 * 60 * 1000; // 50 min, slightly under backend 1h
 
-async function getSignedVideoUrl(id: string, signal?: AbortSignal): Promise<string | null> {
+export async function getSignedVideoUrl(id: string, signal?: AbortSignal): Promise<string | null> {
   const cached = signedUrlCache.get(id);
   if (cached && cached.expiresAt > Date.now()) return cached.url;
 
@@ -282,7 +282,6 @@ export function useVideoThumbnail(id: string): UseVideoThumbnailResult {
       setStatus('ready');
     } catch (err) {
       if (controller.signal.aborted) return;
-      // eslint-disable-next-line no-console
       console.warn(`[video-thumbnails] extraction failed for ${id}:`, err);
       setStatus('error');
     }
@@ -320,7 +319,6 @@ export function useVideoThumbnail(id: string): UseVideoThumbnailResult {
       if (observerRef.current) observerRef.current.disconnect();
       if (abortRef.current) abortRef.current.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { src, status, containerRef };

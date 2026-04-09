@@ -117,14 +117,17 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setUploadOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-medium text-white shadow-[0_12px_30px_rgba(249,115,22,0.28)] transition-all hover:bg-orange-600 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f5f2] dark:focus-visible:ring-offset-[#09090b]"
-          >
-            <Plus className="h-4 w-4" />
-            Upload video
-          </button>
+          <div className="group relative inline-flex">
+            <div className="pointer-events-none absolute inset-0 rounded-full bg-orange-500/55 blur-[34px] scale-[1.22] opacity-90 transition-all duration-200 group-hover:scale-[1.28]" />
+            <button
+              type="button"
+              onClick={() => setUploadOpen(true)}
+              className="relative inline-flex cursor-pointer items-center gap-2.5 rounded-full bg-orange-500 px-6 py-3.5 text-[15px] font-semibold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_18px_44px_rgba(249,115,22,0.22)] transition-all duration-200 hover:-translate-y-1 hover:scale-[1.04] hover:bg-orange-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f5f2] dark:focus-visible:ring-offset-[#09090b]"
+            >
+              <Plus className="h-5 w-5" />
+              Upload video
+            </button>
+          </div>
         </motion.header>
 
         {totalVideos === 0 ? (
@@ -140,14 +143,17 @@ export default function DashboardPage() {
             <p className="mt-3 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
               Upload your first TikTok and we&apos;ll score it in about 30 seconds.
             </p>
-            <button
-              type="button"
-              onClick={() => setUploadOpen(true)}
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-medium text-white shadow-[0_12px_30px_rgba(249,115,22,0.28)] transition-all hover:bg-orange-600 hover:-translate-y-0.5"
-            >
-              <Plus className="h-4 w-4" />
-              Upload video
-            </button>
+            <div className="group relative mt-6 inline-flex">
+              <div className="pointer-events-none absolute inset-0 rounded-full bg-orange-500/55 blur-[34px] scale-[1.22] opacity-90 transition-all duration-200" />
+              <button
+                type="button"
+                onClick={() => setUploadOpen(true)}
+                className="relative inline-flex cursor-pointer items-center gap-2.5 rounded-full bg-orange-500 px-6 py-3.5 text-[15px] font-semibold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_18px_44px_rgba(249,115,22,0.22)] transition-all duration-200 hover:-translate-y-1 hover:scale-[1.04] hover:bg-orange-500"
+              >
+                <Plus className="h-5 w-5" />
+                Upload video
+              </button>
+            </div>
           </motion.div>
         ) : (
           <motion.section

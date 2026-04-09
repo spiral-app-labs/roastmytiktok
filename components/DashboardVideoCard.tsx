@@ -1,11 +1,11 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import { useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Crown, Loader2, Pause, Play, TriangleAlert } from 'lucide-react';
 import type { HistoryEntry } from '@/lib/history';
-import { useVideoThumbnail } from '@/lib/video-thumbnails';
+import { getSignedVideoUrl, useVideoThumbnail } from '@/lib/video-thumbnails';
 
 function scoreTone(score: number) {
   if (score >= 80) {
@@ -58,15 +58,74 @@ export default function DashboardVideoCard({
   const { src: thumbnailSrc, status, containerRef } = useVideoThumbnail(entry.id);
   const [signedUrl, setSignedUrl] = useState<string | null>(() => readCachedSignedUrl(entry.id));
   const [showVideo, setShowVideo] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const [playRequested, setPlayRequested] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mediaHovered, setMediaHovered] = useState(false);
 
-  const hasPlayableVideo = Boolean(thumbnailSrc || signedUrl || showVideo || entry.id);
+  const hasPlayableVideo = entry.source === 'upload' || Boolean(thumbnailSrc || signedUrl || showVideo);
   const displayScore = entry.viralPotential ?? entry.overallScore;
   const scoreLabel = entry.viralPotential !== undefined ? 'Viral score' : 'Score';
   const toneClass = scoreTone(displayScore);
+
+  useEffect(() => {
+    setVideoReady(false);
+  }, [signedUrl]);
+
+  useEffect(() => {
+    if (!hasPlayableVideo || signedUrl || status !== 'ready') return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const url = await getSignedVideoUrl(entry.id, controller.signal);
+          if (!url || controller.signal.aborted) return;
+          writeCachedSignedUrl(entry.id, url);
+          setSignedUrl(url);
+        } catch {
+          /* silent warm-up failure */
+        }
+      })();
+    }, 120);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [entry.id, hasPlayableVideo, signedUrl, status]);
+
+  useEffect(() => {
+    if (!playRequested || !showVideo || !signedUrl) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    let cancelled = false;
+    const tryPlay = () => {
+      if (cancelled) return;
+      void video.play().catch(() => {
+        /* keep overlay visible so the user can retry */
+      });
+    };
+
+    if (video.readyState >= 2) {
+      tryPlay();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    video.addEventListener('loadeddata', tryPlay, { once: true });
+    video.addEventListener('canplay', tryPlay, { once: true });
+
+    return () => {
+      cancelled = true;
+      video.removeEventListener('loadeddata', tryPlay);
+      video.removeEventListener('canplay', tryPlay);
+    };
+  }, [playRequested, showVideo, signedUrl]);
 
   async function handleMediaToggle(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
@@ -75,8 +134,18 @@ export default function DashboardVideoCard({
     if (!hasPlayableVideo) return;
 
     if (showVideo && playing) {
+      setPlayRequested(false);
       videoRef.current?.pause();
       setPlaying(false);
+      return;
+    }
+
+    if (showVideo && signedUrl) {
+      setPlayRequested(true);
+      setLoading(false);
+      void videoRef.current?.play().catch(() => {
+        /* keep overlay visible so the user can retry */
+      });
       return;
     }
 
@@ -95,15 +164,11 @@ export default function DashboardVideoCard({
         setSignedUrl(url);
       }
 
+      setPlayRequested(true);
       setShowVideo(true);
-      setPlaying(true);
-      // Give React a tick to apply controls/autoplay attributes before calling play()
-      requestAnimationFrame(() => {
-        videoRef.current?.play().catch(() => {
-          /* user gesture still present; ignore promise rejection */
-        });
-      });
+      setPlaying(false);
     } catch {
+      setPlayRequested(false);
       setError('Preview unavailable for this roast.');
     } finally {
       setLoading(false);
@@ -118,23 +183,29 @@ export default function DashboardVideoCard({
         onMouseEnter={() => setMediaHovered(true)}
         onMouseLeave={() => setMediaHovered(false)}
       >
-        <div className={showVideo ? 'h-full w-full' : 'pointer-events-none h-full w-full'}>
-          {showVideo && signedUrl ? (
+        <div className="h-full w-full">
+          {signedUrl ? (
             <video
               ref={videoRef}
               src={`${signedUrl}#t=0.1`}
-              preload="metadata"
+              preload="auto"
               muted
               playsInline
               controls={false}
-              className="h-full w-full bg-black object-cover"
+              className={`h-full w-full bg-black object-cover transition-opacity duration-200 ${showVideo ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
+              onLoadedData={() => setVideoReady(true)}
+              onCanPlay={() => setVideoReady(true)}
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
               onEnded={() => setPlaying(false)}
             />
-          ) : thumbnailSrc ? (
-            <img src={thumbnailSrc} alt="" className="h-full w-full object-cover" loading="lazy" />
-          ) : (
+          ) : null}
+
+          {!showVideo && thumbnailSrc && (
+            <img src={thumbnailSrc} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+          )}
+
+          {!showVideo && !thumbnailSrc && !signedUrl && (
             <div
               className={`flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,#fed7aa,transparent_55%),linear-gradient(180deg,#fff7ed,#f5f5f2)] dark:bg-[radial-gradient(circle_at_top,rgba(251,146,60,0.28),transparent_42%),linear-gradient(180deg,#18181b,#111318)] ${status === 'loading' ? 'animate-pulse' : ''}`}
             >
@@ -153,16 +224,18 @@ export default function DashboardVideoCard({
           <button
             type="button"
             onClick={handleMediaToggle}
-            className="absolute left-1/2 top-1/2 z-20 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
+            className="absolute left-1/2 top-1/2 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
             aria-label={`${playing ? 'Pause' : 'Play'} ${entry.filename || 'video preview'}`}
           >
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-zinc-950 shadow-[0_14px_36px_rgba(15,23,42,0.18)] transition-transform group-hover:scale-[1.05] dark:bg-white/92">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/18 bg-black/28 text-white shadow-[0_18px_45px_rgba(0,0,0,0.35)] ring-1 ring-black/8 backdrop-blur-xl transition-all duration-200 group-hover:scale-[1.06] group-hover:bg-black/38 dark:border-white/14 dark:bg-white/12 dark:text-white dark:group-hover:bg-white/16">
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : playing ? (
-                <Pause className="h-6 w-6" />
+                <Pause className="h-5 w-5 fill-current" />
+              ) : showVideo && !videoReady ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Play className="ml-0.5 h-6 w-6" />
+                <Play className="ml-0.5 h-5 w-5 fill-current" />
               )}
             </span>
           </button>
