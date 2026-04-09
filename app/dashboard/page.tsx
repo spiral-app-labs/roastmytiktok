@@ -26,18 +26,6 @@ function relativeDate(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function getStoredThumb(id: string): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = sessionStorage.getItem(`videoThumb_${id}`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { dataUrl?: string };
-    return parsed.dataUrl ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export default function DashboardPage() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
@@ -86,14 +74,6 @@ export default function DashboardPage() {
   }, []);
 
   const visibleEntries = useMemo(() => history.slice(0, visibleCount), [history, visibleCount]);
-
-  const posterMap = useMemo(() => {
-    const map: Record<string, string | null> = {};
-    for (const entry of visibleEntries) {
-      map[entry.id] = getStoredThumb(entry.id);
-    }
-    return map;
-  }, [visibleEntries]);
 
   // Highest score across the full history wins the "Top score" badge.
   // Requires at least 2 entries so a single video doesn't get crowned.
@@ -180,7 +160,6 @@ export default function DashboardPage() {
                 <DashboardVideoCard
                   key={entry.id}
                   entry={entry}
-                  posterUrl={posterMap[entry.id]}
                   dateLabel={relativeDate(entry.date)}
                   isBest={entry.id === bestEntryId}
                 />
