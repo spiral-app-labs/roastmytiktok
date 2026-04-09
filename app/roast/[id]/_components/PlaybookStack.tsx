@@ -15,45 +15,31 @@ export default function PlaybookStack({ steps, overallScore }: PlaybookStackProp
   const shouldReduceMotion = useReducedMotion();
 
   const count = steps.length;
-  const headline =
-    count === 0
-      ? 'No specific recommendations'
-      : count === 1
-      ? '1 fix that moves the needle'
-      : `${count} fixes that move the needle`;
 
   return (
     <motion.section
-      aria-label="The playbook"
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+      aria-label="Fixes"
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.35 }}
-      className="mt-14 sm:mt-20"
+      transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : 0.2 }}
+      className="mt-8 sm:mt-10"
     >
       {/* Section header */}
-      <div className="mb-6 flex items-end justify-between gap-6">
-        <div className="min-w-0">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-            The playbook
-          </div>
-          <h2 className="mt-2 font-display text-2xl font-bold leading-tight text-white sm:text-3xl">
-            {headline}
-          </h2>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          Fixes {count > 0 && <span className="text-zinc-700">· {count}</span>}
         </div>
-        <div className="mb-1 hidden h-px flex-1 translate-y-1 bg-gradient-to-r from-white/[0.12] to-transparent sm:block" />
       </div>
 
       {count === 0 ? (
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.015] px-6 py-8 text-center">
-          <p className="text-sm leading-relaxed text-zinc-400">
-            We couldn&apos;t generate specific recommendations for this video. Try uploading
-            again for a more detailed breakdown.
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-5 py-6 text-center">
+          <p className="text-[13px] leading-relaxed text-zinc-500">
+            No specific recommendations. Try uploading again for a more detailed breakdown.
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
           {steps.map((step, idx) => {
-            const isFirstHook = idx === 0 && step.dimension === 'hook';
             const viewImpact = getFixViewImpact(overallScore, step.dimension, step.priority);
             return (
               <InsightRow
@@ -61,7 +47,6 @@ export default function PlaybookStack({ steps, overallScore }: PlaybookStackProp
                 step={step}
                 index={idx}
                 timestampLabel={formatTimestamp(step)}
-                isHighestImpact={isFirstHook}
                 viewImpact={viewImpact}
               />
             );

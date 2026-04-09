@@ -21,6 +21,7 @@ import { logSuccess, logFailure } from '@/lib/analysis-logger';
 import type { ActionPlanStep, RoastResult } from '@/lib/types';
 import { detectTikTokSound } from '@/lib/tiktok-sound-detect';
 import { getFirstFiveSecondsDiagnosis } from '@/lib/hook-help';
+import { buildHookAnalysisPrompt, parseHookAnalysisResponse } from '@/lib/hook-analysis';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 
@@ -760,6 +761,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // Extract session_id and platform from query params
   const sessionId = req.nextUrl.searchParams.get('session_id') ?? 'server';
+  const platform = (req.nextUrl.searchParams.get('platform') === 'reels' ? 'reels' : 'tiktok') as 'tiktok' | 'reels';
 
   // Fetch video path from Supabase session record
   const { data: session, error: sessionError } = await supabaseServer
@@ -929,6 +931,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         const agentResults: Record<string, AgentResult> = {};
+        let hookAnalysis: RoastResult['hookAnalysis'];
         const chronicIssues = await chronicIssuesPromise;
         const detectedSound = await detectedSoundPromise;
 
@@ -959,6 +962,54 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         if (chronicIssues.length > 0) {
           send({ type: 'status', message: 'Repeat offender detected. Escalating intensity...' });
+        }
+
+        try {
+          send({ type: 'status', message: 'Running dedicated hook analysis...' });
+          const hookAnalysisPrompt = buildHookAnalysisPrompt({
+            platform,
+            openingFrames: frameAnalysisFrames.filter((frame) => frame.zone === 'hook'),
+            hookZoneSummary: buildHookZoneSummary(frameAnalysisFrames),
+            transcript,
+            shouldUseTranscriptEvidence,
+            audioChars,
+            transcriptQualityNote,
+            detectedSoundNote: detectedSound
+              ? `${detectedSound.name} by ${detectedSound.author}${detectedSound.isOriginal ? ' (original audio)' : ' (licensed/trending sound)'}`
+              : undefined,
+          });
+          const hookAnalysisResponse = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 900,
+            messages: [{ role: 'user', content: hookAnalysisPrompt }],
+          });
+          const hookAnalysisText = hookAnalysisResponse.content[0]?.type === 'text' ? hookAnalysisResponse.content[0].text : '';
+          hookAnalysis = parseHookAnalysisResponse(hookAnalysisText);
+          send({ type: 'hook-analysis', result: hookAnalysis });
+        } catch (err) {
+          logFailure('hook-analysis', id, err);
+          hookAnalysis = {
+            visual: {
+              score: 5,
+              justification: 'The available opening frames show some signal, but not enough visual distinctiveness to confidently call the first second a strong scroll-stop.',
+            },
+            audio: {
+              score: audioChars.hasSpeech || audioChars.hasMusic ? 5 : 3,
+              justification: audioChars.hasSpeech || audioChars.hasMusic
+                ? 'There is opening audio present, but the available evidence does not prove it lands as an immediate attention spike.'
+                : 'There is no clear opening audio hook in the available signal, so the opener is not getting help from sound.',
+            },
+            narrative: {
+              score: 5,
+              justification: 'The opening promise is only partially clear from the available evidence, so the reason to stay past second three is still fragile.',
+            },
+            overallScore: 5,
+            summary: 'The hook has some raw material, but the first 3-5 seconds still need a clearer promise and stronger stop power.',
+            topFixes: [
+              'Replace the opening line with a direct claim, audience call-out, or curiosity gap that lands in the first second.',
+              'Make frame one carry the same message immediately with a tighter shot and one short high-contrast text overlay.',
+            ],
+          };
         }
 
         async function runAgent(dimension: DimensionKey): Promise<void> {
@@ -1297,7 +1348,7 @@ Rules:
           analysisMode,
           hookSummary,
           hookIdentification,
-          ...(agentResults.hook?.hookAnalysis ? { hookAnalysis: agentResults.hook.hookAnalysis } : {}),
+          ...(hookAnalysis ? { hookAnalysis } : {}),
           viewProjection: viewProjectionData,
           agents: DIMENSION_ORDER.map(dim => ({
             agent: dim,
@@ -1307,7 +1358,6 @@ Rules:
             improvementTip: agentResults[dim].improvementTip,
             scoreJustification: agentResults[dim].scoreJustification,
             confidence: agentResults[dim].confidence,
-            ...(agentResults[dim].hookAnalysis ? { hookAnalysis: agentResults[dim].hookAnalysis } : {}),
             ...(agentResults[dim].failed ? { failed: true, failureReason: agentResults[dim].failureReason } : {}),
             timestamp_seconds: AGENT_TIMESTAMPS[dim],
           })),
@@ -1341,6 +1391,7 @@ Rules:
           encouragement,
           analysisMode,
           hookSummary,
+          ...(hookAnalysis ? { hookAnalysis } : {}),
           firstFiveSecondsDiagnosis: result.firstFiveSecondsDiagnosis,
           niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
           ...(durationAnalysis ? {

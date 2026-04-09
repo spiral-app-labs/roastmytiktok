@@ -2,42 +2,43 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import type { RoastResult } from '@/lib/types';
+import type { RoastResult, ViewProjection } from '@/lib/types';
 import { scoreToGrade } from '@/components/ScoreChip';
 
 interface RoastMastheadProps {
   roast: RoastResult;
+  projection: ViewProjection;
 }
 
 interface Tier {
   text: string;
   label: string;
-  ring: string;
-  glow: string;
+  badge: string;
+  bar: string;
 }
 
 function scoreTier(score: number): Tier {
   if (score >= 80) {
     return {
       text: 'text-emerald-300',
-      label: 'VIRAL TERRITORY',
-      ring: 'from-emerald-400/40 via-emerald-500/20 to-transparent',
-      glow: 'bg-emerald-500/20',
+      label: 'Viral territory',
+      badge: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300',
+      bar: 'bg-emerald-400',
     };
   }
   if (score >= 60) {
     return {
       text: 'text-amber-300',
-      label: 'NEEDS WORK',
-      ring: 'from-amber-400/40 via-amber-500/20 to-transparent',
-      glow: 'bg-amber-500/20',
+      label: 'Needs work',
+      badge: 'border-amber-400/30 bg-amber-500/10 text-amber-300',
+      bar: 'bg-amber-400',
     };
   }
   return {
     text: 'text-rose-300',
-    label: 'DEAD ON ARRIVAL',
-    ring: 'from-rose-400/40 via-rose-500/20 to-transparent',
-    glow: 'bg-rose-500/20',
+    label: 'Dead on arrival',
+    badge: 'border-rose-400/30 bg-rose-500/10 text-rose-300',
+    bar: 'bg-rose-400',
   };
 }
 
@@ -53,12 +54,9 @@ function useCountUp(target: number, shouldAnimate: boolean, durationMs = 900): n
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / durationMs);
-      // easeOutCubic
       const eased = 1 - Math.pow(1 - t, 3);
       setValue(Math.round(target * eased));
-      if (t < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      }
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => {
@@ -69,7 +67,7 @@ function useCountUp(target: number, shouldAnimate: boolean, durationMs = 900): n
   return value;
 }
 
-export default function RoastMasthead({ roast }: RoastMastheadProps) {
+export default function RoastMasthead({ roast, projection }: RoastMastheadProps) {
   const shouldReduceMotion = useReducedMotion();
   const count = useCountUp(roast.overallScore, !shouldReduceMotion);
   const tier = scoreTier(roast.overallScore);
@@ -79,89 +77,27 @@ export default function RoastMasthead({ roast }: RoastMastheadProps) {
   const duration =
     roast.metadata.duration > 0 ? `${Math.round(roast.metadata.duration)}s` : null;
   const niche = roast.nichePercentile || null;
-
   const metaBits = [platform, duration, niche].filter(Boolean) as string[];
+
+  const barPct = Math.max(2, Math.min(100, roast.overallScore));
 
   return (
     <motion.header
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="relative pt-2"
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="relative"
     >
-      {/* Score block — the centerpiece */}
-      <div className="relative flex flex-col items-center text-center">
-        {/* Eyebrow label */}
-        <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-zinc-500 sm:text-xs">
-          Viral Score
+      {/* Eyebrow row: viral score label + meta byline */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+          Viral score
         </div>
-
-        {/* Giant numeral with ambient glow */}
-        <div className="relative mt-5">
-          {/* Glow plate */}
-          <div
-            aria-hidden
-            className={[
-              'absolute left-1/2 top-1/2 -z-10 h-[110%] w-[130%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl',
-              tier.glow,
-            ].join(' ')}
-          />
-          {/* Ring/arc behind the numeral */}
-          <div
-            aria-hidden
-            className={[
-              'absolute left-1/2 top-1/2 -z-10 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-b blur-2xl',
-              tier.ring,
-            ].join(' ')}
-          />
-
-          <div className="flex items-start justify-center gap-2 sm:gap-3">
-            <span
-              aria-label={`Viral score ${roast.overallScore} out of 100`}
-              className={[
-                'block font-mono tabular-nums font-bold leading-[0.85]',
-                'text-[10rem] sm:text-[14rem] lg:text-[17rem]',
-                tier.text,
-              ].join(' ')}
-            >
-              {count}
-            </span>
-            <span
-              aria-hidden
-              className={[
-                'mt-4 font-mono text-2xl font-semibold text-zinc-500 sm:mt-6 sm:text-3xl',
-              ].join(' ')}
-            >
-              / 100
-            </span>
-          </div>
-        </div>
-
-        {/* Tier pill + letter grade */}
-        <div className="mt-6 flex items-center gap-3">
-          <span
-            className={[
-              'inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] sm:text-xs',
-              tier.text,
-              roast.overallScore >= 80
-                ? 'border-emerald-400/40 bg-emerald-500/10'
-                : roast.overallScore >= 60
-                ? 'border-amber-400/40 bg-amber-500/10'
-                : 'border-rose-400/40 bg-rose-500/10',
-            ].join(' ')}
-          >
-            <span>{tier.label}</span>
-            <span aria-hidden className="opacity-60">·</span>
-            <span>{grade}</span>
-          </span>
-        </div>
-
-        {/* Meta byline */}
         {metaBits.length > 0 && (
-          <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
             {metaBits.map((bit, i) => (
               <span key={`${bit}-${i}`}>
-                {i > 0 && <span className="mx-2 opacity-40">·</span>}
+                {i > 0 && <span className="mx-2 opacity-50">·</span>}
                 {bit}
               </span>
             ))}
@@ -169,16 +105,86 @@ export default function RoastMasthead({ roast }: RoastMastheadProps) {
         )}
       </div>
 
-      {/* Verdict headline — supporting copy below the score */}
+      {/* Score + grade row */}
+      <div className="mt-4 flex items-end gap-5">
+        <span
+          aria-label={`Viral score ${roast.overallScore} out of 100`}
+          className={[
+            'font-mono tabular-nums font-bold leading-[0.82]',
+            'text-[6rem] sm:text-[7rem] lg:text-[8rem]',
+            tier.text,
+          ].join(' ')}
+        >
+          {count}
+        </span>
+        <div className="mb-2 flex flex-col gap-2">
+          <span className="font-mono text-sm text-zinc-600 sm:text-base">/ 100</span>
+          <span
+            className={[
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.15em]',
+              tier.badge,
+            ].join(' ')}
+          >
+            <span>{tier.label}</span>
+            <span aria-hidden className="opacity-50">·</span>
+            <span>{grade}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Thin score bar */}
+      <div className="mt-5 h-1 w-full max-w-md overflow-hidden rounded-full bg-white/[0.06]">
+        <motion.div
+          initial={shouldReduceMotion ? false : { width: 0 }}
+          animate={{ width: `${barPct}%` }}
+          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.15 }}
+          className={['h-full rounded-full', tier.bar].join(' ')}
+        />
+      </div>
+
+      {/* Expected views projection pill — right below the score */}
+      <div className="mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 font-mono text-sm text-emerald-100">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-emerald-400/80">
+          Expected
+        </span>
+        <span className="tabular-nums">{projection.currentExpected}</span>
+        <svg
+          aria-hidden
+          className="h-3.5 w-3.5 text-emerald-300/80"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2.5}
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+          />
+        </svg>
+        <span className="font-semibold tabular-nums">{projection.improvedExpected}</span>
+        <span className="text-emerald-300/80">views</span>
+        {projection.multiplier && (
+          <>
+            <span aria-hidden className="mx-0.5 text-emerald-500/50">·</span>
+            <span className="text-emerald-300/90">{projection.multiplier}</span>
+          </>
+        )}
+      </div>
+
+      {/* Verdict — smaller, supporting copy, clamped to 3 lines so it can't blow out */}
       {roast.verdict && (
-        <motion.p
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: shouldReduceMotion ? 0 : 0.4, duration: 0.5 }}
-          className="mx-auto mt-10 max-w-3xl text-center font-display text-xl font-semibold leading-snug text-zinc-200 sm:text-2xl lg:text-3xl"
+        <p
+          className="mt-5 max-w-2xl text-[13px] leading-snug text-zinc-500"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
         >
           {roast.verdict}
-        </motion.p>
+        </p>
       )}
     </motion.header>
   );

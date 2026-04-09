@@ -11,9 +11,8 @@ import { buildViewProjection } from '@/lib/view-projection';
 import { useToast } from '@/components/ui';
 
 import RoastMasthead from './_components/RoastMasthead';
+import HookSpotlight from './_components/HookSpotlight';
 import DimensionStrip from './_components/DimensionStrip';
-import ProjectionBand from './_components/ProjectionBand';
-import HookReadingPanel from './_components/HookReadingPanel';
 import PlaybookStack from './_components/PlaybookStack';
 import RetentionPanel from './_components/RetentionPanel';
 import PartialResultsNotice from './_components/PartialResultsNotice';
@@ -154,19 +153,7 @@ function RoastContent({ roast, id }: RoastContentProps) {
   }, [roast]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden pb-24">
-      {/* Ambient orbs — lower intensity to let the editorial content breathe */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 left-1/2 h-[560px] w-[900px] max-w-[140vw] -translate-x-1/2 rounded-full bg-orange-500/8 blur-[140px]" />
-        <div className="absolute left-[70%] top-[160px] h-[500px] w-[500px] max-w-[110vw] -translate-x-1/2 rounded-full bg-pink-500/7 blur-[130px]" />
-        <svg className="absolute inset-0 h-full w-full opacity-[0.03] mix-blend-overlay">
-          <filter id="roast-noise">
-            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" />
-          </filter>
-          <rect width="100%" height="100%" filter="url(#roast-noise)" />
-        </svg>
-      </div>
-
+    <main className="relative min-h-screen pb-24">
       {/* Off-screen ScoreCard nodes for html-to-image capture */}
       <div
         aria-hidden
@@ -182,11 +169,11 @@ function RoastContent({ roast, id }: RoastContentProps) {
         <ScoreCard ref={storyRef} roast={roast} variant="story" />
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-6 pb-16 pt-20 sm:px-8 lg:px-12 lg:pt-14">
+      <div className="relative z-10 mx-auto w-full max-w-5xl px-5 pb-16 pt-16 sm:px-6 lg:px-8 lg:pt-12">
         {/* Back link */}
         <Link
           href="/dashboard"
-          className="mb-8 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 transition-colors hover:text-orange-300"
+          className="mb-6 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 transition-colors hover:text-orange-300"
         >
           <span>←</span> Dashboard
         </Link>
@@ -195,17 +182,13 @@ function RoastContent({ roast, id }: RoastContentProps) {
           <PartialResultsNotice failedCount={failedDimensions.size} />
         )}
 
-        <RoastMasthead roast={roast} />
+        <RoastMasthead roast={roast} projection={viewProjection} />
 
-        <div className="mt-10">
-          <DimensionStrip agents={roast.agents} />
-        </div>
-
-        <ProjectionBand projection={viewProjection} />
-
-        <HookReadingPanel roast={roast} />
+        <HookSpotlight roast={roast} videoId={id} />
 
         <PlaybookStack steps={filteredActionPlan} overallScore={roast.overallScore} />
+
+        <DimensionStrip agents={roast.agents} />
 
         <RetentionPanel roast={roast} steps={filteredActionPlan} />
 

@@ -16,7 +16,7 @@ export default function PartialResultsNotice({ failedCount }: PartialResultsNoti
       initial={shouldReduceMotion ? false : { opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="mb-8 flex items-start gap-4 rounded-2xl border border-amber-400/25 bg-amber-500/[0.04] px-5 py-4 backdrop-blur-sm"
+      className="mb-5 flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-500/[0.04] px-4 py-3"
     >
       <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-400/40 bg-amber-500/10">
         <svg
@@ -38,10 +38,9 @@ export default function PartialResultsNotice({ failedCount }: PartialResultsNoti
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber-300">
           Partial results
         </div>
-        <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
-          {failedCount} of 6 dimension{plural}
-          {' '}couldn&apos;t be analyzed (API overload). Scores and fixes reflect only the
-          completed dimensions — try again for a full breakdown.
+        <p className="mt-1 text-[12px] leading-snug text-zinc-400">
+          {failedCount} of 6 dimension{plural} couldn&apos;t be analyzed. Scores reflect
+          only completed dimensions.
         </p>
       </div>
     </motion.div>

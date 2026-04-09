@@ -4,18 +4,22 @@ import type { RoastResult, ViewProjection } from './types';
  * Score → expected view count midpoints. Single rounded numbers (not ranges)
  * so the UI can show one clean integer per state. multiplier is computed
  * from the midpoints so the displayed math always matches.
+ *
+ * Multipliers are intentionally aggressive (min ~5x, larger for low scores)
+ * because fixing the hook + the other issues we outline can make a huge
+ * difference for a video that's currently DOA.
  */
 export const VIEW_RANGES: Array<{
   maxScore: number;
   currentMid: number;
   improvedMid: number;
 }> = [
-  { maxScore:  25, currentMid:    300, improvedMid:   1000 },
-  { maxScore:  40, currentMid:   1000, improvedMid:   3000 },
-  { maxScore:  55, currentMid:   2000, improvedMid:   6000 },
-  { maxScore:  70, currentMid:   5000, improvedMid:  15000 },
-  { maxScore:  85, currentMid:  12000, improvedMid:  40000 },
-  { maxScore: 100, currentMid:  50000, improvedMid: 200000 },
+  { maxScore:  25, currentMid:    300, improvedMid:   5000 }, // ~17x
+  { maxScore:  40, currentMid:   1000, improvedMid:  10000 }, // 10x
+  { maxScore:  55, currentMid:   2000, improvedMid:  20000 }, // 10x
+  { maxScore:  70, currentMid:   5000, improvedMid:  40000 }, // 8x
+  { maxScore:  85, currentMid:  12000, improvedMid:  80000 }, // ~6.7x
+  { maxScore: 100, currentMid:  50000, improvedMid: 300000 }, // 6x
 ];
 
 export function getViewRangeForScore(score: number) {

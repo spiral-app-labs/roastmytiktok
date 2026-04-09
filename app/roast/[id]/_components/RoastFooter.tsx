@@ -33,7 +33,7 @@ export default function RoastFooter({
       initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.5 }}
-      className="mt-16 flex flex-col items-center gap-6 border-t border-white/[0.08] pt-12"
+      className="mt-10 flex flex-col items-center gap-5 border-t border-white/[0.06] pt-8"
     >
       {/* Primary CTA */}
       <Link

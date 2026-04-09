@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import type { AgentRoast, DimensionKey } from '@/lib/types';
 import { AGENTS } from '@/lib/agents';
-import ScoreChip from '@/components/ScoreChip';
+import { scoreToTone } from '@/components/ScoreChip';
 import { isAgentFailed } from './helpers';
 
 interface DimensionStripProps {
@@ -13,7 +13,6 @@ interface DimensionStripProps {
 export default function DimensionStrip({ agents }: DimensionStripProps) {
   const shouldReduceMotion = useReducedMotion();
 
-  // Build a stable ordering keyed off AGENTS (source of truth for display)
   const rows = AGENTS.map((def) => {
     const match = agents.find((a) => a.agent === (def.key as DimensionKey));
     return {
@@ -30,36 +29,49 @@ export default function DimensionStrip({ agents }: DimensionStripProps) {
       aria-label="Dimension scores"
       initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.1 }}
-      className="border-y border-white/[0.08] py-5"
+      transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : 0.1 }}
+      className="mt-6 rounded-xl border border-white/[0.06] bg-white/[0.015] p-4 sm:p-5"
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 sm:gap-x-8">
-        {rows.map((row, i) => (
-          <motion.div
-            key={row.key}
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 4 }}
-            animate={{ opacity: row.failed ? 0.4 : 1, y: 0 }}
-            transition={{
-              delay: shouldReduceMotion ? 0 : 0.15 + i * 0.04,
-              duration: 0.3,
-            }}
-            className="flex items-center gap-2.5"
-          >
-            <span className="text-lg leading-none" aria-hidden>
-              {row.emoji}
-            </span>
-            <div className="flex flex-col gap-1">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-                {row.displayName}
-              </span>
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+        By dimension
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
+        {rows.map((row, i) => {
+          const tone = row.failed ? null : scoreToTone(row.score);
+          return (
+            <motion.div
+              key={row.key}
+              initial={shouldReduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: row.failed ? 0.35 : 1 }}
+              transition={{
+                delay: shouldReduceMotion ? 0 : 0.12 + i * 0.03,
+                duration: 0.25,
+              }}
+              className="flex items-center justify-between gap-2"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="text-sm leading-none" aria-hidden>
+                  {row.emoji}
+                </span>
+                <span className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                  {row.displayName}
+                </span>
+              </div>
               {row.failed ? (
-                <span className="font-mono text-sm tabular-nums text-zinc-600">—</span>
+                <span className="font-mono text-[11px] tabular-nums text-zinc-600">—</span>
               ) : (
-                <ScoreChip score={row.score} size="sm" />
+                <span
+                  className={[
+                    'font-mono text-[12px] tabular-nums font-semibold tabular-nums',
+                    tone?.text ?? 'text-zinc-300',
+                  ].join(' ')}
+                >
+                  {row.score}
+                </span>
               )}
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
     </motion.section>
   );

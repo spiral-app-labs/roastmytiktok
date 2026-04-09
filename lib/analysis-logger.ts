@@ -10,6 +10,7 @@ export type AnalysisStage =
   | 'transcription'
   | 'speech-music-detect'
   | 'caption-quality'
+  | 'hook-analysis'
   | 'agent'
   | 'verdict'
   | 'text-extraction'

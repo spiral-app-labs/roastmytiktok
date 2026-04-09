@@ -34,25 +34,18 @@ export default function RetentionPanel({ roast, steps }: RetentionPanelProps) {
   return (
     <motion.section
       aria-label="Retention curve"
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.4 }}
-      className="mt-14 sm:mt-20"
+      transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : 0.25 }}
+      className="mt-8 sm:mt-10"
     >
-      {/* Section header */}
-      <div className="mb-6 flex items-end justify-between gap-6">
-        <div className="min-w-0">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-            Retention
-          </div>
-          <h2 className="mt-2 font-display text-2xl font-bold leading-tight text-white sm:text-3xl">
-            Where viewers drop off
-          </h2>
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+          Retention · where viewers drop
         </div>
-        <div className="mb-1 hidden h-px flex-1 translate-y-1 bg-gradient-to-r from-white/[0.12] to-transparent sm:block" />
       </div>
 
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.015] px-4 py-6 sm:px-8 sm:py-8 backdrop-blur-sm">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-5 sm:px-6 sm:py-6">
         <RetentionCurve
           hookScore={hookScore}
           overallScore={roast.overallScore}
