@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import { readFileSync, mkdirSync, rmSync, existsSync, statSync } from 'fs';
 
 export type FrameZone = 'hook' | 'transition' | 'body';
+export type FramePlanMode = 'hook-only' | 'extended_10s' | 'full_video';
 
 export interface ExtractedFrame {
   timestampSec: number;
@@ -23,16 +24,21 @@ const MIN_FRAME_BYTES = 500;
 const FFMPEG_TIMEOUT_MS = 15_000;
 
 /**
- * Build a variable-density frame plan.
+ * Build a variable-density frame plan with an explicit analysis mode.
  *
- * Hook zone (0-5s): ~2.5 fps = 13 frames  - captures text hooks, title cards, expressions
- * Transition zone (5-8s): ~1 fps = 3 frames - captures shift from hook to body
- * Body (8s+): 1 fps - captures the rest of the video
+ * hook-only:
+ * - 0-3s at ~3 fps (9 frames including a first-frame anchor)
+ * - 3-6s at ~2 fps (6 frames)
  *
- * Scales dynamically with video duration. Short videos (<8s) get dense hook
- * sampling only. Long videos (>60s) cap body frames to keep total reasonable.
+ * extended_10s:
+ * - hook-only plan
+ * - 6-10s at ~1 fps (4 frames)
+ *
+ * full_video:
+ * - extended_10s plan
+ * - sparse body coverage after 10s, capped for long videos
  */
-export function buildFramePlan(durationSec: number): PlannedFrame[] {
+export function buildFramePlan(durationSec: number, mode: FramePlanMode = 'full_video'): PlannedFrame[] {
   if (!Number.isFinite(durationSec) || durationSec <= 0) {
     throw new Error('Could not determine video duration');
   }
@@ -47,10 +53,12 @@ export function buildFramePlan(durationSec: number): PlannedFrame[] {
     timestamps.set(timestampSec, { timestampSec, zone, label: label ?? defaultLabel });
   };
 
-  // --- Hook zone (0-5s): ~2.5 fps ---
-  // Dense sampling where attention decisions happen
-  const hookEnd = Math.min(5, durationSec);
-  const hookAnchors = [0.05, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, 4.8];
+  // --- Hook zone (0-6s): 0-3s at ~3 fps, 3-6s at ~2 fps ---
+  const hookEnd = Math.min(6, durationSec);
+  const hookAnchors = [
+    0.05, 0.38, 0.72, 1.05, 1.38, 1.72, 2.05, 2.38, 2.72,
+    3.0, 3.5, 4.0, 4.5, 5.0, 5.5,
+  ];
   for (const anchor of hookAnchors) {
     if (anchor < hookEnd) {
       const label = anchor <= 0.05
@@ -60,21 +68,31 @@ export function buildFramePlan(durationSec: number): PlannedFrame[] {
     }
   }
 
-  // --- Transition zone (5-8s): ~1 fps ---
-  if (durationSec > 5) {
-    const transitionEnd = Math.min(8, durationSec);
-    for (let t = 5.5; t < transitionEnd; t += 1.0) {
-      pushFrame(t, 'transition');
+  if (mode === 'hook-only') {
+    return [...timestamps.values()].sort((a, b) => a.timestampSec - b.timestampSec);
+  }
+
+  // --- Transition zone (6-10s): ~1 fps ---
+  if (durationSec > 6) {
+    const transitionEnd = Math.min(10, durationSec);
+    for (let t = 6.5; t < transitionEnd; t += 1.0) {
+      pushFrame(t, 'transition', `Extended hook frame at ${t.toFixed(1)}s`);
     }
   }
 
-  // --- Body zone (8s+): 1 fps, capped ---
-  if (durationSec > 8) {
-    const bodyStart = 8.5;
+  if (mode === 'extended_10s') {
+    return [...timestamps.values()].sort((a, b) => a.timestampSec - b.timestampSec);
+  }
+
+  // --- Body zone (10s+): 1 fps, capped ---
+  if (durationSec > 10) {
+    const bodyStart = 10.5;
     const bodyEnd = durationSec - 0.1;
     const bodySpan = bodyEnd - bodyStart;
-    // Cap at 40 body frames for very long videos
-    const maxBodyFrames = Math.min(40, Math.floor(bodySpan));
+    if (bodySpan <= 0) {
+      return [...timestamps.values()].sort((a, b) => a.timestampSec - b.timestampSec);
+    }
+    const maxBodyFrames = Math.min(30, Math.floor(bodySpan));
     const step = bodySpan / Math.max(1, maxBodyFrames);
 
     for (let i = 0; i < maxBodyFrames; i++) {
@@ -88,14 +106,14 @@ export function buildFramePlan(durationSec: number): PlannedFrame[] {
 /**
  * Extract variable-density frames from a video file using ffmpeg.
  *
- * Hook zone (0-5s): ~2.5 fps for maximum detail in the critical attention window.
- * Transition zone (5-8s): ~1 fps to catch the shift from hook to body.
- * Body (8s+): 1 fps for the rest, capped for long videos.
+ * Hook zone (0-6s): dense default sampling for the critical attention window.
+ * Transition zone (6-10s): optional extension when the hook is strong.
+ * Body (10s+): sparse coverage only for full-video mode.
  *
  * Hardened: validates video before extraction, catches per-frame failures,
  * detects corrupt/blank frames, and continues with whatever frames succeed.
  */
-export function extractFrames(videoPath: string): ExtractedFrame[] {
+export function extractFrames(videoPath: string, mode: FramePlanMode = 'full_video'): ExtractedFrame[] {
   if (!existsSync(videoPath)) {
     console.error(`[frame-extractor] Video file not found: ${videoPath}`);
     return [];
@@ -128,8 +146,8 @@ export function extractFrames(videoPath: string): ExtractedFrame[] {
       return [];
     }
 
-    const framePlan = buildFramePlan(duration);
-    console.log(`[frame-extractor] Planned ${framePlan.length} frames for ${duration.toFixed(1)}s video (hook: ${framePlan.filter(f => f.zone === 'hook').length}, transition: ${framePlan.filter(f => f.zone === 'transition').length}, body: ${framePlan.filter(f => f.zone === 'body').length})`);
+    const framePlan = buildFramePlan(duration, mode);
+    console.log(`[frame-extractor] Planned ${framePlan.length} frames for ${duration.toFixed(1)}s video in ${mode} mode (hook: ${framePlan.filter(f => f.zone === 'hook').length}, transition: ${framePlan.filter(f => f.zone === 'transition').length}, body: ${framePlan.filter(f => f.zone === 'body').length})`);
 
     const frames: ExtractedFrame[] = [];
 

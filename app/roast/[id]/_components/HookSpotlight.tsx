@@ -15,6 +15,7 @@ const CLIP_END = 5;
 export default function HookSpotlight({ roast, videoId }: HookSpotlightProps) {
   const shouldReduceMotion = useReducedMotion();
   const { hookSummary, firstFiveSecondsDiagnosis, hookIdentification } = roast;
+  const hookAnalysis = roast.hookAnalysis;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -24,7 +25,6 @@ export default function HookSpotlight({ roast, videoId }: HookSpotlightProps) {
   // Fetch the signed URL for the video.
   useEffect(() => {
     let cancelled = false;
-    setVideoError(false);
     (async () => {
       try {
         const res = await fetch(`/api/roast/${videoId}/video`);
@@ -131,7 +131,9 @@ export default function HookSpotlight({ roast, videoId }: HookSpotlightProps) {
       <div className="grid grid-cols-1 gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 backdrop-blur-sm sm:p-6 lg:grid-cols-[280px_1fr] lg:gap-7 lg:p-7">
         {/* Video clip panel */}
         <div className="relative">
-          <div className="relative aspect-[9/16] w-full max-w-[280px] overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-950">
+          <div className="pointer-events-none absolute -inset-6 rounded-[32px] bg-[radial-gradient(circle_at_35%_35%,rgba(59,130,246,0.2),transparent_38%),radial-gradient(circle_at_65%_68%,rgba(249,115,22,0.22),transparent_46%),radial-gradient(circle_at_55%_48%,rgba(236,72,153,0.14),transparent_52%)] blur-2xl" />
+          <div className="pointer-events-none absolute -inset-10 rounded-[42px] bg-[radial-gradient(circle,rgba(59,130,246,0.14),transparent_55%)] blur-[70px]" />
+          <div className="relative aspect-[9/16] w-full max-w-[280px] overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-950 shadow-[0_26px_80px_-34px_rgba(59,130,246,0.4),0_18px_48px_-28px_rgba(249,115,22,0.45)]">
             {videoUrl && !videoError ? (
               <video
                 ref={videoRef}
@@ -236,6 +238,35 @@ export default function HookSpotlight({ roast, videoId }: HookSpotlightProps) {
                   </dd>
                 </div>
               )}
+            </dl>
+          )}
+
+          {hookAnalysis && (
+            <dl className="mt-4 grid grid-cols-1 gap-3 border-t border-white/[0.06] pt-4 sm:grid-cols-3 sm:gap-5">
+              <div>
+                <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  Hook type
+                </dt>
+                <dd className="mt-1 text-[12px] leading-snug text-zinc-300">
+                  {hookAnalysis.labels.mechanisms.join(', ').replace(/_/g, ' ')}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  Clear by
+                </dt>
+                <dd className="mt-1 text-[12px] leading-snug text-zinc-300">
+                  {hookAnalysis.timing.propositionTimeSec != null ? `${hookAnalysis.timing.propositionTimeSec.toFixed(1)}s` : 'not clear in the hook'}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  Main failure
+                </dt>
+                <dd className="mt-1 text-[12px] leading-snug text-zinc-300">
+                  {hookAnalysis.labels.primaryFail.replace(/_/g, ' ')}
+                </dd>
+              </div>
             </dl>
           )}
 

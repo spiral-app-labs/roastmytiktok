@@ -1,62 +1,138 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const { buildHookAnalysisPrompt, parseHookAnalysisResponse } = await import('../lib/hook-analysis.ts');
+const {
+  buildHookAnalysisPrompt,
+  deriveHookAnalysis,
+  parseHookAnalysisResponse,
+} = await import('../lib/hook-analysis.ts');
 
-test('buildHookAnalysisPrompt stays focused on the first 3-5 seconds and required dimensions', () => {
+const openingFrames = [
+  {
+    timestampSec: 0.05,
+    zone: 'hook',
+    sceneDescription: 'Creator faces the camera in a bright kitchen while holding up a finished meal container.',
+    setting: 'kitchen',
+    settingType: 'indoor',
+    peopleCount: 1,
+    facialExpressions: ['confident'],
+    eyeContact: true,
+    bodyLanguage: 'holding up container',
+    framing: 'close-up',
+    faceFillPercent: 42,
+    lightingQuality: 'good',
+    lightingDirection: 'front window light',
+    lightingIssues: [],
+    lightingTemperature: 'neutral',
+    colorSaturation: 'normal',
+    colorTemperature: 'neutral',
+    colorGrade: 'clean/natural',
+    dominantColors: ['white', 'green'],
+    textOnScreen: ['STOP WASTING GROCERIES'],
+    textPosition: 'top',
+    textReadable: true,
+    textContrast: 'high',
+    captionsPresent: false,
+    captionStyle: null,
+    captionReadable: false,
+    captionInSafeZone: false,
+    backgroundDescription: 'clean kitchen counter',
+    backgroundClutter: 'clean',
+    distractingElements: [],
+    cameraAngle: 'eye level',
+    cameraWork: 'static tripod',
+    compositionQuality: 'strong',
+    compositionNotes: 'subject centered tightly',
+    motionType: 'minimal movement',
+    sceneChanged: false,
+    hasWatermark: false,
+    hasBrandElements: false,
+    productionTier: 'casual',
+    visualEnergy: 'medium',
+  },
+  {
+    timestampSec: 0.72,
+    zone: 'hook',
+    sceneDescription: 'Quick cut to a tighter close-up of the meal container.',
+    setting: 'kitchen',
+    settingType: 'indoor',
+    peopleCount: 1,
+    facialExpressions: ['confident'],
+    eyeContact: true,
+    bodyLanguage: 'leans into camera',
+    framing: 'close-up',
+    faceFillPercent: 48,
+    lightingQuality: 'good',
+    lightingDirection: 'front window light',
+    lightingIssues: [],
+    lightingTemperature: 'neutral',
+    colorSaturation: 'normal',
+    colorTemperature: 'neutral',
+    colorGrade: 'clean/natural',
+    dominantColors: ['white', 'green'],
+    textOnScreen: ['STOP WASTING GROCERIES'],
+    textPosition: 'top',
+    textReadable: true,
+    textContrast: 'high',
+    captionsPresent: false,
+    captionStyle: null,
+    captionReadable: false,
+    captionInSafeZone: false,
+    backgroundDescription: 'clean kitchen counter',
+    backgroundClutter: 'clean',
+    distractingElements: [],
+    cameraAngle: 'eye level',
+    cameraWork: 'static tripod',
+    compositionQuality: 'strong',
+    compositionNotes: 'subject centered tightly',
+    motionType: 'scene cut',
+    sceneChanged: true,
+    hasWatermark: false,
+    hasBrandElements: false,
+    productionTier: 'casual',
+    visualEnergy: 'high',
+  },
+];
+
+const transcript = {
+  text: 'stop wasting groceries with this one prep rule',
+  segments: [{ start: 0.1, end: 1.6, text: 'stop wasting groceries with this one prep rule' }],
+  provider: 'whisper',
+  confidence: 0.84,
+};
+
+test('deriveHookAnalysis returns a richer hook-first report with scores and probabilities', () => {
+  const analysis = deriveHookAnalysis({
+    openingFrames,
+    transcript,
+    shouldUseTranscriptEvidence: true,
+    audioChars: {
+      hasSpeech: true,
+      hasMusic: true,
+      speechPercent: 74,
+      pacingHint: 'fast',
+      meanVolumeDB: -17,
+      maxVolumeDB: -2.1,
+      silenceGapCount: 2,
+      durationSec: 5,
+    },
+  });
+
+  assert.equal(analysis.windowSec, 6);
+  assert.ok(analysis.observed.ocr.length >= 1);
+  assert.ok(analysis.scores.hookScore > 0);
+  assert.ok(analysis.predictions.pStay3s >= 0 && analysis.predictions.pStay3s <= 1);
+  assert.ok(analysis.predictions.pStay5s >= 0 && analysis.predictions.pStay5s <= 1);
+  assert.ok(analysis.editFixes.length >= 1);
+  assert.ok(analysis.replacementHooks.length >= 1);
+});
+
+test('buildHookAnalysisPrompt includes the baseline hook report and strict JSON shape', () => {
   const prompt = buildHookAnalysisPrompt({
     platform: 'tiktok',
-    openingFrames: [
-      {
-        timestampSec: 0.1,
-        zone: 'hook',
-        sceneDescription: 'Creator faces the camera in a bright kitchen while holding up a finished meal container.',
-        setting: 'kitchen',
-        settingType: 'indoor',
-        peopleCount: 1,
-        facialExpressions: ['confident'],
-        eyeContact: true,
-        bodyLanguage: 'holding up container',
-        framing: 'close-up',
-        faceFillPercent: 42,
-        lightingQuality: 'good',
-        lightingDirection: 'front window light',
-        lightingIssues: [],
-        lightingTemperature: 'neutral',
-        colorSaturation: 'normal',
-        colorTemperature: 'neutral',
-        colorGrade: 'clean/natural',
-        dominantColors: ['white', 'green'],
-        textOnScreen: ['STOP WASTING GROCERIES'],
-        textPosition: 'top',
-        textReadable: true,
-        textContrast: 'high',
-        captionsPresent: false,
-        captionStyle: null,
-        captionReadable: false,
-        captionInSafeZone: false,
-        backgroundDescription: 'clean kitchen counter',
-        backgroundClutter: 'clean',
-        distractingElements: [],
-        cameraAngle: 'eye level',
-        cameraWork: 'static tripod',
-        compositionQuality: 'strong',
-        compositionNotes: 'subject centered tightly',
-        motionType: 'minimal movement',
-        sceneChanged: false,
-        hasWatermark: false,
-        hasBrandElements: false,
-        productionTier: 'casual',
-        visualEnergy: 'medium',
-      },
-    ],
+    openingFrames,
     hookZoneSummary: 'The opening starts with a tight close-up, readable text, and a clear prop payoff.',
-    transcript: {
-      text: 'stop wasting groceries with this one prep rule',
-      segments: [{ start: 0.1, end: 1.6, text: 'stop wasting groceries with this one prep rule' }],
-      provider: 'whisper',
-      confidence: 0.84,
-    },
+    transcript,
     shouldUseTranscriptEvidence: true,
     audioChars: {
       hasSpeech: true,
@@ -72,49 +148,67 @@ test('buildHookAnalysisPrompt stays focused on the first 3-5 seconds and require
     detectedSoundNote: 'original kitchen ambience',
   });
 
-  assert.match(prompt, /first 3-5 seconds/i);
-  assert.match(prompt, /visual/i);
-  assert.match(prompt, /audio/i);
-  assert.match(prompt, /narrative/i);
-  assert.match(prompt, /topFixes/i);
+  assert.match(prompt, /HOOK_AUDIT_JSON_V2/);
+  assert.match(prompt, /silent-first reasoning/i);
+  assert.match(prompt, /replacementHooks/);
   assert.match(prompt, /STOP WASTING GROCERIES/);
-  assert.match(prompt, /stop wasting groceries with this one prep rule/);
+  assert.match(prompt, /pStay3s/);
 });
 
-test('parseHookAnalysisResponse clamps scores and preserves specific fixes', () => {
+test('parseHookAnalysisResponse merges model refinements onto a deterministic fallback', () => {
+  const fallback = deriveHookAnalysis({
+    openingFrames,
+    transcript,
+    shouldUseTranscriptEvidence: true,
+    audioChars: {
+      hasSpeech: true,
+      hasMusic: true,
+      speechPercent: 74,
+      pacingHint: 'fast',
+      meanVolumeDB: -17,
+      maxVolumeDB: -2.1,
+      silenceGapCount: 2,
+      durationSec: 5,
+    },
+  });
+
   const parsed = parseHookAnalysisResponse(`{
-    "visual": { "score": 11, "justification": "Frame one has a clear face, bold text, and a visible payoff." },
-    "audio": { "score": 7, "justification": "The first line lands immediately and the music supports the mood instead of delaying it." },
-    "narrative": { "score": 0, "justification": "The promise is clear, but the curiosity could still sharpen." },
-    "overallScore": 12,
-    "summary": "The opener is strong, but it can still tighten the narrative tension.",
-    "topFixes": [
-      "Swap the first spoken line for a sharper audience call-out that lands before 0:01.",
-      "Cut from the static intro frame to a tighter close-up in frame one so the payoff is visible immediately.",
-      "third extra fix should be dropped"
-    ]
-  }`);
+    "summary": "The opener is clear early, but a stronger first cut would make it hit harder.",
+    "observed": { "visual": "A creator opens on a readable promise and food proof in frame one." },
+    "labels": {
+      "mechanisms": ["problem_callout", "pattern_interrupt"],
+      "primaryFail": "visual_monotony"
+    },
+    "editFixes": [
+      {
+        "impact": "high",
+        "do": "At 0:00 cut straight to the tight product close-up before any setup frame.",
+        "why": "That makes the proof visual land before the swipe decision."
+      }
+    ],
+    "reshootPlan": {
+      "firstShot": "Open on the finished meal in a tight crop.",
+      "first5sScript": "Say the payoff immediately while the proof is visible.",
+      "shotBeats": ["0.0-0.8s proof shot", "0.8-3.0s direct promise", "3.0-5.0s preview the next beat"],
+      "lighting": "Keep the subject facing the window."
+    },
+    "replacementHooks": [
+      {
+        "hook": "Stop wasting groceries with this fix.",
+        "shot": "Open tight on the meal prep result.",
+        "overlay": "STOP WASTING FOOD @ 0.0-1.0s"
+      }
+    ],
+    "dimensions": {
+      "visual": { "score": 8, "justification": "The proof is visible, but a faster cut would sharpen the stop power." },
+      "audio": { "score": 7, "justification": "The line lands quickly enough to help the hook." },
+      "narrative": { "score": 8, "justification": "The payoff is clear in the first second." }
+    }
+  }`, fallback);
 
-  assert.equal(parsed.visual.score, 10);
-  assert.equal(parsed.audio.score, 7);
-  assert.equal(parsed.narrative.score, 1);
-  assert.equal(parsed.overallScore, 10);
-  assert.equal(parsed.topFixes.length, 2);
-  assert.match(parsed.topFixes[0], /0:01|first spoken line/i);
-  assert.match(parsed.topFixes[1], /frame one|close-up/i);
-});
-
-test('parseHookAnalysisResponse replaces vague or missing fixes with specific defaults', () => {
-  const parsed = parseHookAnalysisResponse(`{
-    "visual": { "score": 4, "justification": "The first frame looks flat and forgettable." },
-    "audio": { "score": 3, "justification": "Nothing in the opening audio creates urgency." },
-    "narrative": { "score": 4, "justification": "The setup explains the topic, but it does not create enough curiosity." },
-    "overallScore": 4,
-    "summary": "The opener needs more stop power.",
-    "topFixes": ["Improve lighting", "Make it more engaging"]
-  }`);
-
-  assert.equal(parsed.topFixes.length, 2);
-  assert.match(parsed.topFixes[0], /first second|opening line/i);
-  assert.match(parsed.topFixes[1], /frame one|text overlay|tighter shot/i);
+  assert.equal(parsed.labels.primaryFail, 'visual_monotony');
+  assert.equal(parsed.editFixes[0].impact, 'high');
+  assert.equal(parsed.replacementHooks[0].hook, 'Stop wasting groceries with this fix.');
+  assert.equal(parsed.dimensions?.visual.score, 8);
+  assert.ok(parsed.topFixes?.[0].includes('0:00'));
 });

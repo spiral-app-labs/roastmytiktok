@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AnalyzingPreview } from '@/components/AnalyzingPreview';
 import { AnalysisStageProgress, deriveAnalysisProgressPercent } from '@/components/upload/AnalysisStageProgress';
 
 export default function AnalyzeLoading() {
@@ -12,6 +13,9 @@ export default function AnalyzeLoading() {
     }, 2500);
     return () => clearInterval(interval);
   }, []);
+
+  const previewDimension =
+    activeStep < 3 ? 'hook' : activeStep < 5 ? 'accessibility' : 'audio';
 
   return (
     <main className="min-h-screen relative overflow-hidden px-4 py-10">
@@ -25,11 +29,20 @@ export default function AnalyzeLoading() {
         <AnalysisStageProgress
           activeIndex={activeStep}
           progressPercent={deriveAnalysisProgressPercent(activeStep)}
-          eyebrow="Preparing analysis"
-          title="Building your Go Viral diagnosis"
-          description="The upload has been accepted. Next.js is loading the live analysis screen while the pipeline moves into frame extraction and scoring."
+          eyebrow="Preparing hook analysis"
+          title="Building your hook survival report"
+          description="The upload has landed. Next.js is loading the live analysis screen while the pipeline extracts the first 6 seconds, reads the opener, and decides whether the rest of the video even matters yet."
           liveDetail="Connecting to the live analysis stream..."
         />
+
+        <div className="mt-8 rounded-[32px] border border-white/[0.08] bg-white/[0.02] px-3 py-2 backdrop-blur-sm sm:px-5 sm:py-4">
+          <AnalyzingPreview
+            thumbDataUrl={null}
+            thumbWidth={null}
+            thumbHeight={null}
+            activeDimension={previewDimension}
+          />
+        </div>
       </div>
     </main>
   );

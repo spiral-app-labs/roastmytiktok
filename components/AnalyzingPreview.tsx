@@ -30,48 +30,48 @@ interface Bubble {
 // about what's in the video. Tags map 1:1 to AGENT keys in lib/agents.ts.
 const COMMENTARY: Array<{ emoji: string; text: string; tag?: string }> = [
   // Hook (key: 'hook')
-  { emoji: '🪝', text: 'checking the first 3 seconds', tag: 'hook' },
+  { emoji: '🪝', text: 'grading the first 3 seconds first', tag: 'hook' },
   { emoji: '⏱️', text: 'measuring time-to-first-payoff', tag: 'hook' },
-  { emoji: '📉', text: 'mapping where attention dips', tag: 'hook' },
-  { emoji: '🎯', text: 'looking for a scroll-stopper', tag: 'hook' },
-  { emoji: '⚡', text: 'scoring your opening grab', tag: 'hook' },
+  { emoji: '📉', text: 'mapping where the hook likely loses viewers', tag: 'hook' },
+  { emoji: '🎯', text: 'looking for a true scroll-stopper', tag: 'hook' },
+  { emoji: '⚡', text: 'scoring hold through 3s and 5s', tag: 'hook' },
 
   // Visual (key: 'visual')
   { emoji: '🎨', text: 'rating composition + lighting', tag: 'visual' },
-  { emoji: '🎬', text: 'counting cuts per second', tag: 'visual' },
-  { emoji: '📐', text: 'checking your 9:16 framing', tag: 'visual' },
-  { emoji: '✨', text: 'scanning for visual interest', tag: 'visual' },
-  { emoji: '🌈', text: 'reading your color story', tag: 'visual' },
+  { emoji: '🎬', text: 'tracking first-cut timing', tag: 'visual' },
+  { emoji: '📐', text: 'checking how the opening is framed', tag: 'visual' },
+  { emoji: '✨', text: 'scanning for visual interest in the hook', tag: 'visual' },
+  { emoji: '🌈', text: 'reading the opening color story', tag: 'visual' },
 
   // Audio (key: 'audio')
-  { emoji: '🎧', text: 'analyzing your audio quality', tag: 'audio' },
-  { emoji: '🎵', text: 'checking against trending sounds', tag: 'audio' },
+  { emoji: '🎧', text: 'checking if audio improves the hook', tag: 'audio' },
+  { emoji: '🎵', text: 'measuring music support vs distraction', tag: 'audio' },
   { emoji: '🔊', text: 'measuring vocal clarity', tag: 'audio' },
   { emoji: '🥁', text: 'listening to the music + voice mix', tag: 'audio' },
 
   // Authenticity (key: 'authenticity')
   { emoji: '👁️', text: 'gauging delivery + energy', tag: 'authenticity' },
   { emoji: '💯', text: 'rating performance feel', tag: 'authenticity' },
-  { emoji: '🤝', text: 'reading your camera presence', tag: 'authenticity' },
+  { emoji: '🤝', text: 'reading camera presence in the opener', tag: 'authenticity' },
   { emoji: '🎭', text: 'checking for cringe signals', tag: 'authenticity' },
 
   // Conversion (key: 'conversion')
-  { emoji: '💰', text: 'looking for your call to action', tag: 'conversion' },
+  { emoji: '💰', text: 'checking whether value is clear early', tag: 'conversion' },
   { emoji: '📌', text: 'scoring shareability', tag: 'conversion' },
   { emoji: '🔗', text: 'checking searchable keywords', tag: 'conversion' },
-  { emoji: '🪄', text: 'spotting your value prop', tag: 'conversion' },
+  { emoji: '🪄', text: 'spotting the proposition in the opening', tag: 'conversion' },
 
   // Accessibility (key: 'accessibility')
-  { emoji: '📝', text: 'reading on-screen text', tag: 'accessibility' },
-  { emoji: '🔠', text: 'checking caption timing', tag: 'accessibility' },
-  { emoji: '👀', text: 'measuring text contrast', tag: 'accessibility' },
+  { emoji: '📝', text: 'reading on-screen text in the opening', tag: 'accessibility' },
+  { emoji: '🔠', text: 'checking text timing and legibility', tag: 'accessibility' },
+  { emoji: '👀', text: 'measuring text contrast and safe zones', tag: 'accessibility' },
 
   // Generic process (no specific tag — fillers when a dimension is thin)
-  { emoji: '🧠', text: 'cross-checking 10k viral hooks', tag: 'generic' },
+  { emoji: '🧠', text: 'cross-checking proven viral hooks', tag: 'generic' },
   { emoji: '📊', text: 'pulling niche benchmarks', tag: 'generic' },
-  { emoji: '📈', text: 'computing your retention curve', tag: 'generic' },
-  { emoji: '🔍', text: 'reading every frame', tag: 'generic' },
-  { emoji: '🎙️', text: 'transcribing your audio', tag: 'generic' },
+  { emoji: '📈', text: 'projecting early retention', tag: 'generic' },
+  { emoji: '🔍', text: 'reading hook frames one by one', tag: 'generic' },
+  { emoji: '🎙️', text: 'transcribing the opener', tag: 'generic' },
   { emoji: '🗺️', text: 'building your reshoot plan', tag: 'generic' },
 ];
 
@@ -114,8 +114,8 @@ export function AnalyzingPreview({
   thumbHeight,
   activeDimension,
 }: Props) {
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
-  const currentDimRef = useRef<string | null>(null);
+  const [bubbles, setBubbles] = useState<Bubble[]>(() => buildSetForDimension(activeDimension ?? 'generic'));
+  const currentDimRef = useRef<string | null>(activeDimension ?? 'generic');
 
   // Compute aspect ratio for the thumbnail wrapper. Defaults to 9:16 (TikTok)
   // when we don't yet have dimensions.
@@ -130,20 +130,18 @@ export function AnalyzingPreview({
     const nextDim = activeDimension ?? 'generic';
     if (nextDim === currentDimRef.current) return;
 
-    // First mount — populate immediately so there's no blank pause.
-    if (currentDimRef.current === null) {
-      currentDimRef.current = nextDim;
-      setBubbles(buildSetForDimension(nextDim));
-      return;
-    }
-
     // Subsequent change — clear (triggers exit pop-out), then refill.
     currentDimRef.current = nextDim;
-    setBubbles([]);
+    const clearTimer = setTimeout(() => {
+      setBubbles([]);
+    }, 0);
     const t = setTimeout(() => {
       setBubbles(buildSetForDimension(nextDim));
     }, 360);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(clearTimer);
+      clearTimeout(t);
+    };
   }, [activeDimension]);
 
   return (
@@ -152,6 +150,7 @@ export function AnalyzingPreview({
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="h-[420px] w-[420px] rounded-full bg-orange-500/20 blur-[100px]" />
         <div className="absolute h-[260px] w-[260px] rounded-full bg-pink-500/15 blur-[80px]" />
+        <div className="absolute h-[320px] w-[320px] rounded-full bg-sky-500/10 blur-[110px]" />
       </div>
 
       {/* Left bubble column — desktop only, sits well off the frame */}
@@ -183,6 +182,7 @@ export function AnalyzingPreview({
         }}
       >
         {/* Thumbnail glow ring */}
+        <div className="absolute -inset-3 rounded-[32px] bg-[radial-gradient(circle_at_50%_30%,rgba(59,130,246,0.28),transparent_45%),radial-gradient(circle_at_50%_70%,rgba(249,115,22,0.28),transparent_55%)] blur-xl opacity-95" />
         <div className="absolute -inset-1 rounded-[28px] bg-gradient-to-b from-orange-500/40 via-pink-500/30 to-orange-500/20 blur-md opacity-80" />
         <div className="absolute inset-0 rounded-[26px] ring-1 ring-white/10" />
 

@@ -11,7 +11,9 @@ import { buildViewProjection } from '@/lib/view-projection';
 import { useToast } from '@/components/ui';
 
 import RoastMasthead from './_components/RoastMasthead';
+import HookSurvivalPanel from './_components/HookSurvivalPanel';
 import HookSpotlight from './_components/HookSpotlight';
+import FixTracksPanel from './_components/FixTracksPanel';
 import DimensionStrip from './_components/DimensionStrip';
 import PlaybookStack from './_components/PlaybookStack';
 import RetentionPanel from './_components/RetentionPanel';
@@ -184,13 +186,19 @@ function RoastContent({ roast, id }: RoastContentProps) {
 
         <RoastMasthead roast={roast} projection={viewProjection} />
 
+        <HookSurvivalPanel roast={roast} />
+
         <HookSpotlight roast={roast} videoId={id} />
 
-        <PlaybookStack steps={filteredActionPlan} overallScore={roast.overallScore} />
+        <FixTracksPanel roast={roast} />
 
-        <DimensionStrip agents={roast.agents} />
-
-        <RetentionPanel roast={roast} steps={filteredActionPlan} />
+        {roast.analysisExpansion !== 'hook_only' ? (
+          <>
+            <PlaybookStack steps={filteredActionPlan} overallScore={roast.overallScore} />
+            <DimensionStrip agents={roast.agents} />
+            <RetentionPanel roast={roast} steps={filteredActionPlan} />
+          </>
+        ) : null}
 
         <RoastFooter
           copied={copied}

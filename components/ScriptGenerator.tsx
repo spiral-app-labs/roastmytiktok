@@ -38,8 +38,14 @@ function CopyButton({ script }: { script: GeneratedScript }) {
       .join('\n\n');
 
     return [
-      `🎣 HOOK (0-3s)`,
+      `🎣 HOOK LAB (0-5s)`,
       script.hook,
+      ``,
+      `🎬 FIRST SHOT`,
+      script.hookLab?.firstShotDirection || 'Not provided',
+      ``,
+      `🧭 BEAT PLAN`,
+      script.hookLab?.beatPlan?.join('\n') || 'Not provided',
       ``,
       `🎬 SCENES`,
       scenes,
@@ -274,11 +280,10 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
         <div className="bg-gradient-to-br from-orange-500/10 via-pink-500/5 to-transparent border border-orange-500/20 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="text-2xl">✨</span>
-            <h3 className="text-lg font-bold text-white">Turn Your Roast Into a Script</h3>
+            <h3 className="text-lg font-bold text-white">Turn Your Roast Into a Hook Lab</h3>
           </div>
           <p className="text-sm text-zinc-400 max-w-md mx-auto text-center">
-            Claude will analyze every piece of feedback and generate an optimized TikTok script
-            that directly fixes your weaknesses.
+            Claude will rebuild the first 3 to 5 seconds first, then extend that opener into a stronger full script.
           </p>
 
           <FormatSelector
@@ -327,7 +332,7 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
               size="lg"
               className="rounded-xl px-8"
             >
-              {loading ? 'Generating Script...' : `✨ Generate ${getFormatById(selectedFormat).label} Script`}
+              {loading ? 'Building Hook Lab...' : `✨ Build ${getFormatById(selectedFormat).label} Hook Lab`}
             </GradientButton>
           </div>
 
@@ -338,7 +343,7 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
               transition={{ duration: 1.5, repeat: Infinity }}
               className="text-xs text-zinc-500 text-center"
             >
-              Claude is studying your roast feedback...
+              Claude is rebuilding your opener from the roast feedback...
             </motion.p>
           )}
         </div>
@@ -355,7 +360,7 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xl">✨</span>
-                <h3 className="text-lg font-bold text-white">Your Optimized Script</h3>
+                <h3 className="text-lg font-bold text-white">Your Hook-First Script</h3>
                 <span className="text-xs bg-zinc-800 text-zinc-400 border border-zinc-700 px-2 py-0.5 rounded-full">
                   {getFormatById(selectedFormat).emoji} {getFormatById(selectedFormat).label}
                 </span>
@@ -381,13 +386,29 @@ export function ScriptGenerator({ roast }: ScriptGeneratorProps) {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">🎣</span>
-                    <span className="font-bold text-white">Hook</span>
+                    <span className="font-bold text-white">Hook Lab</span>
                   </div>
                   <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full font-semibold">
-                    0-3s
+                    0-5s
                   </span>
                 </div>
                 <p className="text-zinc-200 text-sm leading-relaxed font-medium">&ldquo;{script.hook}&rdquo;</p>
+                {script.hookLab ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl bg-zinc-900/70 border border-zinc-800/50 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">First shot</div>
+                      <p className="mt-2 text-sm text-zinc-200">{script.hookLab.firstShotDirection}</p>
+                    </div>
+                    <div className="rounded-xl bg-zinc-900/70 border border-zinc-800/50 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Beat plan</div>
+                      <div className="mt-2 space-y-2">
+                        {script.hookLab.beatPlan.map((beat, index) => (
+                          <p key={`${beat}-${index}`} className="text-sm text-zinc-300">{beat}</p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </GlassCard>
             </motion.div>
 

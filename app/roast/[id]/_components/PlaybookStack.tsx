@@ -27,7 +27,7 @@ export default function PlaybookStack({ steps, overallScore }: PlaybookStackProp
       {/* Section header */}
       <div className="mb-4 flex items-center justify-between gap-4">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-          Fixes {count > 0 && <span className="text-zinc-700">· {count}</span>}
+          Secondary fixes {count > 0 && <span className="text-zinc-700">· {count}</span>}
         </div>
       </div>
 

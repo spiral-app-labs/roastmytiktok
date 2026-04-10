@@ -20,9 +20,16 @@ export interface HookAlternative {
   rationale: string;
 }
 
+export interface HookLabPlan {
+  firstShotDirection: string;
+  overlayText: string[];
+  beatPlan: string[];
+}
+
 export interface GeneratedScript {
   hook: string;
   hookAlternatives?: HookAlternative[];
+  hookLab?: HookLabPlan;
   scenes: ScriptScene[];
   onScreenText: string[];
   caption: string;
@@ -89,6 +96,17 @@ const JSON_SCHEMA = `Respond with ONLY valid JSON in this exact structure (no ma
       "rationale": "Why this hook works and when to use it"
     }
   ],
+  "hookLab": {
+    "firstShotDirection": "Exact framing + action for frame one",
+    "overlayText": [
+      "3-5 first-5-second overlays with timing notes"
+    ],
+    "beatPlan": [
+      "0.0-0.8s: opener beat",
+      "0.8-3.0s: hold the promise",
+      "3.0-5.0s: bridge into the rest of the script"
+    ]
+  },
   "scenes": [
     {
       "number": 1,
@@ -108,7 +126,8 @@ const JSON_SCHEMA = `Respond with ONLY valid JSON in this exact structure (no ma
 
 Requirements:
 - 4-7 scenes covering the full video arc
-- MUST include 2-3 hookAlternatives with different hook types and clear rationale for each
+- MUST include 3-5 hookAlternatives with different hook types and clear rationale for each
+- hookLab is mandatory and should be useful even if the creator never reads the rest of the script
 - Scene 1 MUST be a Tier 1 hook (direct address, curiosity gap, problem-solution, or visual pattern interrupt) - combine visual + verbal for maximum stopping power
 - One scene at the 40-60% mark MUST be an explicit mid-video retention hook (pattern interrupt). Label it clearly in the action field: "RETENTION HOOK: [type]". Use one of: unexpected twist, dramatic reveal, re-hook, or visual pattern interrupt
 - The final scene should include a specific CTA matched to the content type
@@ -173,6 +192,8 @@ async function handleCreateMode(body: Record<string, unknown>) {
   }
 
   const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K followers. Create a complete, ready-to-shoot TikTok script from this idea.
+
+The output is hook-lab first: the replacement hooks, first-shot direction, overlays, and first 5-second beat plan should be strong enough to use on their own before the creator even reads the rest of the script.
 
 ## TOPIC/IDEA
 ${topic}
@@ -267,6 +288,8 @@ async function handleReshootMode(body: Record<string, unknown>) {
   }
 
   const prompt = `You are a TikTok growth strategist who's grown 5+ accounts past 100K followers. You've just received a brutal AI roast of a TikTok video that scored ${roastScore}/100. Your job: create a replacement script that fixes every weakness and is engineered for maximum algorithmic push.
+
+The output is hook-lab first: the replacement hooks, first-shot direction, overlays, and first 5-second beat plan should be strong enough to use even if the creator stops reading after the opening.
 ${formatSection}
 ## Roast Score: ${roastScore}/100
 ${weaknessSummary}

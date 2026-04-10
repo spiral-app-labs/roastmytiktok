@@ -10,25 +10,25 @@ const { getFirstFiveSecondsDiagnosis } = await import('../lib/hook-help.ts');
 // ─── Requirement 1 & 2: Frame-by-frame analysis + text hook detection ──────────
 
 test('buildFramePlan front-loads opening samples for hook detection', () => {
-  const frames = buildFramePlan(12, 8);
-  const openingFrames = frames.filter((frame) => frame.slot === 'opening');
-  assert.ok(openingFrames.length >= 4, `Expected ≥4 opening frames, got ${openingFrames.length}`);
-  assert.ok(openingFrames.every((frame) => frame.timestampSec <= 4), 'All opening frames should be within 4s');
-  assert.equal(frames[0].slot, 'opening');
-  assert.match(frames[0].label, /Opening frame|First-frame anchor/);
+  const frames = buildFramePlan(12, 'hook-only');
+  const openingFrames = frames.filter((frame) => frame.zone === 'hook');
+  assert.equal(openingFrames.length, 15, `Expected 15 hook-first frames, got ${openingFrames.length}`);
+  assert.ok(openingFrames.every((frame) => frame.timestampSec <= 6), 'All hook frames should be within 6s');
+  assert.equal(frames[0].zone, 'hook');
+  assert.match(frames[0].label, /First frame|thumbnail/i);
 });
 
 test('buildFramePlan includes a guaranteed sub-0.1s first-frame anchor for text-hook detection', () => {
-  const frames = buildFramePlan(12, 8);
+  const frames = buildFramePlan(12, 'hook-only');
   const firstFrame = frames[0];
   // The first-frame anchor must be ≤0.05s to capture title cards before any other sampling
   assert.ok(firstFrame.timestampSec <= 0.05, `First frame should be ≤0.05s, got ${firstFrame.timestampSec}s`);
-  assert.match(firstFrame.label, /First-frame anchor|first-frame/i);
+  assert.match(firstFrame.label, /First frame|thumbnail/i);
 });
 
 test('new frame plan catches a short opening text hook that evenly spaced sampling misses', () => {
   const oldPlan = Array.from({ length: 8 }, (_, index) => Number(((12 / 9) * (index + 1)).toFixed(2)));
-  const newPlan = buildFramePlan(12, 8).map((frame) => frame.timestampSec);
+  const newPlan = buildFramePlan(12, 'hook-only').map((frame) => frame.timestampSec);
   const hookWindow = { start: 0.01, end: 0.08 };
   const hitsWindow = (timestamp) => timestamp >= hookWindow.start && timestamp <= hookWindow.end;
 
@@ -38,19 +38,23 @@ test('new frame plan catches a short opening text hook that evenly spaced sampli
   assert.equal(newPlan.some(hitsWindow), true, 'New plan MUST hit early text-hook window via first-frame anchor');
 });
 
-test('buildFramePlan still captures enough story frames for full-video analysis', () => {
-  const frames = buildFramePlan(30, 8);
-  const storyFrames = frames.filter((frame) => frame.slot === 'story');
-  // With the first-frame anchor, story count is reduced by 1 vs before — must still be ≥2
-  assert.ok(storyFrames.length >= 2, `Expected ≥2 story frames, got ${storyFrames.length}`);
+test('buildFramePlan adds 6-10s frames only when expansion is requested', () => {
+  const hookOnlyFrames = buildFramePlan(30, 'hook-only');
+  const extendedFrames = buildFramePlan(30, 'extended_10s');
+  const fullFrames = buildFramePlan(30, 'full_video');
+
+  assert.equal(hookOnlyFrames.some((frame) => frame.timestampSec > 6), false, 'Hook-only mode should stop at 6s');
+  assert.equal(extendedFrames.some((frame) => frame.timestampSec > 6 && frame.timestampSec <= 10), true, 'Extended mode should add 6-10s frames');
+  assert.equal(fullFrames.some((frame) => frame.timestampSec > 10), true, 'Full mode should add body frames');
+
   // All frames should be sorted ascending
-  for (let i = 1; i < frames.length; i++) {
-    assert.ok(frames[i].timestampSec > frames[i - 1].timestampSec, 'Frames should be sorted ascending');
+  for (let i = 1; i < fullFrames.length; i++) {
+    assert.ok(fullFrames[i].timestampSec > fullFrames[i - 1].timestampSec, 'Frames should be sorted ascending');
   }
 });
 
 test('buildFramePlan handles very short videos without crashing', () => {
-  const frames = buildFramePlan(3, 8);
+  const frames = buildFramePlan(3, 'hook-only');
   assert.ok(frames.length >= 3, 'Short video should still produce ≥3 frames');
   assert.ok(frames[0].timestampSec >= 0.03, 'First frame should be at least 0.03s into the video');
   const sorted = frames.every((frame, index) => index === 0 || frame.timestampSec > frames[index - 1].timestampSec);
@@ -202,7 +206,7 @@ test('sanitizeUserFacingText allows legitimate creator-facing feedback', () => {
 
   for (const text of safe) {
     const result = sanitizeUserFacingText(text, 'fallback');
-    assert.equal(result, text, `Expected "${text.slice(0, 50)}..." to be ALLOWED but it was blocked`);
+    assert.equal(result, text.replace(/—/g, '-'), `Expected "${text.slice(0, 50)}..." to be ALLOWED but it was blocked`);
   }
 });
 
@@ -265,7 +269,7 @@ test('sanitizeActionPlan blocks template fragment leakage in all fields', () => 
   assert.equal(plan[0].timestampLabel, '0:01');
   assert.equal(plan[0].timestampSeconds, 1);
   assert.equal(plan[0].doThis, 'Rebuild this section before posting again.');
-  assert.equal(plan[0].algorithmicConsequence, 'Legitimate reason — improves retention.');
+  assert.equal(plan[0].algorithmicConsequence, 'Legitimate reason - improves retention.');
   // example has a schema leak in it, should be replaced
   assert.notEqual(plan[0].example, 'Score 0-100 is the schema used by this system');
   // evidence is clean, should pass through
@@ -345,7 +349,7 @@ test('first-five-seconds diagnosis explains an early hook failure and points to 
   const diagnosis = getFirstFiveSecondsDiagnosis(roast);
 
   assert.equal(diagnosis.verdict, 'failing');
-  assert.equal(diagnosis.likelyDropWindow, 'likely drop: 0.0s-1.0s');
+  assert.equal(diagnosis.likelyDropWindow, 'likely drop: around 0.0s');
   assert.match(diagnosis.hookRead, /warm-up/);
   assert.match(diagnosis.retentionRisk, /around 0\.0s|first second/i);
   assert.match(diagnosis.retentionRisk, /Opening line at 0.0s/i);

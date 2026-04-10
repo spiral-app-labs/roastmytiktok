@@ -1,17 +1,24 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { AGENTS } from '@/lib/agents';
 import { AgentRoast, RoastResult } from '@/lib/types';
 import { getSessionId } from '@/lib/history';
+import { AnalyzingPreview } from '@/components/AnalyzingPreview';
 import {
   AnalysisStageProgress,
   deriveAnalysisProgressPercent,
   deriveAnalysisStageIndex,
 } from '@/components/upload/AnalysisStageProgress';
 import { getUploadErrorMessage } from '@/components/upload/uploadFlow';
+import {
+  cacheThumbnail,
+  extractFirstFrame,
+  getCachedThumbnail,
+  getSignedVideoUrl,
+} from '@/lib/video-thumbnails';
 
 interface AgentStatus {
   status: 'waiting' | 'analyzing' | 'done';
@@ -98,6 +105,19 @@ function RotatingMessage({ messages }: { messages: string[] }) {
   );
 }
 
+async function getImageDimensions(src: string): Promise<{ width: number | null; height: number | null }> {
+  if (typeof window === 'undefined') return { width: null, height: null };
+
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth || null, height: img.naturalHeight || null });
+    };
+    img.onerror = () => resolve({ width: null, height: null });
+    img.src = src;
+  });
+}
+
 export default function AnalyzePage() {
   const router = useRouter();
   const params = useParams();
@@ -110,7 +130,56 @@ export default function AnalyzePage() {
   const [error, setError] = useState<string | null>(null);
   const [verdictReady, setVerdictReady] = useState(false);
   const [analysisDone, setAnalysisDone] = useState(false);
+  const [thumbDataUrl, setThumbDataUrl] = useState<string | null>(() => getCachedThumbnail(id));
+  const [thumbWidth, setThumbWidth] = useState<number | null>(null);
+  const [thumbHeight, setThumbHeight] = useState<number | null>(null);
   const connectedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const abortController = new AbortController();
+
+    async function loadThumbnail() {
+      const cached = getCachedThumbnail(id);
+      if (cached) {
+        setThumbDataUrl(cached);
+        const dims = await getImageDimensions(cached);
+        if (!cancelled) {
+          setThumbWidth(dims.width);
+          setThumbHeight(dims.height);
+        }
+        return;
+      }
+
+      try {
+        const signedUrl = await getSignedVideoUrl(id, abortController.signal);
+        if (!signedUrl || cancelled) return;
+
+        const frame = await extractFirstFrame(signedUrl);
+        if (cancelled) return;
+
+        cacheThumbnail(id, frame);
+        setThumbDataUrl(frame);
+        const dims = await getImageDimensions(frame);
+        if (!cancelled) {
+          setThumbWidth(dims.width);
+          setThumbHeight(dims.height);
+        }
+      } catch {
+        if (!cancelled) {
+          setThumbWidth(null);
+          setThumbHeight(null);
+        }
+      }
+    }
+
+    void loadThumbnail();
+
+    return () => {
+      cancelled = true;
+      abortController.abort();
+    };
+  }, [id]);
 
   useEffect(() => {
     if (connectedRef.current) return;
@@ -126,8 +195,11 @@ export default function AnalyzePage() {
     let actionPlan: RoastResult['actionPlan'] = [];
     let encouragement = '';
     let analysisMode: RoastResult['analysisMode'] = 'balanced';
+    let analysisExpansion: RoastResult['analysisExpansion'] = 'hook_only';
     let hookSummary: RoastResult['hookSummary'] | undefined;
     let hookAnalysis: RoastResult['hookAnalysis'] | undefined;
+    let hookPredictions: RoastResult['hookPredictions'] | undefined;
+    let fixTracks: RoastResult['fixTracks'] | undefined;
     let firstFiveSecondsDiagnosis: RoastResult['firstFiveSecondsDiagnosis'] | undefined;
 
     const sessionId = getSessionId();
@@ -173,8 +245,11 @@ export default function AnalyzePage() {
           actionPlan = data.actionPlan ?? [];
           encouragement = data.encouragement ?? '';
           analysisMode = data.analysisMode ?? 'balanced';
+          analysisExpansion = data.analysisExpansion ?? 'hook_only';
           hookSummary = data.hookSummary;
           hookAnalysis = data.hookAnalysis;
+          hookPredictions = data.hookPredictions;
+          fixTracks = data.fixTracks;
           firstFiveSecondsDiagnosis = data.firstFiveSecondsDiagnosis;
         }
 
@@ -195,8 +270,11 @@ export default function AnalyzePage() {
             actionPlan,
             encouragement,
             analysisMode,
+            analysisExpansion,
             hookSummary,
             hookAnalysis,
+            hookPredictions,
+            fixTracks,
             firstFiveSecondsDiagnosis,
             agents: agentResults,
             metadata: {
@@ -257,6 +335,12 @@ export default function AnalyzePage() {
     done: analysisDone,
   });
   const progressPct = deriveAnalysisProgressPercent(stageIndex, completedCount, AGENTS.length);
+  const activePreviewDimension = useMemo(() => {
+    const analyzingAgent = AGENTS.find((agent) => agentStatuses[agent.key]?.status === 'analyzing');
+    if (analyzingAgent) return analyzingAgent.key;
+    if (!analysisDone) return hookStarted ? 'accessibility' : 'hook';
+    return null;
+  }, [agentStatuses, analysisDone, hookStarted]);
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
@@ -271,10 +355,24 @@ export default function AnalyzePage() {
           <AnalysisStageProgress
             activeIndex={stageIndex}
             progressPercent={progressPct}
-            eyebrow="Go Viral analysis running"
-            title="Building your Go Viral diagnosis"
-            description="The analysis is moving through the real pipeline: upload handoff, frame extraction, opener scoring, pacing review, audio and caption checks, then the final action plan."
+            eyebrow="Hook-first analysis running"
+            title="Building your hook survival report"
+            description="The analysis now starts where TikTok starts: the first 3 to 6 seconds. We extract hook frames, read the opener, score hold through 3s and 5s, then decide whether the rest of the video is worth analyzing."
             liveDetail={statusMessage}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08, duration: 0.45 }}
+          className="rounded-[32px] border border-white/[0.08] bg-white/[0.02] px-3 py-2 backdrop-blur-sm sm:px-5 sm:py-4"
+        >
+          <AnalyzingPreview
+            thumbDataUrl={thumbDataUrl}
+            thumbWidth={thumbWidth}
+            thumbHeight={thumbHeight}
+            activeDimension={activePreviewDimension}
           />
         </motion.div>
 

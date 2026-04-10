@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { extractFrames, type ExtractedFrame } from '@/lib/frame-extractor';
+import { extractFrames, type ExtractedFrame, type FramePlanMode } from '@/lib/frame-extractor';
 import type { CaptionQualityReport } from '@/lib/caption-quality';
 import { analyzeFrames, extractTextFromAnalysis, deriveCaptionQuality, type FrameAnalysis } from '@/lib/frame-analysis';
 import { extractAudio, cleanupAudio } from '@/lib/audio-extractor';
@@ -21,7 +21,7 @@ import { logSuccess, logFailure } from '@/lib/analysis-logger';
 import type { ActionPlanStep, RoastResult } from '@/lib/types';
 import { detectTikTokSound } from '@/lib/tiktok-sound-detect';
 import { getFirstFiveSecondsDiagnosis } from '@/lib/hook-help';
-import { buildHookAnalysisPrompt, parseHookAnalysisResponse } from '@/lib/hook-analysis';
+import { buildHookAnalysisPrompt, deriveHookAnalysis, parseHookAnalysisResponse } from '@/lib/hook-analysis';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 
@@ -540,6 +540,9 @@ const HOOK_FIRST_WEIGHTS: Record<DimensionKey, number> = {
   accessibility: 0.05,
 };
 
+const HOOK_EXTENSION_THRESHOLD = Number(process.env.HOOK_EXTENSION_THRESHOLD ?? 68);
+const HOOK_FULL_VIDEO_THRESHOLD = Number(process.env.HOOK_FULL_VIDEO_THRESHOLD ?? 82);
+
 // Threshold raised from 55 → 60 so more videos trigger hook-first mode.
 // A score of 55-59 was previously "mixed" but in practice those videos still
 // have a broken opening -they need the same "fix hook first" messaging.
@@ -593,6 +596,61 @@ function buildHookSummary(hookResult: AgentResult) {
     distributionRisk,
     focusNote,
     ...(earlyDropNote ? { earlyDropNote } : {}),
+  };
+}
+
+function determineAnalysisExpansion(hookScore: number | undefined): RoastResult['analysisExpansion'] {
+  if (typeof hookScore !== 'number') return 'hook_only';
+  if (hookScore >= HOOK_FULL_VIDEO_THRESHOLD) return 'full_video';
+  if (hookScore >= HOOK_EXTENSION_THRESHOLD) return 'extended_10s';
+  return 'hook_only';
+}
+
+function buildHookAgentResult(hookAnalysis: RoastResult['hookAnalysis']): AgentResult {
+  const hookScore = hookAnalysis?.scores.hookScore ?? 0;
+  const firstEditFix = hookAnalysis?.editFixes[0];
+  const findings = [
+    hookAnalysis?.timing.propositionTimeSec != null
+      ? `The main promise becomes clear around ${hookAnalysis.timing.propositionTimeSec.toFixed(1)}s.`
+      : 'The opener never makes the payoff clear inside the hook window.',
+    hookAnalysis?.labels.primaryFail
+      ? `Primary hook failure: ${hookAnalysis.labels.primaryFail.replace(/_/g, ' ')}.`
+      : 'Primary hook failure was not identified cleanly.',
+    hookAnalysis?.observed.ocr[0]
+      ? `On-screen text appears at ${hookAnalysis.observed.ocr[0].t0.toFixed(1)}s: "${hookAnalysis.observed.ocr[0].text}".`
+      : '',
+  ].filter(Boolean);
+
+  return {
+    score: hookScore,
+    roastText: hookAnalysis?.summary ?? 'The first few seconds still are not doing enough work.',
+    findings,
+    improvementTip: firstEditFix?.do ?? 'Lead with the clearest promise in frame one.',
+    scoreJustification: [
+      `Silent score ${hookAnalysis?.scores.silentScore ?? 0}/100.`,
+      `Audio uplift ${(hookAnalysis?.scores.audioUplift ?? 0) >= 0 ? '+' : ''}${hookAnalysis?.scores.audioUplift ?? 0}.`,
+      `Predicted hold: ${Math.round((hookAnalysis?.predictions.pStay3s ?? 0) * 100)}% past 3s and ${Math.round((hookAnalysis?.predictions.pStay5s ?? 0) * 100)}% past 5s.`,
+    ],
+    confidence: {
+      level: (hookAnalysis?.scores.confidence ?? 0) >= 0.75 ? 'high' : (hookAnalysis?.scores.confidence ?? 0) >= 0.55 ? 'medium' : 'low',
+      reason: `Hook analysis confidence ${(hookAnalysis?.scores.confidence ?? 0).toFixed(2)} based on opening-frame and transcript evidence.`,
+    },
+  };
+}
+
+function buildFixTracks(hookAnalysis: RoastResult['hookAnalysis']): RoastResult['fixTracks'] {
+  if (!hookAnalysis) return { editOnly: [], reshoot: [] };
+  return {
+    editOnly: hookAnalysis.editFixes,
+    reshoot: [
+      { label: 'First shot', detail: hookAnalysis.reshootPlan.firstShot },
+      { label: 'First 5-second script', detail: hookAnalysis.reshootPlan.first5sScript },
+      ...hookAnalysis.reshootPlan.shotBeats.map((detail, index) => ({
+        label: `Beat ${index + 1}`,
+        detail,
+      })),
+      { label: 'Lighting', detail: hookAnalysis.reshootPlan.lighting },
+    ],
   };
 }
 
@@ -806,12 +864,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const chronicIssuesPromise = fetchChronicIssues(sessionId);
         const detectedSoundPromise = detectTikTokSound((session as { video_url: string; filename?: string; tiktok_url?: string }).tiktok_url);
 
-        // Extract frames
-        send({ type: 'status', message: 'Extracting frames...' });
+        // Extract hook frames first
+        send({ type: 'status', message: 'Extracting hook frames (0-6s)...' });
         let frames: ExtractedFrame[] = [];
         const frameStart = Date.now();
         try {
-          frames = extractFrames(videoPath);
+          frames = extractFrames(videoPath, 'hook-only');
           logSuccess('frame-extraction', id, { frameCount: frames.length }, Date.now() - frameStart);
         } catch (err) {
           logFailure('frame-extraction', id, err);
@@ -895,8 +953,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 4 });
 
-        // Analyze frames with Gemini vision (replaces separate caption quality + on-screen text extraction)
-        send({ type: 'status', message: 'Analyzing video frames...' });
+        // Analyze hook frames with Gemini vision first.
+        send({ type: 'status', message: 'Analyzing hook frames and opening text...' });
         let frameAnalysisFrames: FrameAnalysis[] = [];
         let frameContextForNiche = '';
         let captionQuality: CaptionQualityReport | null = null;
@@ -908,7 +966,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             const frameAnalysis = await analyzeFrames(frames);
             frameAnalysisFrames = frameAnalysis.frames;
             logSuccess('frame-analysis', id, { totalFrames: frameAnalysis.totalFrames, model: frameAnalysis.analysisModel }, Date.now() - frameAnalysisStart);
-            send({ type: 'status', message: `Analyzed ${frameAnalysis.totalFrames} frames` });
+            send({ type: 'status', message: `Analyzed ${frameAnalysis.totalFrames} hook frames` });
 
             // Derive all downstream data from frame analysis
             onScreenTextResults = extractTextFromAnalysis(frameAnalysisFrames).map(r => ({
@@ -932,6 +990,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         const agentResults: Record<string, AgentResult> = {};
         let hookAnalysis: RoastResult['hookAnalysis'];
+        let analysisExpansion: RoastResult['analysisExpansion'] = 'hook_only';
         const chronicIssues = await chronicIssuesPromise;
         const detectedSound = await detectedSoundPromise;
 
@@ -965,7 +1024,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         try {
-          send({ type: 'status', message: 'Running dedicated hook analysis...' });
+          send({ type: 'status', message: 'Scoring hook survival through 3s and 5s...' });
+          const baselineHookAnalysis = deriveHookAnalysis({
+            openingFrames: frameAnalysisFrames.filter((frame) => frame.zone === 'hook'),
+            transcript,
+            shouldUseTranscriptEvidence,
+            audioChars,
+          });
           const hookAnalysisPrompt = buildHookAnalysisPrompt({
             platform,
             openingFrames: frameAnalysisFrames.filter((frame) => frame.zone === 'hook'),
@@ -980,36 +1045,56 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           });
           const hookAnalysisResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-6',
-            max_tokens: 900,
+            max_tokens: 1600,
             messages: [{ role: 'user', content: hookAnalysisPrompt }],
           });
           const hookAnalysisText = hookAnalysisResponse.content[0]?.type === 'text' ? hookAnalysisResponse.content[0].text : '';
-          hookAnalysis = parseHookAnalysisResponse(hookAnalysisText);
+          hookAnalysis = parseHookAnalysisResponse(hookAnalysisText, baselineHookAnalysis);
           send({ type: 'hook-analysis', result: hookAnalysis });
         } catch (err) {
           logFailure('hook-analysis', id, err);
-          hookAnalysis = {
-            visual: {
-              score: 5,
-              justification: 'The available opening frames show some signal, but not enough visual distinctiveness to confidently call the first second a strong scroll-stop.',
-            },
-            audio: {
-              score: audioChars.hasSpeech || audioChars.hasMusic ? 5 : 3,
-              justification: audioChars.hasSpeech || audioChars.hasMusic
-                ? 'There is opening audio present, but the available evidence does not prove it lands as an immediate attention spike.'
-                : 'There is no clear opening audio hook in the available signal, so the opener is not getting help from sound.',
-            },
-            narrative: {
-              score: 5,
-              justification: 'The opening promise is only partially clear from the available evidence, so the reason to stay past second three is still fragile.',
-            },
-            overallScore: 5,
-            summary: 'The hook has some raw material, but the first 3-5 seconds still need a clearer promise and stronger stop power.',
-            topFixes: [
-              'Replace the opening line with a direct claim, audience call-out, or curiosity gap that lands in the first second.',
-              'Make frame one carry the same message immediately with a tighter shot and one short high-contrast text overlay.',
-            ],
-          };
+          hookAnalysis = deriveHookAnalysis({
+            openingFrames: frameAnalysisFrames.filter((frame) => frame.zone === 'hook'),
+            transcript,
+            shouldUseTranscriptEvidence,
+            audioChars,
+          });
+        }
+
+        analysisExpansion = determineAnalysisExpansion(hookAnalysis?.scores.hookScore);
+
+        if (analysisExpansion !== 'hook_only') {
+          const expansionMode: FramePlanMode = analysisExpansion === 'full_video' ? 'full_video' : 'extended_10s';
+          send({
+            type: 'status',
+            message: analysisExpansion === 'full_video'
+              ? 'Hook is strong. Expanding into full-video secondary analysis...'
+              : 'Hook cleared the bar. Expanding to the 6-10s window...',
+          });
+
+          try {
+            const expandedFrames = extractFrames(videoPath, expansionMode);
+            const expandedAnalysis = await analyzeFrames(expandedFrames);
+            frameAnalysisFrames = expandedAnalysis.frames;
+            onScreenTextResults = extractTextFromAnalysis(frameAnalysisFrames).map(r => ({
+              timestampSec: r.timestampSec,
+              label: `${r.timestampSec.toFixed(2)}s`,
+              detectedText: r.detectedText,
+            }));
+            const captionQualityDerived = deriveCaptionQuality(frameAnalysisFrames);
+            captionQuality = buildCaptionReportFromFrames(captionQualityDerived, frameAnalysisFrames, transcript);
+            frameContextForNiche = frameAnalysisFrames.map(summarizeFrame).join('\n');
+            send({
+              type: 'status',
+              message: analysisExpansion === 'full_video'
+                ? 'Full-video secondary analysis loaded.'
+                : 'Extended hook window loaded through 10 seconds.',
+            });
+          } catch (err) {
+            logFailure('frame-analysis', id, err, { analysisExpansion, stage: 'expansion' });
+            analysisExpansion = 'hook_only';
+            send({ type: 'status', message: 'Hook expansion failed, keeping the report focused on the hook only.' });
+          }
         }
 
         async function runAgent(dimension: DimensionKey): Promise<void> {
@@ -1115,10 +1200,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           }
         }
 
-        // Run hook first (other agents depend on its result for priority context),
-        // then run the remaining 5 agents in parallel for ~5x speedup
-        await runAgent('hook');
-        const remainingDimensions = DIMENSION_ORDER.filter(d => d !== 'hook');
+        send({ type: 'agent', agent: 'hook', status: 'analyzing', name: AGENT_PROMPTS.hook.name });
+        agentResults.hook = buildHookAgentResult(hookAnalysis);
+        send({
+          type: 'agent',
+          agent: 'hook',
+          status: 'done',
+          name: AGENT_PROMPTS.hook.name,
+          result: { agent: 'hook', ...agentResults.hook },
+        });
+
+        const remainingDimensions = analysisExpansion === 'full_video'
+          ? DIMENSION_ORDER.filter(d => d !== 'hook')
+          : analysisExpansion === 'extended_10s'
+            ? (['visual', 'audio', 'accessibility'] satisfies DimensionKey[])
+            : [];
+
         await Promise.all(remainingDimensions.map((d, i) =>
           new Promise<void>(resolve => setTimeout(resolve, i * 400))
             .then(() => runAgent(d))
@@ -1134,6 +1231,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         let totalWeight = 0;
         for (const dim of DIMENSION_ORDER) {
           const agent = agentResults[dim];
+          if (!agent) continue;
           if (agent?.failed) continue;
           const score = agent?.score ?? 50;
           overallScore += score * scoringWeights[dim];
@@ -1161,7 +1259,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             ? `\n\nThis is a REPEAT OFFENDER. They've been roasted ${chronicIssues.length > 3 ? 'many' : 'a few'} times before and keep making the same mistakes. Reference this in the verdict. Be extra disappointed.`
             : '';
 
-          const validDims = DIMENSION_ORDER.filter(d => !agentResults[d]?.failed);
+          const validDims = DIMENSION_ORDER.filter(d => agentResults[d] && !agentResults[d]?.failed);
           const lowestDim = analysisMode === 'hook-first'
             ? 'hook'
             : (validDims.length > 0
@@ -1319,14 +1417,31 @@ Rules:
           visualDescription: agentResults.hook?.findings?.[0] || 'Opening frame analysis unavailable',
         };
 
+        const defaultAgentRows = DIMENSION_ORDER.map((dim) => {
+          const existing = agentResults[dim];
+          if (existing) return existing;
+          return {
+            score: -1,
+            roastText: 'Skipped because the hook did not clear the threshold for broader analysis.',
+            findings: ['Secondary analysis was intentionally suppressed until the hook improves.'],
+            improvementTip: 'Fix the hook first, then rerun the analysis for downstream diagnostics.',
+            scoreJustification: ['Skipped in hook-only mode.'],
+            confidence: { level: 'low' as const, reason: 'This dimension was not analyzed because the hook failed the expansion gate.' },
+            failed: true,
+            failureReason: 'Skipped in hook-first mode because the hook needs work before downstream analysis matters.',
+          } satisfies AgentResult;
+        });
+
+        const fixTracks = buildFixTracks(hookAnalysis);
+
         // Build view projection
         const viewProjectionInput: Pick<RoastResult, 'overallScore' | 'hookSummary' | 'agents' | 'metadata' | 'niche'> = {
           overallScore,
           hookSummary,
-          agents: DIMENSION_ORDER.map(dim => ({
+          agents: DIMENSION_ORDER.map((dim, index) => ({
             agent: dim,
-            score: agentResults[dim].score,
-            failed: agentResults[dim].failed,
+            score: defaultAgentRows[index].score,
+            failed: defaultAgentRows[index].failed,
             roastText: '', findings: [], improvementTip: '',
           })),
           metadata: { duration: 0, description: '' },
@@ -1346,19 +1461,21 @@ Rules:
           actionPlan,
           encouragement,
           analysisMode,
+          analysisExpansion,
           hookSummary,
           hookIdentification,
+          ...(hookAnalysis ? { hookPredictions: hookAnalysis.predictions, fixTracks } : {}),
           ...(hookAnalysis ? { hookAnalysis } : {}),
           viewProjection: viewProjectionData,
-          agents: DIMENSION_ORDER.map(dim => ({
+          agents: DIMENSION_ORDER.map((dim, index) => ({
             agent: dim,
-            score: agentResults[dim].score,
-            roastText: agentResults[dim].roastText,
-            findings: agentResults[dim].findings,
-            improvementTip: agentResults[dim].improvementTip,
-            scoreJustification: agentResults[dim].scoreJustification,
-            confidence: agentResults[dim].confidence,
-            ...(agentResults[dim].failed ? { failed: true, failureReason: agentResults[dim].failureReason } : {}),
+            score: defaultAgentRows[index].score,
+            roastText: defaultAgentRows[index].roastText,
+            findings: defaultAgentRows[index].findings,
+            improvementTip: defaultAgentRows[index].improvementTip,
+            scoreJustification: defaultAgentRows[index].scoreJustification,
+            confidence: defaultAgentRows[index].confidence,
+            ...(defaultAgentRows[index].failed ? { failed: true, failureReason: defaultAgentRows[index].failureReason } : {}),
             timestamp_seconds: AGENT_TIMESTAMPS[dim],
           })),
           niche: {
@@ -1390,7 +1507,9 @@ Rules:
           actionPlan,
           encouragement,
           analysisMode,
+          analysisExpansion,
           hookSummary,
+          ...(hookAnalysis ? { hookPredictions: hookAnalysis.predictions, fixTracks } : {}),
           ...(hookAnalysis ? { hookAnalysis } : {}),
           firstFiveSecondsDiagnosis: result.firstFiveSecondsDiagnosis,
           niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
@@ -1420,7 +1539,7 @@ Rules:
           logFailure('supabase-save', id, err);
         }
 
-        send({ type: 'complete', overallScore, id });
+        send({ type: 'done', overallScore, id });
       } catch (err) {
         logFailure('agent', id, err, { stage: 'stream-outer' });
         try {

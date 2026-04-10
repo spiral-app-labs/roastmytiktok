@@ -41,7 +41,7 @@ export default function RetentionPanel({ roast, steps }: RetentionPanelProps) {
     >
       <div className="mb-3 flex items-center justify-between gap-4">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-          Retention · where viewers drop
+          Secondary model · projected retention
         </div>
       </div>
 

@@ -69,7 +69,9 @@ function ScriptOutput({ script, onSave }: { script: GeneratedScript; onSave: () 
       .map(s => `Scene ${s.number} [${s.timing}]\nAction: ${s.action}\nDialogue: ${s.dialogue}`)
       .join('\n\n');
     const text = [
-      `HOOK (0-3s)`, script.hook, ``,
+      `HOOK LAB (0-5s)`, script.hook, ``,
+      `FIRST SHOT`, script.hookLab?.firstShotDirection || 'Not provided', ``,
+      `BEAT PLAN`, script.hookLab?.beatPlan?.join('\n') || 'Not provided', ``,
       `SCENES`, scenes, ``,
       `ON-SCREEN TEXT`, script.onScreenText.map(t => `- ${t}`).join('\n'), ``,
       `CAPTION`, script.caption, ``,
@@ -107,15 +109,32 @@ function ScriptOutput({ script, onSave }: { script: GeneratedScript; onSave: () 
       <GlassCard variant="highlighted" className="p-5">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">🎣</span>
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">Hook (0-3s)</h3>
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider">Hook Lab (0-5s)</h3>
           <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">Primary</span>
         </div>
         <p className="text-sm text-zinc-200 italic leading-relaxed">&ldquo;{script.hook}&rdquo;</p>
 
+        {script.hookLab && (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl bg-zinc-900/80 border border-zinc-800/50 p-3">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">First shot</p>
+              <p className="mt-2 text-sm text-zinc-200">{script.hookLab.firstShotDirection}</p>
+            </div>
+            <div className="rounded-xl bg-zinc-900/80 border border-zinc-800/50 p-3">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Beat plan</p>
+              <div className="mt-2 space-y-2">
+                {script.hookLab.beatPlan.map((beat, index) => (
+                  <p key={`${beat}-${index}`} className="text-sm text-zinc-300">{beat}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Hook Alternatives */}
         {script.hookAlternatives && script.hookAlternatives.length > 0 && (
           <div className="mt-4 space-y-2">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Alternatives</p>
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Replacement hooks</p>
             {script.hookAlternatives.map((alt: HookAlternative, i: number) => (
               <div key={i} className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/50">
                 <div className="flex items-center gap-2 mb-1">
@@ -127,13 +146,24 @@ function ScriptOutput({ script, onSave }: { script: GeneratedScript; onSave: () 
             ))}
           </div>
         )}
+
+        {script.hookLab?.overlayText?.length ? (
+          <div className="mt-4 rounded-xl bg-zinc-900/80 border border-zinc-800/50 p-3">
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Overlay options</p>
+            <div className="mt-2 space-y-2">
+              {script.hookLab.overlayText.map((text, index) => (
+                <p key={`${text}-${index}`} className="text-sm text-zinc-300">{text}</p>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </GlassCard>
 
       {/* Scenes */}
       <GlassCard variant="surface" className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-lg">🎬</span>
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">Scenes</h3>
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider">Full Script Continuation</h3>
         </div>
         <div className="space-y-3">
           {script.scenes.map(scene => (
@@ -463,14 +493,14 @@ export default function ScriptStudioPage() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <span className="text-3xl">✍️</span>
-              <h1 className="text-2xl font-black tracking-tight text-white">Script Studio</h1>
+              <h1 className="text-2xl font-black tracking-tight text-white">Hook Lab</h1>
             </div>
             <Link href="/scripts" className="text-sm text-zinc-500 hover:text-orange-400 transition-colors">
               Script History →
             </Link>
           </div>
           <p className="text-zinc-500 text-sm ml-12">
-            Create viral scripts from scratch or improve existing ones.
+            Build stronger openers first, then extend them into a full script when the hook is worth keeping.
           </p>
         </motion.div>
 
@@ -517,7 +547,7 @@ export default function ScriptStudioPage() {
               {/* Topic Input */}
               <GlassCard variant="surface" className="p-5">
                 <label className="block text-sm font-semibold text-white mb-2">
-                  What&apos;s your video about?
+                  What should the hook be about?
                 </label>
                 <textarea
                   value={topic}
@@ -575,7 +605,7 @@ export default function ScriptStudioPage() {
                 size="lg"
                 className="w-full"
               >
-                {loading ? 'Generating Script...' : 'Generate Script'}
+                {loading ? 'Building Hook Lab...' : 'Build Hook-First Script'}
               </GradientButton>
 
               {error && (

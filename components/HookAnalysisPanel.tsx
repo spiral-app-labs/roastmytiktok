@@ -16,10 +16,13 @@ function scoreTone(score: number): string {
 
 export function HookAnalysisPanel({ hookAnalysis, hookIdentification }: Props) {
   const dimensions = [
-    { key: 'visual', label: 'Visual Hook', value: hookAnalysis.visual },
-    { key: 'audio', label: 'Audio Hook', value: hookAnalysis.audio },
-    { key: 'narrative', label: 'Narrative Hook', value: hookAnalysis.narrative },
-  ] as const;
+    { key: 'visual', label: 'Visual Hook', value: hookAnalysis.dimensions?.visual },
+    { key: 'audio', label: 'Audio Hook', value: hookAnalysis.dimensions?.audio },
+    { key: 'narrative', label: 'Narrative Hook', value: hookAnalysis.dimensions?.narrative },
+  ].filter((dimension): dimension is { key: string; label: string; value: { score: number; justification: string } } => Boolean(dimension.value));
+
+  const overallScore = hookAnalysis.overallScore ?? Math.round((hookAnalysis.scores.hookScore || 0) / 10);
+  const topFixes = hookAnalysis.topFixes ?? hookAnalysis.editFixes.map((fix) => fix.do);
 
   return (
     <section className="mb-10 rounded-[28px] border border-orange-500/20 bg-gradient-to-br from-orange-500/[0.09] via-zinc-950/95 to-zinc-950/95 p-5 shadow-2xl shadow-orange-500/10">
@@ -29,9 +32,9 @@ export function HookAnalysisPanel({ hookAnalysis, hookIdentification }: Props) {
           <h2 className="text-2xl font-black text-white leading-tight">The first 3-5 seconds get their own verdict.</h2>
           <p className="mt-3 text-sm leading-relaxed text-zinc-200">{hookAnalysis.summary}</p>
         </div>
-        <div className={`rounded-2xl border px-5 py-4 text-center ${scoreTone(hookAnalysis.overallScore)}`}>
+        <div className={`rounded-2xl border px-5 py-4 text-center ${scoreTone(overallScore)}`}>
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Overall Hook</div>
-          <div className="mt-2 text-4xl font-black">{hookAnalysis.overallScore}<span className="text-lg font-semibold text-zinc-400">/10</span></div>
+          <div className="mt-2 text-4xl font-black">{overallScore}<span className="text-lg font-semibold text-zinc-400">/10</span></div>
         </div>
       </div>
 
@@ -52,7 +55,7 @@ export function HookAnalysisPanel({ hookAnalysis, hookIdentification }: Props) {
       <div className="mt-5 rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-4">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">Top Hook Fixes</p>
         <div className="mt-3 space-y-2">
-          {hookAnalysis.topFixes.slice(0, 2).map((fix, index) => (
+          {topFixes.slice(0, 2).map((fix, index) => (
             <div key={fix} className="rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 py-3">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-orange-300">Fix {index + 1}</p>
               <p className="mt-1 text-sm leading-relaxed text-zinc-200">{fix}</p>

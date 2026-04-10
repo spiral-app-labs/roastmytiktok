@@ -69,9 +69,10 @@ function useCountUp(target: number, shouldAnimate: boolean, durationMs = 900): n
 
 export default function RoastMasthead({ roast, projection }: RoastMastheadProps) {
   const shouldReduceMotion = useReducedMotion();
-  const count = useCountUp(roast.overallScore, !shouldReduceMotion);
-  const tier = scoreTier(roast.overallScore);
-  const grade = scoreToGrade(roast.overallScore);
+  const primaryScore = roast.hookSummary?.score ?? roast.overallScore;
+  const count = useCountUp(primaryScore, !shouldReduceMotion);
+  const tier = scoreTier(primaryScore);
+  const grade = scoreToGrade(primaryScore);
 
   const platform = (roast.platform || 'tiktok').toUpperCase();
   const duration =
@@ -79,7 +80,7 @@ export default function RoastMasthead({ roast, projection }: RoastMastheadProps)
   const niche = roast.nichePercentile || null;
   const metaBits = [platform, duration, niche].filter(Boolean) as string[];
 
-  const barPct = Math.max(2, Math.min(100, roast.overallScore));
+  const barPct = Math.max(2, Math.min(100, primaryScore));
 
   return (
     <motion.header
@@ -91,7 +92,7 @@ export default function RoastMasthead({ roast, projection }: RoastMastheadProps)
       {/* Eyebrow row: viral score label + meta byline */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-          Viral score
+          Hook verdict
         </div>
         {metaBits.length > 0 && (
           <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-600">
@@ -108,7 +109,7 @@ export default function RoastMasthead({ roast, projection }: RoastMastheadProps)
       {/* Score + grade row */}
       <div className="mt-4 flex items-end gap-5">
         <span
-          aria-label={`Viral score ${roast.overallScore} out of 100`}
+          aria-label={`Hook score ${primaryScore} out of 100`}
           className={[
             'font-mono tabular-nums font-bold leading-[0.82]',
             'text-[6rem] sm:text-[7rem] lg:text-[8rem]',
@@ -125,7 +126,7 @@ export default function RoastMasthead({ roast, projection }: RoastMastheadProps)
               tier.badge,
             ].join(' ')}
           >
-            <span>{tier.label}</span>
+            <span>{roast.hookSummary?.strength === 'weak' ? 'Hook failing' : roast.hookSummary?.strength === 'mixed' ? 'Hook fragile' : 'Hook working'}</span>
             <span aria-hidden className="opacity-50">·</span>
             <span>{grade}</span>
           </span>
@@ -142,10 +143,9 @@ export default function RoastMasthead({ roast, projection }: RoastMastheadProps)
         />
       </div>
 
-      {/* Expected views projection pill — right below the score */}
       <div className="mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 font-mono text-sm text-emerald-100">
         <span className="text-[10px] uppercase tracking-[0.18em] text-emerald-400/80">
-          Expected
+          Hook-gated
         </span>
         <span className="tabular-nums">{projection.currentExpected}</span>
         <svg
@@ -173,7 +173,7 @@ export default function RoastMasthead({ roast, projection }: RoastMastheadProps)
       </div>
 
       {/* Verdict — smaller, supporting copy, clamped to 3 lines so it can't blow out */}
-      {roast.verdict && (
+      {(roast.firstFiveSecondsDiagnosis?.hookRead || roast.hookSummary?.headline || roast.verdict) && (
         <p
           className="mt-5 max-w-2xl text-[13px] leading-snug text-zinc-500"
           style={{
@@ -183,7 +183,7 @@ export default function RoastMasthead({ roast, projection }: RoastMastheadProps)
             overflow: 'hidden',
           }}
         >
-          {roast.verdict}
+          {roast.firstFiveSecondsDiagnosis?.hookRead || roast.hookSummary?.headline || roast.verdict}
         </p>
       )}
     </motion.header>

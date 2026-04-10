@@ -120,7 +120,7 @@ export default function UnifiedUploadFlow({ variant = 'compact' }: UnifiedUpload
         progressPercent={12}
         eyebrow="Upload in progress"
         title="Uploading your draft for analysis"
-        description="Your video is being moved into the analysis pipeline. As soon as the upload lands, frame extraction and scoring will continue on the next screen."
+        description="Your video is being moved into the hook-first analysis pipeline. As soon as the upload lands, we extract the first 6 seconds, score hook survival, and only expand if the opening earns it."
         liveDetail={file.name}
         compact={variant === 'compact'}
       />
@@ -145,10 +145,10 @@ export default function UnifiedUploadFlow({ variant = 'compact' }: UnifiedUpload
           </div>
 
           <h2 className="mt-4 text-2xl font-black tracking-tight text-white sm:text-3xl">
-            Upload once. Get the fix before you post.
+            Upload once. Fix the hook before you post.
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-zinc-400 sm:text-base">
-            We&apos;ll analyze your hook, pacing, audio, and CTAs — and tell you the #1 thing to fix before you post.
+            We start with the first 3 to 6 seconds, score whether viewers will stay, then tell you what to edit now versus what to refilm.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2 text-xs text-zinc-500">
@@ -215,7 +215,7 @@ export default function UnifiedUploadFlow({ variant = 'compact' }: UnifiedUpload
           {file ? 'Replace video' : 'Drop your draft here or click to browse'}
         </p>
         <p className="mt-2 text-sm text-zinc-500">
-          One clean upload path for every analysis. No extra setup screens.
+          One clean upload path. The hook gets judged first because the rest of the video only matters if viewers survive the opener.
         </p>
       </motion.div>
 

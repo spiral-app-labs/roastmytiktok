@@ -48,13 +48,170 @@ export interface HookDimensionScore {
   justification: string;
 }
 
+export type HookOCRRole =
+  | 'promise'
+  | 'problem'
+  | 'payoff_preview'
+  | 'question'
+  | 'context'
+  | 'cta'
+  | 'label'
+  | 'unknown';
+
+export type HookLegibility = 'poor' | 'ok' | 'good';
+export type HookRiskLevel = 'low' | 'med' | 'high';
+export type HookPace = 'low' | 'med' | 'high';
+export type HookMechanismLabel =
+  | 'question'
+  | 'payoff_preview'
+  | 'curiosity_gap'
+  | 'problem_callout'
+  | 'surprising_claim'
+  | 'social_proof'
+  | 'pattern_interrupt'
+  | 'statement_of_intent';
+
+export type HookPrimaryFail =
+  | 'clarity_gap'
+  | 'payoff_delay'
+  | 'visual_monotony'
+  | 'text_overload'
+  | 'trust_friction'
+  | 'brand_penalty'
+  | 'audio_dependency'
+  | 'none';
+
+export interface HookOCRSegment {
+  t0: number;
+  t1: number;
+  text: string;
+  role: HookOCRRole;
+  legibility: HookLegibility;
+  safe: boolean;
+}
+
+export interface HookSpeechSegment {
+  t0: number;
+  t1: number;
+  text: string;
+  confidence: number;
+}
+
+export interface HookTimingSummary {
+  propositionTimeSec: number | null;
+  firstChangeTimeSec: number | null;
+  firstCutTimeSec: number | null;
+}
+
+export interface HookOCRSummary {
+  segments: HookOCRSegment[];
+  wpsPeak: number;
+  legibilityRisk: HookRiskLevel;
+  safeZoneRisk: HookRiskLevel;
+}
+
+export interface HookVisualSummary {
+  cuts: number;
+  motion: number;
+  pace: HookPace;
+  facePresent: boolean;
+  faceStartSec: number | null;
+  faceArea: number;
+  eyeContact: 'none' | 'partial' | 'direct';
+  expression: string;
+  lighting: 'good' | 'under' | 'over' | 'backlit' | 'mixed';
+  faceLuma: number | null;
+}
+
+export interface HookAudioSummary {
+  transcriptPresent: boolean;
+  transcriptStartSec: number | null;
+  transcriptConfidence: number;
+  dependencyRisk: HookRiskLevel;
+  upliftReason: string;
+}
+
+export interface HookLabelSummary {
+  mechanisms: HookMechanismLabel[];
+  primaryFail: HookPrimaryFail;
+}
+
+export interface HookSubscores {
+  clarity: number;
+  text: number;
+  pacing: number;
+  human: number;
+  lighting: number;
+}
+
+export interface HookScoreSummary {
+  subscores: HookSubscores;
+  silentScore: number;
+  audioUplift: number;
+  hookScore: number;
+  confidence: number;
+}
+
+export interface HookPredictionSummary {
+  pStay3s: number;
+  pStay5s: number;
+  viralProbability: number;
+  confidence: number;
+}
+
+export interface HookEditFix {
+  impact: 'high' | 'med' | 'low';
+  do: string;
+  why: string;
+}
+
+export interface HookReplacement {
+  hook: string;
+  shot: string;
+  overlay: string;
+}
+
+export interface HookReshootPlan {
+  firstShot: string;
+  first5sScript: string;
+  shotBeats: string[];
+  lighting: string;
+}
+
+export interface HookFixTracks {
+  editOnly: HookEditFix[];
+  reshoot: Array<{
+    label: string;
+    detail: string;
+  }>;
+}
+
 export interface HookAnalysis {
-  visual: HookDimensionScore;
-  audio: HookDimensionScore;
-  narrative: HookDimensionScore;
-  overallScore: number;
+  windowSec: number;
   summary: string;
-  topFixes: string[];
+  observed: {
+    visual: string;
+    ocr: HookOCRSegment[];
+    speech: HookSpeechSegment[];
+  };
+  timing: HookTimingSummary;
+  ocr: HookOCRSummary;
+  visual: HookVisualSummary;
+  audio: HookAudioSummary;
+  labels: HookLabelSummary;
+  scores: HookScoreSummary;
+  predictions: HookPredictionSummary;
+  editFixes: HookEditFix[];
+  reshootPlan: HookReshootPlan;
+  replacementHooks: HookReplacement[];
+  // Legacy compatibility fields used by older UI surfaces.
+  dimensions?: {
+    visual: HookDimensionScore;
+    audio: HookDimensionScore;
+    narrative: HookDimensionScore;
+  };
+  overallScore?: number;
+  topFixes?: string[];
 }
 
 export interface ActionPlanStep {
@@ -99,6 +256,7 @@ export interface RoastResult {
   actionPlan?: ActionPlanStep[];
   encouragement?: string;
   analysisMode?: 'hook-first' | 'balanced';
+  analysisExpansion?: 'hook_only' | 'extended_10s' | 'full_video';
   hookSummary?: {
     score: number;
     strength: 'weak' | 'mixed' | 'strong';
@@ -109,6 +267,8 @@ export interface RoastResult {
     earlyDropNote?: string;
   };
   hookAnalysis?: HookAnalysis;
+  hookPredictions?: HookPredictionSummary;
+  fixTracks?: HookFixTracks;
   agents: AgentRoast[];
   niche?: {
     detected: string;
@@ -138,5 +298,10 @@ export interface RoastResult {
   metadata: {
     duration: number;
     description: string;
+    views?: number;
+    likes?: number;
+    comments?: number;
+    shares?: number;
+    hashtags?: string[];
   };
 }

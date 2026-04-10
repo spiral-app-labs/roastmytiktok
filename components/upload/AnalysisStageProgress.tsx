@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 
 export const ANALYSIS_STAGE_LABELS = [
   'Uploading video...',
-  'Extracting frames...',
-  'Analyzing hook (first 3 seconds)...',
-  'Analyzing pacing & rhythm...',
-  'Analyzing audio & captions...',
-  'Generating action plan...',
+  'Extracting hook frames (0-6s)...',
+  'Reading the opener and scoring the hook...',
+  'Measuring first-change timing and hold...',
+  'Deciding whether to expand analysis...',
+  'Building the hook action plan...',
   'Done!',
 ] as const;
 
@@ -49,10 +49,11 @@ export function deriveAnalysisStageIndex(params: {
   const normalized = statusMessage.toLowerCase();
 
   if (!uploadComplete) return 0;
-  if (normalized.includes('extracting frame')) return 1;
+  if (normalized.includes('extracting hook frame') || normalized.includes('extracting frame')) return 1;
   if (hookStarted && completedAgents <= 1) return 2;
+  if (normalized.includes('expand') || normalized.includes('loaded through 10 seconds') || normalized.includes('full-video secondary analysis')) return 4;
   if (mediaAgentsStarted) return 4;
-  if (completedAgents > 0 || normalized.includes('analyzing video frame')) return 3;
+  if (completedAgents > 0 || normalized.includes('analyzing hook frames') || normalized.includes('opening text') || normalized.includes('hook survival')) return 3;
   if (
     normalized.includes('extracting audio') ||
     normalized.includes('transcrib') ||

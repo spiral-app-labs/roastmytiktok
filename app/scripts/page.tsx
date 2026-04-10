@@ -25,10 +25,13 @@ function ScriptPreview({ script }: { script: GeneratedScript }) {
       <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/50">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-sm">🎣</span>
-          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Hook</span>
-          <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full">0-3s</span>
+          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Hook Lab</span>
+          <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full">0-5s</span>
         </div>
         <p className="text-sm text-zinc-200 italic">&ldquo;{script.hook}&rdquo;</p>
+        {script.hookLab?.firstShotDirection ? (
+          <p className="mt-2 text-xs text-zinc-500">First shot: {script.hookLab.firstShotDirection}</p>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -47,6 +50,16 @@ function ScriptPreview({ script }: { script: GeneratedScript }) {
           <p className="text-xs text-zinc-500 truncate">{script.audioSuggestion.slice(0, 40)}...</p>
         </div>
       </div>
+
+      {script.hookAlternatives?.length ? (
+        <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/50">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm">🧪</span>
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Hook options</span>
+          </div>
+          <p className="text-xs text-zinc-500">{script.hookAlternatives.length} replacement opener{script.hookAlternatives.length === 1 ? '' : 's'} ready to test</p>
+        </div>
+      ) : null}
 
       <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/50">
         <div className="flex items-center gap-2 mb-2">
@@ -94,7 +107,9 @@ function ScriptCard({ saved, onDelete }: { saved: SavedScript; onDelete: (id: st
       .map((s) => `Scene ${s.number} [${s.timing}]\nAction: ${s.action}\nDialogue: ${s.dialogue}`)
       .join('\n\n');
     const text = [
-      `🎣 HOOK (0-3s)`, script.hook, ``,
+      `🎣 HOOK LAB (0-5s)`, script.hook, ``,
+      `🎬 FIRST SHOT`, script.hookLab?.firstShotDirection || 'Not provided', ``,
+      `🧭 BEAT PLAN`, script.hookLab?.beatPlan?.join('\n') || 'Not provided', ``,
       `🎬 SCENES`, scenes, ``,
       `📝 ON-SCREEN TEXT`, script.onScreenText.map((t) => `• ${t}`).join('\n'), ``,
       `✍️ CAPTION`, script.caption, ``,
