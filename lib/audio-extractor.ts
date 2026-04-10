@@ -14,7 +14,7 @@ const EXTRACT_TIMEOUT_MS = 30_000;
  * Hardened: validates file size limits, categorizes errors (missing audio track,
  * corrupt video, timeout), and always cleans up partial output.
  */
-export function extractAudio(videoPath: string): string | null {
+export function extractAudio(videoPath: string, clipDurationSec?: number): string | null {
   const outputPath = `${videoPath}.audio.wav`;
 
   try {
@@ -53,8 +53,12 @@ export function extractAudio(videoPath: string): string | null {
       return null;
     }
 
+    const clipFlag = typeof clipDurationSec === 'number' && clipDurationSec > 0
+      ? ` -t ${clipDurationSec.toFixed(2)}`
+      : '';
+
     execSync(
-      `ffmpeg -i "${videoPath}" -vn -acodec pcm_s16le -ar 16000 -ac 1 "${outputPath}" -y 2>&1`,
+      `ffmpeg -i "${videoPath}"${clipFlag} -vn -acodec pcm_s16le -ar 16000 -ac 1 "${outputPath}" -y 2>&1`,
       { timeout: EXTRACT_TIMEOUT_MS }
     );
 

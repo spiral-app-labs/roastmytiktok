@@ -186,6 +186,72 @@ export interface HookFixTracks {
   }>;
 }
 
+export interface AdminAnalyticsTiming {
+  uploadStartedAt: string | null;
+  uploadStartSource: 'session_created_at' | 'analysis_start_fallback';
+  analysisStartedAt: string;
+  analysisCompletedAt: string;
+  analysisOnlyMs: number;
+  uploadToCompleteMs: number | null;
+  stagesMs: Record<string, number>;
+}
+
+export interface AdminAnalyticsFrameSummary {
+  timestampSec: number;
+  zone: 'hook' | 'transition' | 'body';
+  label: string;
+}
+
+export interface AdminAnalyticsPayload {
+  host: string;
+  generatedAt: string;
+  timing: AdminAnalyticsTiming;
+  media: {
+    videoDurationSec: number;
+    frameCount: number;
+    frameCountsByZone: Record<'hook' | 'transition' | 'body', number>;
+    sampledFrames: AdminAnalyticsFrameSummary[];
+    frameMetadata: Array<Record<string, unknown>>;
+    onScreenTextResults: Array<{
+      timestampSec: number;
+      label: string;
+      detectedText: string[];
+    }>;
+  };
+  transcript: {
+    text: string | null;
+    segments: Array<{ start: number; end: number; text: string }>;
+    provider?: 'assemblyai' | 'whisper' | 'claude-audio';
+    confidence: number | null;
+    quality: 'usable' | 'degraded' | 'unavailable';
+    qualityNote: string;
+    usedInAnalysis: boolean;
+  };
+  reasoning: {
+    platform: 'tiktok' | 'reels';
+    analysisMode: 'hook-first' | 'balanced';
+    analysisExpansion: 'hook_only' | 'extended_10s' | 'full_video';
+    niche: {
+      detected: string;
+      subNiche: string | null;
+      confidence: 'high' | 'medium' | 'low';
+    };
+    hookSummary?: RoastResult['hookSummary'];
+    hookAnalysis?: HookAnalysis;
+    fixTracks?: HookFixTracks;
+    actionPlan?: ActionPlanStep[];
+    biggestBlocker?: string;
+    encouragement?: string;
+    verdict: string;
+    agentResults: Record<string, unknown>;
+    captionQuality: Record<string, unknown> | null;
+    audioCharacteristics: Record<string, unknown>;
+    durationAnalysis: Record<string, unknown> | null;
+    detectedSound?: RoastResult['detectedSound'];
+    viewProjection?: ViewProjection;
+  };
+}
+
 export interface HookAnalysis {
   windowSec: number;
   summary: string;
@@ -295,6 +361,7 @@ export interface RoastResult {
     soundUrl: string | null;
     musicId: string | null;
   } | null;
+  adminAnalytics?: AdminAnalyticsPayload;
   metadata: {
     duration: number;
     description: string;

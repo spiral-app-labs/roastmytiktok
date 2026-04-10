@@ -10,7 +10,7 @@ import { assessTranscriptQuality } from '@/lib/transcript-quality';
 import { supabaseServer } from '@/lib/supabase-server';
 import { existsSync, unlinkSync } from 'fs';
 import { writeFile } from 'fs/promises';
-import { DimensionKey, type AgentConfidence } from '@/lib/types';
+import { DimensionKey, type AdminAnalyticsPayload, type AgentConfidence } from '@/lib/types';
 import { buildViewProjection } from '@/lib/view-projection';
 import { detectNiche, NicheDetection } from '@/lib/niche-detect';
 import { NICHE_CONTEXT } from '@/lib/niche-context';
@@ -24,6 +24,7 @@ import { getFirstFiveSecondsDiagnosis } from '@/lib/hook-help';
 import { buildHookAnalysisPrompt, deriveHookAnalysis, parseHookAnalysisResponse } from '@/lib/hook-analysis';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
+const HOOK_AUDIO_WINDOW_SEC = 6;
 
 type AgentConfidenceLevel = AgentConfidence['level'];
 
@@ -558,6 +559,11 @@ interface OnScreenTextResult {
   detectedText: string[];
 }
 
+function isLocalhostRequest(req: NextRequest): boolean {
+  const hostname = req.nextUrl.hostname || req.headers.get('host')?.split(':')[0] || '';
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
 function getDimensionWeights(hookScore: number | undefined): Record<DimensionKey, number> {
   if (typeof hookScore !== 'number') return DIMENSION_WEIGHTS;
   return classifyHookStrength(hookScore) === 'weak' ? HOOK_FIRST_WEIGHTS : DIMENSION_WEIGHTS;
@@ -816,6 +822,9 @@ function buildPromptEvidenceBundle(params: {
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const requestStartedAtMs = Date.now();
+  const localhostDebug = isLocalhostRequest(req);
+  const requestHost = req.nextUrl.host;
 
   // Extract session_id and platform from query params
   const sessionId = req.nextUrl.searchParams.get('session_id') ?? 'server';
@@ -824,7 +833,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   // Fetch video path from Supabase session record
   const { data: session, error: sessionError } = await supabaseServer
     .from('rmt_roast_sessions')
-    .select('video_url, filename, tiktok_url')
+    .select('video_url, filename, tiktok_url, created_at, description')
     .eq('id', id)
     .single();
 
@@ -837,9 +846,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const localPath = `/tmp/rmt-${id}.${ext}`;
 
   // Download video from Supabase Storage to /tmp for ffmpeg
+  const downloadStartedAtMs = Date.now();
   const { data: fileData, error: downloadError } = await supabaseServer.storage
     .from('roast-videos')
     .download(storagePath);
+  const downloadDurationMs = Date.now() - downloadStartedAtMs;
 
   if (downloadError || !fileData) {
     return Response.json({ error: 'Failed to retrieve video from storage.' }, { status: 500 });
@@ -858,6 +869,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       };
 
       let audioPath: string | null = null;
+      const analysisStartedAtMs = Date.now();
+      const stageTimings: Record<string, number> = {
+        session_lookup_and_download: analysisStartedAtMs - requestStartedAtMs,
+        video_download: downloadDurationMs,
+      };
+      const uploadStartedAtIso = typeof (session as { created_at?: string | null }).created_at === 'string'
+        ? (session as { created_at?: string | null }).created_at ?? null
+        : null;
 
       try {
         // Fetch repeat-issue context and TikTok sound metadata in parallel
@@ -870,8 +889,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const frameStart = Date.now();
         try {
           frames = extractFrames(videoPath, 'hook-only');
+          stageTimings.frame_extraction_hook = Date.now() - frameStart;
           logSuccess('frame-extraction', id, { frameCount: frames.length }, Date.now() - frameStart);
         } catch (err) {
+          stageTimings.frame_extraction_hook = Date.now() - frameStart;
           logFailure('frame-extraction', id, err);
           send({ type: 'status', message: 'Frame extraction limited, running text-based analysis...' });
         }
@@ -890,7 +911,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         // Extract and transcribe audio
-        send({ type: 'status', message: 'Extracting audio...' });
+        send({ type: 'status', message: 'Extracting the first 6 seconds of audio...' });
         let transcript: TranscriptionResult | null = null;
         let audioChars: AudioCharacteristics = { hasSpeech: false, hasMusic: false, speechPercent: 0 };
         let transcriptQuality: 'usable' | 'degraded' | 'unavailable' = 'unavailable';
@@ -898,21 +919,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         let shouldUseTranscriptEvidence = false;
 
         try {
-          audioPath = extractAudio(videoPath);
+          const audioExtractionStart = Date.now();
+          audioPath = extractAudio(videoPath, HOOK_AUDIO_WINDOW_SEC);
+          stageTimings.audio_extraction_hook = Date.now() - audioExtractionStart;
           if (audioPath) {
             logSuccess('audio-extraction', id, { audioPath });
             const hasTranscriptionKey = !!process.env.OPENAI_API_KEY || !!process.env.ASSEMBLYAI_API_KEY || !!process.env.ANTHROPIC_API_KEY;
             if (hasTranscriptionKey) {
-              send({ type: 'status', message: 'Transcribing audio...' });
+              send({ type: 'status', message: 'Transcribing the first 6 seconds...' });
             } else {
               logFailure('transcription', id, 'No transcription API key set');
             }
             // Run transcription and speech/music detection in parallel
             const transcriptionStart = Date.now();
             const [transcriptResult, speechMusicResult] = await Promise.all([
-              transcribeAudio(audioPath, 120000),
+              transcribeAudio(audioPath, 60000),
               Promise.resolve(detectSpeechMusic(audioPath)),
             ]);
+            stageTimings.audio_transcription_and_detection = Date.now() - transcriptionStart;
             transcript = transcriptResult;
             audioChars = speechMusicResult;
 
@@ -943,10 +967,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               send({ type: 'status', message: transcriptQualityNote });
             }
           } else {
+            stageTimings.audio_extraction_hook = stageTimings.audio_extraction_hook ?? 0;
             logSuccess('audio-extraction', id, { result: 'no-audio-track' });
             send({ type: 'status', message: 'No audio track found in video.' });
           }
         } catch (err) {
+          stageTimings.audio_extraction_hook = stageTimings.audio_extraction_hook ?? 0;
           logFailure('audio-extraction', id, err);
           send({ type: 'status', message: 'Audio transcription timed out. Running visual-only analysis...' });
         }
@@ -964,6 +990,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           try {
             const frameAnalysisStart = Date.now();
             const frameAnalysis = await analyzeFrames(frames);
+            stageTimings.frame_analysis_hook = Date.now() - frameAnalysisStart;
             frameAnalysisFrames = frameAnalysis.frames;
             logSuccess('frame-analysis', id, { totalFrames: frameAnalysis.totalFrames, model: frameAnalysis.analysisModel }, Date.now() - frameAnalysisStart);
             send({ type: 'status', message: `Analyzed ${frameAnalysis.totalFrames} hook frames` });
@@ -978,6 +1005,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             captionQuality = buildCaptionReportFromFrames(captionQualityDerived, frameAnalysisFrames, transcript);
             frameContextForNiche = frameAnalysisFrames.map(summarizeFrame).join('\n');
           } catch (err) {
+            stageTimings.frame_analysis_hook = stageTimings.frame_analysis_hook ?? 0;
             logFailure('frame-analysis', id, err);
             send({ type: 'status', message: 'Frame analysis limited, continuing with text-based analysis...' });
           }
@@ -990,18 +1018,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         const agentResults: Record<string, AgentResult> = {};
         let hookAnalysis: RoastResult['hookAnalysis'];
+        let baselineHookAnalysis: ReturnType<typeof deriveHookAnalysis> | null = null;
         let analysisExpansion: RoastResult['analysisExpansion'] = 'hook_only';
         const chronicIssues = await chronicIssuesPromise;
         const detectedSound = await detectedSoundPromise;
 
         // Detect niche from available signals (AI-based with fallback)
         const sessionDescription = (session as { description?: string }).description ?? '';
+        const nicheDetectionStart = Date.now();
         const nicheDetection: NicheDetection = await detectNiche({
           frameDescriptions: frameContextForNiche,
           transcript: transcript?.text ?? undefined,
           caption: sessionDescription,
           hashtags: sessionDescription.match(/#\w+/g)?.map(token => token.slice(1)) ?? [],
         }, anthropic);
+        stageTimings.niche_detection = Date.now() - nicheDetectionStart;
         // Niche detection used internally for agent prompts; not surfaced to user
         console.log(`[analyze] Detected niche: ${nicheDetection.niche}${nicheDetection.subNiche ? ` (${nicheDetection.subNiche})` : ''} [${nicheDetection.confidence} confidence]`);
 
@@ -1025,7 +1056,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         try {
           send({ type: 'status', message: 'Scoring hook survival through 3s and 5s...' });
-          const baselineHookAnalysis = deriveHookAnalysis({
+          const hookAnalysisStart = Date.now();
+          baselineHookAnalysis = deriveHookAnalysis({
             openingFrames: frameAnalysisFrames.filter((frame) => frame.zone === 'hook'),
             transcript,
             shouldUseTranscriptEvidence,
@@ -1050,15 +1082,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           });
           const hookAnalysisText = hookAnalysisResponse.content[0]?.type === 'text' ? hookAnalysisResponse.content[0].text : '';
           hookAnalysis = parseHookAnalysisResponse(hookAnalysisText, baselineHookAnalysis);
+          stageTimings.hook_analysis = Date.now() - hookAnalysisStart;
           send({ type: 'hook-analysis', result: hookAnalysis });
         } catch (err) {
+          stageTimings.hook_analysis = stageTimings.hook_analysis ?? 0;
           logFailure('hook-analysis', id, err);
-          hookAnalysis = deriveHookAnalysis({
+          baselineHookAnalysis = deriveHookAnalysis({
             openingFrames: frameAnalysisFrames.filter((frame) => frame.zone === 'hook'),
             transcript,
             shouldUseTranscriptEvidence,
             audioChars,
           });
+          hookAnalysis = baselineHookAnalysis;
         }
 
         analysisExpansion = determineAnalysisExpansion(hookAnalysis?.scores.hookScore);
@@ -1073,8 +1108,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           });
 
           try {
+            const expansionStart = Date.now();
             const expandedFrames = extractFrames(videoPath, expansionMode);
             const expandedAnalysis = await analyzeFrames(expandedFrames);
+            stageTimings.frame_analysis_expansion = Date.now() - expansionStart;
             frameAnalysisFrames = expandedAnalysis.frames;
             onScreenTextResults = extractTextFromAnalysis(frameAnalysisFrames).map(r => ({
               timestampSec: r.timestampSec,
@@ -1091,6 +1128,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                 : 'Extended hook window loaded through 10 seconds.',
             });
           } catch (err) {
+            stageTimings.frame_analysis_expansion = stageTimings.frame_analysis_expansion ?? 0;
             logFailure('frame-analysis', id, err, { analysisExpansion, stage: 'expansion' });
             analysisExpansion = 'hook_only';
             send({ type: 'status', message: 'Hook expansion failed, keeping the report focused on the hook only.' });
@@ -1168,6 +1206,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               result.findings = [extraction.primaryFix];
             }
             agentResults[dimension] = result;
+            stageTimings[`agent_${dimension}`] = Date.now() - agentStart;
             logSuccess('agent', id, { dimension, score: result.score }, Date.now() - agentStart);
 
             send({
@@ -1178,6 +1217,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
               result: { agent: dimension, ...result },
             });
           } catch (err) {
+            stageTimings[`agent_${dimension}`] = stageTimings[`agent_${dimension}`] ?? 0;
             logFailure('agent', id, err, { dimension });
             const fallback = {
               score: -1,
@@ -1255,6 +1295,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           priorityDimensions: analysisMode === 'hook-first' ? ['hook', 'visual', 'audio'] : [],
         });
         try {
+          const verdictStart = Date.now();
           const repeatContext = chronicIssues.length > 0
             ? `\n\nThis is a REPEAT OFFENDER. They've been roasted ${chronicIssues.length > 3 ? 'many' : 'a few'} times before and keep making the same mistakes. Reference this in the verdict. Be extra disappointed.`
             : '';
@@ -1394,7 +1435,9 @@ Rules:
             actionPlan = sanitizeActionPlan(fallbackActionPlan);
             nextSteps = actionPlan.map((step) => `${step.priority}: ${step.doThis}`);
           }
+          stageTimings.verdict_generation = Date.now() - verdictStart;
         } catch (verdictErr) {
+          stageTimings.verdict_generation = stageTimings.verdict_generation ?? 0;
           logFailure('verdict', id, verdictErr);
           verdict = 'Analysis partially complete -see individual dimension scores below.';
           // Surface agent-derived action plan so the results page is not empty
@@ -1494,6 +1537,78 @@ Rules:
             description: 'Uploaded video',
           },
         };
+        const analysisCompletedAtMs = Date.now();
+        const uploadStartedAtMs = uploadStartedAtIso ? new Date(uploadStartedAtIso).getTime() : null;
+        const uploadToCompleteMs = uploadStartedAtMs && Number.isFinite(uploadStartedAtMs)
+          ? Math.max(0, analysisCompletedAtMs - uploadStartedAtMs)
+          : null;
+        const adminAnalytics: AdminAnalyticsPayload | undefined = localhostDebug
+          ? {
+              host: requestHost,
+              generatedAt: new Date(analysisCompletedAtMs).toISOString(),
+              timing: {
+                uploadStartedAt: uploadStartedAtIso,
+                uploadStartSource: uploadStartedAtIso ? 'session_created_at' : 'analysis_start_fallback',
+                analysisStartedAt: new Date(analysisStartedAtMs).toISOString(),
+                analysisCompletedAt: new Date(analysisCompletedAtMs).toISOString(),
+                analysisOnlyMs: Math.max(0, analysisCompletedAtMs - analysisStartedAtMs),
+                uploadToCompleteMs,
+                stagesMs: stageTimings,
+              },
+              media: {
+                videoDurationSec: videoDuration?.durationSeconds ?? 0,
+                frameCount: frameAnalysisFrames.length,
+                frameCountsByZone: {
+                  hook: frameAnalysisFrames.filter((frame) => frame.zone === 'hook').length,
+                  transition: frameAnalysisFrames.filter((frame) => frame.zone === 'transition').length,
+                  body: frameAnalysisFrames.filter((frame) => frame.zone === 'body').length,
+                },
+                sampledFrames: frameAnalysisFrames.map((frame) => ({
+                  timestampSec: frame.timestampSec,
+                  zone: frame.zone,
+                  label: `${frame.zone} frame at ${frame.timestampSec.toFixed(1)}s`,
+                })),
+                frameMetadata: frameAnalysisFrames as unknown as Array<Record<string, unknown>>,
+                onScreenTextResults,
+              },
+              transcript: {
+                text: transcript?.text ?? null,
+                segments: transcript?.segments ?? [],
+                ...(transcript?.provider ? { provider: transcript.provider } : {}),
+                confidence: transcript?.confidence ?? null,
+                quality: transcriptQuality,
+                qualityNote: transcriptQualityNote,
+                usedInAnalysis: shouldUseTranscriptEvidence,
+              },
+              reasoning: {
+                platform,
+                analysisMode: analysisMode ?? 'balanced',
+                analysisExpansion: analysisExpansion ?? 'hook_only',
+                niche: {
+                  detected: nicheDetection.niche,
+                  subNiche: nicheDetection.subNiche,
+                  confidence: nicheDetection.confidence,
+                },
+                ...(hookSummary ? { hookSummary } : {}),
+                ...(baselineHookAnalysis ? { baselineHookAnalysis } : {}),
+                ...(hookAnalysis ? { hookAnalysis } : {}),
+                ...(fixTracks ? { fixTracks } : {}),
+                ...(actionPlan ? { actionPlan } : {}),
+                ...(biggestBlocker ? { biggestBlocker } : {}),
+                ...(encouragement ? { encouragement } : {}),
+                verdict,
+                agentResults,
+                captionQuality: captionQuality as Record<string, unknown> | null,
+                audioCharacteristics: audioChars as unknown as Record<string, unknown>,
+                durationAnalysis: durationAnalysis as Record<string, unknown> | null,
+                ...(detectedSound ? { detectedSound } : {}),
+                ...(viewProjectionData ? { viewProjection: viewProjectionData } : {}),
+              },
+            }
+          : undefined;
+        if (adminAnalytics) {
+          result.adminAnalytics = adminAnalytics;
+        }
         result.firstFiveSecondsDiagnosis = getFirstFiveSecondsDiagnosis(result);
 
         send({
@@ -1525,6 +1640,7 @@ Rules:
 
         // Update session in Supabase with results
         try {
+          const saveStart = Date.now();
           const agentScores = Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d].score]));
           const findings = Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d].findings]));
 
@@ -1535,7 +1651,9 @@ Rules:
             findings,
             result_json: result,
           }).eq('id', id);
+          stageTimings.supabase_save = Date.now() - saveStart;
         } catch (err) {
+          stageTimings.supabase_save = stageTimings.supabase_save ?? 0;
           logFailure('supabase-save', id, err);
         }
 

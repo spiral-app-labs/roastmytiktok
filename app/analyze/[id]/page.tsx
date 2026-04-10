@@ -56,6 +56,7 @@ export default function AnalyzePage() {
   const [thumbHeight, setThumbHeight] = useState<number | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const connectedRef = useRef(false);
+  const analysisTimeoutMs = 8 * 60 * 1000;
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +132,7 @@ export default function AnalyzePage() {
     const timeout = setTimeout(() => {
       eventSource.close();
       setError(getUploadErrorMessage('analysis_failed'));
-    }, 3 * 60 * 1000);
+    }, analysisTimeoutMs);
 
     eventSource.onmessage = (event) => {
       try {
@@ -180,8 +181,7 @@ export default function AnalyzePage() {
           clearTimeout(timeout);
           eventSource.close();
           setAnalysisDone(true);
-
-          const result: RoastResult = {
+          const fallbackResult: RoastResult = {
             id: data.id,
             tiktokUrl: '',
             overallScore,
@@ -205,16 +205,27 @@ export default function AnalyzePage() {
               description: 'Uploaded video',
             },
           };
-
-          try {
-            sessionStorage.setItem(`roast_${data.id}`, JSON.stringify(result));
-          } catch { /* sessionStorage may be full */ }
-
           const source = searchParams.get('source') ?? 'upload';
           const filename = searchParams.get('filename') ?? '';
-          setTimeout(() => {
-            router.push(`/roast/${data.id}?source=${source}&filename=${encodeURIComponent(filename)}`);
-          }, 800);
+          void (async () => {
+            let resolvedResult = fallbackResult;
+            try {
+              const response = await fetch(`/api/roast/${data.id}`);
+              if (response.ok) {
+                resolvedResult = (await response.json()) as RoastResult;
+              }
+            } catch {
+              resolvedResult = fallbackResult;
+            }
+
+            try {
+              sessionStorage.setItem(`roast_${data.id}`, JSON.stringify(resolvedResult));
+            } catch { /* sessionStorage may be full */ }
+
+            setTimeout(() => {
+              router.push(`/roast/${data.id}?source=${source}&filename=${encodeURIComponent(filename)}`);
+            }, 800);
+          })();
         }
 
         if (data.type === 'error') {
@@ -241,7 +252,7 @@ export default function AnalyzePage() {
       clearTimeout(timeout);
       eventSource.close();
     };
-  }, [id, router, searchParams]);
+  }, [analysisTimeoutMs, id, router, searchParams]);
 
   const completedCount = Object.values(agentStatuses).filter(s => s.status === 'done').length;
   const hookStarted = agentStatuses.hook?.status !== 'waiting';

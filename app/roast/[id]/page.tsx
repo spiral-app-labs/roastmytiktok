@@ -18,6 +18,7 @@ import DimensionStrip from './_components/DimensionStrip';
 import PlaybookStack from './_components/PlaybookStack';
 import RetentionPanel from './_components/RetentionPanel';
 import PartialResultsNotice from './_components/PartialResultsNotice';
+import AdminAnalyticsPanel from './_components/AdminAnalyticsPanel';
 import RoastFooter from './_components/RoastFooter';
 import { LoadingState, ErrorState } from './_components/RoastStatusStates';
 import { filterActionPlan, isAgentFailed, sortActionPlan } from './_components/helpers';
@@ -54,7 +55,9 @@ export default function RoastPage() {
             historySavedRef.current = true;
             saveToHistory(parsed, source, filename);
           }
-          return;
+          if (parsed.adminAnalytics) {
+            return;
+          }
         }
       } catch {
         /* ignore */
@@ -199,6 +202,8 @@ function RoastContent({ roast, id }: RoastContentProps) {
             <RetentionPanel roast={roast} steps={filteredActionPlan} />
           </>
         ) : null}
+
+        <AdminAnalyticsPanel roast={roast} />
 
         <RoastFooter
           copied={copied}
