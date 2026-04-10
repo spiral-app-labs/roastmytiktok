@@ -148,9 +148,9 @@ export function AnalyzingPreview({
     <div className="relative w-full flex justify-center px-4 py-6">
       {/* Ambient glow behind everything */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-[420px] w-[420px] rounded-full bg-orange-500/20 blur-[100px]" />
-        <div className="absolute h-[260px] w-[260px] rounded-full bg-pink-500/15 blur-[80px]" />
-        <div className="absolute h-[320px] w-[320px] rounded-full bg-sky-500/10 blur-[110px]" />
+        <div className="h-[420px] w-[420px] rounded-full bg-sky-500/18 blur-[100px]" />
+        <div className="absolute h-[260px] w-[260px] rounded-full bg-violet-500/14 blur-[80px]" />
+        <div className="absolute h-[320px] w-[320px] rounded-full bg-blue-500/12 blur-[110px]" />
       </div>
 
       {/* Left bubble column — desktop only, sits well off the frame */}
@@ -182,8 +182,8 @@ export function AnalyzingPreview({
         }}
       >
         {/* Thumbnail glow ring */}
-        <div className="absolute -inset-3 rounded-[32px] bg-[radial-gradient(circle_at_50%_30%,rgba(59,130,246,0.28),transparent_45%),radial-gradient(circle_at_50%_70%,rgba(249,115,22,0.28),transparent_55%)] blur-xl opacity-95" />
-        <div className="absolute -inset-1 rounded-[28px] bg-gradient-to-b from-orange-500/40 via-pink-500/30 to-orange-500/20 blur-md opacity-80" />
+        <div className="absolute -inset-3 rounded-[32px] bg-[radial-gradient(circle_at_50%_30%,rgba(56,189,248,0.28),transparent_45%),radial-gradient(circle_at_50%_70%,rgba(99,102,241,0.26),transparent_55%),radial-gradient(circle_at_35%_55%,rgba(139,92,246,0.18),transparent_50%)] blur-xl opacity-95" />
+        <div className="absolute -inset-1 rounded-[28px] bg-gradient-to-b from-sky-500/35 via-blue-500/25 to-violet-500/20 blur-md opacity-80" />
         <div className="absolute inset-0 rounded-[26px] ring-1 ring-white/10" />
 
         {thumbDataUrl ? (
@@ -192,17 +192,17 @@ export function AnalyzingPreview({
           <img
             src={thumbDataUrl}
             alt="Your video"
-            className="relative h-full w-full rounded-[26px] object-cover shadow-[0_30px_80px_-30px_rgba(251,146,60,0.6)]"
+            className="relative h-full w-full rounded-[26px] object-cover shadow-[0_30px_80px_-30px_rgba(59,130,246,0.55)]"
           />
         ) : (
-          <div className="relative flex h-full w-full items-center justify-center rounded-[26px] bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-[0_30px_80px_-30px_rgba(251,146,60,0.6)]">
+          <div className="relative flex h-full w-full items-center justify-center rounded-[26px] bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-[0_30px_80px_-30px_rgba(59,130,246,0.55)]">
             <span className="text-5xl">🎬</span>
           </div>
         )}
 
         {/* Scanning line animation */}
         <motion.div
-          className="absolute inset-x-0 top-0 h-1/3 rounded-[26px] bg-gradient-to-b from-orange-400/40 via-orange-400/10 to-transparent"
+          className="absolute inset-x-0 top-0 h-1/3 rounded-[26px] bg-gradient-to-b from-sky-400/40 via-blue-400/10 to-transparent"
           initial={{ y: 0 }}
           animate={{ y: ['0%', '200%', '0%'] }}
           transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -210,11 +210,11 @@ export function AnalyzingPreview({
 
         {/* Pulsing border */}
         <motion.div
-          className="absolute inset-0 rounded-[26px] ring-2 ring-orange-400/0"
+          className="absolute inset-0 rounded-[26px] ring-2 ring-sky-400/0"
           animate={{
             boxShadow: [
-              '0 0 0 0 rgba(251,146,60,0.5)',
-              '0 0 0 12px rgba(251,146,60,0)',
+              '0 0 0 0 rgba(56,189,248,0.45)',
+              '0 0 0 12px rgba(56,189,248,0)',
             ],
           }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}

@@ -224,7 +224,7 @@ export default function DashboardVideoCard({
           <button
             type="button"
             onClick={handleMediaToggle}
-            className="absolute left-1/2 top-1/2 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
+            className="absolute left-1/2 top-1/2 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
             aria-label={`${playing ? 'Pause' : 'Play'} ${entry.filename || 'video preview'}`}
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/18 bg-black/28 text-white shadow-[0_18px_45px_rgba(0,0,0,0.35)] ring-1 ring-black/8 backdrop-blur-xl transition-all duration-200 group-hover:scale-[1.06] group-hover:bg-black/38 dark:border-white/14 dark:bg-white/12 dark:text-white dark:group-hover:bg-white/16">
@@ -251,7 +251,7 @@ export default function DashboardVideoCard({
 
       <Link
         href={`/roast/${entry.id}`}
-        className="mt-2 block cursor-pointer rounded-[16px] px-1 py-1 transition-colors hover:bg-black/[0.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f5f2] dark:hover:bg-white/[0.03] dark:focus-visible:ring-offset-[#09090b]"
+        className="mt-2 block cursor-pointer rounded-[16px] px-1 py-1 transition-colors hover:bg-black/[0.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f5f2] dark:hover:bg-white/[0.03] dark:focus-visible:ring-offset-[#09090b]"
         aria-label={`Open roast details for ${entry.filename || 'untitled video'}`}
       >
         <div className="flex items-baseline justify-between gap-2">
@@ -270,7 +270,7 @@ export default function DashboardVideoCard({
           <p className="min-w-0 truncate text-[11px] text-zinc-400 transition-colors group-hover:text-zinc-500 dark:text-zinc-500 dark:group-hover:text-zinc-400">
             {entry.filename || 'Open full roast'}
           </p>
-          <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-500/85 transition-transform duration-200 group-hover:translate-x-0.5 dark:text-orange-300/85">
+          <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-600/85 transition-transform duration-200 group-hover:translate-x-0.5 dark:text-sky-300/85">
             Open
             <ArrowUpRight className="h-3 w-3" />
           </span>

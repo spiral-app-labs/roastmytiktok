@@ -35,7 +35,7 @@ export default function TabBar<Id extends string>({
               'font-mono text-[11px] uppercase tracking-[0.18em]',
               'transition-colors duration-200',
               isActive
-                ? 'text-orange-300'
+                ? 'text-sky-300'
                 : 'text-zinc-500 hover:text-zinc-300',
             ].join(' ')}
           >
@@ -46,7 +46,7 @@ export default function TabBar<Id extends string>({
                   className={[
                     'rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none',
                     isActive
-                      ? 'bg-orange-500/15 text-orange-200'
+                      ? 'bg-sky-500/15 text-sky-200'
                       : 'bg-white/5 text-zinc-400',
                   ].join(' ')}
                 >
@@ -57,7 +57,7 @@ export default function TabBar<Id extends string>({
             {isActive && (
               <motion.span
                 layoutId="analyze-tab-underline"
-                className="absolute inset-x-3 -bottom-px h-[2px] rounded-full bg-gradient-to-r from-orange-400 to-pink-500"
+                className="absolute inset-x-3 -bottom-px h-[2px] rounded-full bg-gradient-to-r from-sky-400 via-blue-400 to-violet-400"
                 transition={
                   shouldReduceMotion
                     ? { duration: 0 }

@@ -43,14 +43,11 @@ function scoreTier(score: number): Tier {
 }
 
 function useCountUp(target: number, shouldAnimate: boolean, durationMs = 900): number {
-  const [value, setValue] = useState(shouldAnimate ? 0 : target);
+  const [value, setValue] = useState(() => (shouldAnimate ? 0 : target));
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!shouldAnimate) {
-      setValue(target);
-      return;
-    }
+    if (!shouldAnimate) return;
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / durationMs);
@@ -64,7 +61,7 @@ function useCountUp(target: number, shouldAnimate: boolean, durationMs = 900): n
     };
   }, [target, shouldAnimate, durationMs]);
 
-  return value;
+  return shouldAnimate ? value : target;
 }
 
 export default function RoastMasthead({ roast, projection }: RoastMastheadProps) {
@@ -143,14 +140,14 @@ export default function RoastMasthead({ roast, projection }: RoastMastheadProps)
         />
       </div>
 
-      <div className="mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 font-mono text-sm text-emerald-100">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-emerald-400/80">
+      <div className="mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-sky-400/25 bg-sky-500/10 px-4 py-2 font-mono text-sm text-sky-50 shadow-[0_10px_30px_-18px_rgba(59,130,246,0.45)]">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-sky-300/80">
           Hook-gated
         </span>
         <span className="tabular-nums">{projection.currentExpected}</span>
         <svg
           aria-hidden
-          className="h-3.5 w-3.5 text-emerald-300/80"
+          className="h-3.5 w-3.5 text-sky-300/80"
           fill="none"
           viewBox="0 0 24 24"
           strokeWidth={2.5}
@@ -163,11 +160,11 @@ export default function RoastMasthead({ roast, projection }: RoastMastheadProps)
           />
         </svg>
         <span className="font-semibold tabular-nums">{projection.improvedExpected}</span>
-        <span className="text-emerald-300/80">views</span>
+        <span className="text-sky-300/80">views</span>
         {projection.multiplier && (
           <>
-            <span aria-hidden className="mx-0.5 text-emerald-500/50">·</span>
-            <span className="text-emerald-300/90">{projection.multiplier}</span>
+            <span aria-hidden className="mx-0.5 text-sky-500/50">·</span>
+            <span className="text-sky-300/90">{projection.multiplier}</span>
           </>
         )}
       </div>

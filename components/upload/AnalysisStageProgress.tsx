@@ -100,15 +100,15 @@ export function AnalysisStageProgress({
 
   return (
     <div
-      className={`rounded-[28px] border border-orange-500/20 bg-zinc-950/85 shadow-2xl shadow-orange-500/5 backdrop-blur-xl ${
+      className={`rounded-[28px] border border-sky-500/20 bg-zinc-950/85 shadow-2xl shadow-sky-500/5 backdrop-blur-xl ${
         compact ? 'p-5' : 'p-6 sm:p-8'
       }`}
     >
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl flex-1">
-          <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-orange-300">
+          <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/25 bg-sky-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-200">
             <motion.span
-              className="h-2 w-2 rounded-full bg-orange-400"
+              className="h-2 w-2 rounded-full bg-sky-400"
               animate={{ opacity: [1, 0.35, 1] }}
               transition={{ duration: 1.15, repeat: Infinity }}
             />
@@ -123,11 +123,11 @@ export function AnalysisStageProgress({
           <div className="mt-5 space-y-2">
             <div className="flex items-center justify-between text-xs text-zinc-500">
               <span>Overall progress</span>
-              <span className="font-mono text-orange-300">{percent}%</span>
+              <span className="font-mono text-sky-300">{percent}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-orange-500 via-orange-400 to-pink-500"
+                className="h-full rounded-full bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500"
                 animate={{ width: `${percent}%` }}
                 transition={{ duration: 0.45, ease: 'easeOut' }}
               />
@@ -148,7 +148,7 @@ export function AnalysisStageProgress({
                   stageState === 'done'
                     ? 'border-emerald-500/25 bg-emerald-500/10'
                     : stageState === 'active'
-                      ? 'border-orange-500/30 bg-orange-500/10'
+                      ? 'border-sky-500/30 bg-sky-500/10'
                       : 'border-zinc-800/80 bg-zinc-900/40'
                 }`}
               >
@@ -158,7 +158,7 @@ export function AnalysisStageProgress({
                       stageState === 'done'
                         ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
                         : stageState === 'active'
-                          ? 'border-orange-500/30 bg-orange-500/15 text-orange-200'
+                          ? 'border-sky-500/30 bg-sky-500/15 text-sky-200'
                           : 'border-zinc-700 bg-zinc-900 text-zinc-500'
                     }`}
                   >
@@ -182,7 +182,7 @@ export function AnalysisStageProgress({
                       stageState === 'done'
                         ? 'text-emerald-300'
                         : stageState === 'active'
-                          ? 'text-orange-300'
+                          ? 'text-sky-300'
                           : 'text-zinc-600'
                     }`}
                   >

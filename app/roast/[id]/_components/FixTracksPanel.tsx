@@ -34,7 +34,7 @@ export default function FixTracksPanel({ roast }: FixTracksPanelProps) {
               <div key={`${fix.do}-${index}`} className="rounded-xl border border-white/[0.06] bg-zinc-950/60 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-semibold text-white">{fix.do}</span>
-                  <span className="rounded-full border border-orange-400/20 bg-orange-500/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-orange-300">
+                  <span className="rounded-full border border-sky-400/20 bg-sky-500/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-sky-200">
                     {fix.impact}
                   </span>
                 </div>

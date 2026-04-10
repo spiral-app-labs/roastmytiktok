@@ -76,8 +76,8 @@ export default function AnalyzeAccountPage() {
     <div className="relative min-h-screen">
       {/* Background orbs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-b from-orange-500/10 via-pink-500/4 to-transparent blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-[360px] w-[500px] rounded-full bg-gradient-to-tl from-pink-500/8 to-transparent blur-3xl" />
+        <div className="absolute -top-40 left-1/2 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-b from-sky-500/10 via-blue-500/5 to-transparent blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-[360px] w-[500px] rounded-full bg-gradient-to-tl from-violet-500/8 to-transparent blur-3xl" />
       </div>
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pt-20 pb-16 sm:px-6 lg:px-8 lg:pt-14">
@@ -90,13 +90,13 @@ export default function AnalyzeAccountPage() {
         >
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 hover:text-orange-300 transition-colors"
+            className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 transition-colors hover:text-sky-300"
           >
             ← Dashboard
           </Link>
           <h1 className="mt-4 font-display text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-6xl">
             Your account{' '}
-            <span className="fire-text">analysis</span>
+            <span className="bg-gradient-to-r from-sky-300 via-blue-300 to-violet-300 bg-clip-text text-transparent">analysis</span>
           </h1>
           <p className="mt-3 max-w-xl text-sm text-zinc-400 sm:text-base">
             Every roast in one place. Patterns, rankings, and the next move — private, only you can

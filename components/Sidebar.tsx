@@ -87,13 +87,13 @@ export default function Sidebar() {
 
         <div className="px-1 pt-1">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-gradient-to-br from-orange-500 via-amber-500 to-pink-500 text-white shadow-[0_12px_30px_rgba(249,115,22,0.32)] dark:from-orange-400 dark:via-amber-300 dark:to-orange-500 dark:text-zinc-950 dark:shadow-[0_14px_34px_rgba(251,191,36,0.2)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-gradient-to-br from-sky-500 via-blue-500 to-violet-500 text-white shadow-[0_12px_30px_rgba(59,130,246,0.32)] dark:from-sky-400 dark:via-blue-300 dark:to-violet-400 dark:text-zinc-950 dark:shadow-[0_14px_34px_rgba(96,165,250,0.24)]">
               <Flame className="h-4.5 w-4.5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 whitespace-nowrap">
                 <span className="font-display text-[17px] font-semibold tracking-[-0.04em] text-zinc-950 dark:text-white">Go Viral</span>
-                <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+                <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                   Beta
                 </span>
               </div>
@@ -121,7 +121,7 @@ export default function Sidebar() {
                   <Icon className={`h-[18px] w-[18px] ${active ? 'text-white dark:text-zinc-950' : 'text-zinc-400 dark:text-zinc-500'}`} />
                   <span className="font-medium">{item.label}</span>
                 </span>
-                {active && <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_14px_rgba(251,146,60,0.7)] dark:bg-orange-300 dark:shadow-[0_0_16px_rgba(253,186,116,0.8)]" />}
+                {active && <span className="h-2 w-2 rounded-full bg-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.7)] dark:bg-sky-300 dark:shadow-[0_0_16px_rgba(125,211,252,0.8)]" />}
               </Link>
             );
           })}

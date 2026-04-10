@@ -346,8 +346,8 @@ export default function AnalyzePage() {
     <main className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-orange-500/10 via-pink-500/5 to-transparent blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-gradient-to-br from-pink-500/5 to-transparent blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-sky-500/10 via-blue-500/6 to-transparent blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 h-[300px] w-[300px] rounded-full bg-gradient-to-br from-violet-500/8 to-transparent blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
       <div className="relative z-10 max-w-5xl w-full space-y-8">
@@ -384,11 +384,11 @@ export default function AnalyzePage() {
           >
             {error === getUploadErrorMessage('rate_limited') ? (
               <div className="text-center space-y-3">
-                <p className="font-semibold text-orange-400">Free limit reached</p>
+                <p className="font-semibold text-sky-300">Free limit reached</p>
                 <p className="text-zinc-400 text-xs">{getUploadErrorMessage('rate_limited')}</p>
                 <a
                   href="/pricing"
-                  className="inline-block px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white text-xs font-bold hover:opacity-90 transition-opacity"
+                  className="inline-block rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
                 >
                   Upgrade
                 </a>
@@ -404,7 +404,7 @@ export default function AnalyzePage() {
                 {error}
                 <button
                   onClick={() => router.push('/')}
-                  className="block mt-3 mx-auto text-orange-400 hover:text-orange-300 transition-colors text-sm"
+                  className="block mt-3 mx-auto text-sky-300 transition-colors text-sm hover:text-sky-200"
                 >
                   &larr; Try again
                 </button>
@@ -431,7 +431,7 @@ export default function AnalyzePage() {
                 layout
                 className={`rounded-xl border transition-all duration-500 overflow-hidden ${
                   isActive
-                    ? 'bg-zinc-900/80 border-orange-500/50 card-glow shadow-lg shadow-orange-500/5'
+                    ? 'border-sky-500/50 bg-zinc-900/80 card-glow shadow-lg shadow-sky-500/10'
                     : isDone
                       ? 'bg-zinc-900/40 border-green-500/30'
                       : 'bg-zinc-900/20 border-zinc-800/30 opacity-50'
@@ -450,7 +450,7 @@ export default function AnalyzePage() {
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm">{agent.name}</div>
                     {isActive ? (
-                      <div className="text-xs text-orange-400/80 truncate">
+                      <div className="truncate text-xs text-sky-300/80">
                         <RotatingMessage messages={loadingMessages} />
                       </div>
                     ) : (
@@ -478,9 +478,9 @@ export default function AnalyzePage() {
                         <span className="text-green-500 text-lg">✓</span>
                       </motion.div>
                     ) : isActive ? (
-                      <span className="text-orange-400 flex items-center gap-2">
+                      <span className="flex items-center gap-2 text-sky-300">
                         <motion.span
-                          className="h-2.5 w-2.5 rounded-full bg-orange-400"
+                          className="h-2.5 w-2.5 rounded-full bg-sky-400"
                           animate={{ opacity: [1, 0.35, 1], scale: [1, 1.25, 1] }}
                           transition={{ duration: 1.1, repeat: Infinity }}
                         />
@@ -504,7 +504,7 @@ export default function AnalyzePage() {
                       <div className="px-4 pb-4 space-y-2 border-t border-zinc-800/50 pt-3">
                         <p className="text-sm text-zinc-300 leading-relaxed">{result.roastText}</p>
                         <div className="flex items-start gap-2 text-xs text-zinc-500 bg-zinc-800/30 rounded-lg p-2.5">
-                          <span className="text-orange-400 mt-0.5 shrink-0">💡</span>
+                          <span className="mt-0.5 shrink-0 text-sky-300">💡</span>
                           <span>{result.improvementTip}</span>
                         </div>
                       </div>
@@ -516,7 +516,7 @@ export default function AnalyzePage() {
                 {isActive && (
                   <div className="h-0.5 bg-zinc-800 overflow-hidden">
                     <motion.div
-                      className="h-full w-1/3 bg-gradient-to-r from-transparent via-orange-500 to-transparent"
+                      className="h-full w-1/3 bg-gradient-to-r from-transparent via-sky-500 to-transparent"
                       animate={{ x: ['-100%', '300%'] }}
                       transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
                     />

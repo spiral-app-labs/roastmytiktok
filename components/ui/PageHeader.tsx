@@ -23,7 +23,7 @@ export function PageHeader({
       {backHref && (
         <Link
           href={backHref}
-          className="text-sm text-zinc-500 hover:text-orange-400 transition-colors mb-4 inline-block"
+          className="mb-4 inline-block text-sm text-zinc-500 transition-colors hover:text-sky-400"
         >
           {backLabel}
         </Link>

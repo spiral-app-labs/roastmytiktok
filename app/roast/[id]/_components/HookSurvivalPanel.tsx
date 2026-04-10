@@ -51,9 +51,9 @@ export default function HookSurvivalPanel({ roast }: HookSurvivalPanelProps) {
         </div>
       </div>
 
-      <div className="grid gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 backdrop-blur-sm sm:grid-cols-3 sm:p-6">
+      <div className="grid gap-4 rounded-2xl border border-sky-500/[0.12] bg-[linear-gradient(180deg,rgba(14,24,44,0.72),rgba(9,12,20,0.9))] p-5 backdrop-blur-sm sm:grid-cols-3 sm:p-6">
         {rows.map((row) => (
-          <div key={row.label} className="rounded-2xl border border-white/[0.06] bg-zinc-950/60 p-4">
+          <div key={row.label} className="rounded-2xl border border-sky-500/[0.12] bg-[linear-gradient(180deg,rgba(15,23,42,0.72),rgba(9,9,11,0.78))] p-4 shadow-[0_18px_40px_-28px_rgba(59,130,246,0.35)]">
             <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">{row.label}</div>
             <div className="mt-3 text-3xl font-black text-white">{row.value}</div>
             <p className="mt-2 text-xs leading-relaxed text-zinc-400">{row.note}</p>

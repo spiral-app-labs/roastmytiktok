@@ -192,7 +192,7 @@ export default function AnalyticsPage() {
           <p className="text-sm text-zinc-500 mb-6">Upload your first video to start tracking your performance.</p>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Go to Dashboard
           </Link>
@@ -277,7 +277,7 @@ export default function AnalyticsPage() {
                 <p className="text-xs text-zinc-500 mt-0.5">
                   Last {chartData.length} analyses
                   {selectedDim && (
-                    <span className="ml-1 text-orange-400">
+                    <span className="ml-1 text-sky-400">
                       · {AGENTS.find(a => a.key === selectedDim)?.name.replace(' Agent', '')}
                     </span>
                   )}
@@ -286,9 +286,9 @@ export default function AnalyticsPage() {
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => setSelectedDim(null)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
                     selectedDim === null
-                      ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                      ? 'border border-sky-500/30 bg-sky-500/15 text-sky-300'
                       : 'text-zinc-500 border border-zinc-800 hover:text-zinc-300 hover:border-zinc-700'
                   }`}
                 >
@@ -300,7 +300,7 @@ export default function AnalyticsPage() {
                     onClick={() => setSelectedDim(agent.key === selectedDim ? null : agent.key)}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
                       selectedDim === agent.key
-                        ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                        ? 'border border-sky-500/30 bg-sky-500/15 text-sky-300'
                         : 'text-zinc-500 border border-zinc-800 hover:text-zinc-300 hover:border-zinc-700'
                     }`}
                   >
@@ -395,7 +395,7 @@ export default function AnalyticsPage() {
                           </div>
                           <p className="text-xs text-zinc-400 line-clamp-2 mb-2">{issue.finding}</p>
                           <p className="text-xs text-zinc-500">
-                            <span className="text-orange-400/80 font-medium">Fix:</span>{' '}
+                            <span className="font-medium text-sky-400/80">Fix:</span>{' '}
                             {FIX_SUGGESTIONS[issue.dimension] ?? 'Address this in your next video.'}
                           </p>
                         </div>
@@ -451,7 +451,7 @@ export default function AnalyticsPage() {
           >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-white">Recent Analyses</h2>
-              <Link href="/history" className="text-xs text-zinc-500 hover:text-orange-400 transition-colors flex items-center gap-1">
+              <Link href="/history" className="flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-sky-400">
                 View all <ChevronRight className="w-3 h-3" />
               </Link>
             </div>

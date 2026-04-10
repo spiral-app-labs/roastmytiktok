@@ -26,7 +26,7 @@ function ScriptPreview({ script }: { script: GeneratedScript }) {
         <div className="flex items-center gap-2 mb-2">
           <span className="text-sm">🎣</span>
           <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Hook Lab</span>
-          <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full">0-5s</span>
+          <span className="rounded-full bg-sky-500/20 px-1.5 py-0.5 text-xs text-sky-300">0-5s</span>
         </div>
         <p className="text-sm text-zinc-200 italic">&ldquo;{script.hook}&rdquo;</p>
         {script.hookLab?.firstShotDirection ? (
@@ -82,7 +82,7 @@ function SourceBadge({ source }: { source?: ScriptSource }) {
   const config = {
     created: { label: 'Created', class: 'bg-blue-500/20 text-blue-400' },
     improved: { label: 'Improved', class: 'bg-purple-500/20 text-purple-400' },
-    roast: { label: 'Post-Roast', class: 'bg-orange-500/20 text-orange-400' },
+    roast: { label: 'Post-Roast', class: 'bg-sky-500/20 text-sky-300' },
   };
   const s = source || 'roast';
   const c = config[s] || config.roast;
@@ -160,7 +160,7 @@ function ScriptCard({ saved, onDelete }: { saved: SavedScript; onDelete: (id: st
           <div className="flex items-center gap-2 shrink-0">
             <Link
               href={`/roast/${saved.roastId}`}
-              className="text-xs text-zinc-500 hover:text-orange-400 transition-colors px-2 py-1"
+              className="px-2 py-1 text-xs text-zinc-500 transition-colors hover:text-sky-400"
             >
               View roast →
             </Link>
@@ -169,7 +169,7 @@ function ScriptCard({ saved, onDelete }: { saved: SavedScript; onDelete: (id: st
               className={`text-xs px-2.5 py-1.5 rounded-lg border transition-all ${
                 copied
                   ? 'border-green-500/30 text-green-400 bg-green-500/10'
-                  : 'border-zinc-700 text-zinc-400 hover:border-orange-500/40 hover:text-white'
+                  : 'border-zinc-700 text-zinc-400 hover:border-sky-500/40 hover:text-white'
               }`}
             >
               {copied ? 'Copied!' : 'Copy'}
@@ -186,7 +186,7 @@ function ScriptCard({ saved, onDelete }: { saved: SavedScript; onDelete: (id: st
 
         <button
           onClick={() => setExpanded(!expanded)}
-          className="mt-3 text-xs text-zinc-500 hover:text-orange-400 transition-colors flex items-center gap-1"
+          className="mt-3 flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-sky-400"
         >
           <span>{expanded ? '▲ Hide' : '▼ Preview'} script</span>
         </button>
@@ -213,8 +213,12 @@ export default function ScriptsPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setScripts(getScripts());
-    setMounted(true);
+    const timer = window.setTimeout(() => {
+      setScripts(getScripts());
+      setMounted(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleDelete = (id: string) => {
@@ -252,11 +256,11 @@ export default function ScriptsPage() {
             <div className="flex items-center gap-3">
               <Link
                 href="/scripts/create"
-                className="inline-flex items-center gap-1.5 fire-gradient text-white font-semibold px-4 py-2 rounded-xl text-sm hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
               >
                 ✍️ Create New Script
               </Link>
-              <Link href="/" className="text-sm text-zinc-500 hover:text-orange-400 transition-colors">
+              <Link href="/" className="text-sm text-zinc-500 transition-colors hover:text-sky-400">
                 ← New Roast
               </Link>
             </div>
@@ -282,7 +286,7 @@ export default function ScriptsPage() {
             <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
               <Link
                 href="/scripts/create"
-                className="inline-flex items-center gap-2 fire-gradient text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-6 py-3 font-semibold text-white transition-opacity hover:opacity-90"
               >
                 ✍️ Create New Script
               </Link>

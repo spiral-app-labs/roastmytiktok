@@ -72,21 +72,21 @@ export default function TikTokAccountCTA() {
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-24 -right-20 h-64 w-64 rounded-full bg-gradient-to-br from-orange-500/20 to-pink-500/10 blur-3xl"
+        className="pointer-events-none absolute -top-24 -right-20 h-64 w-64 rounded-full bg-gradient-to-br from-sky-500/20 to-violet-500/10 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-gradient-to-tr from-pink-500/15 to-orange-500/5 blur-3xl"
+        className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-gradient-to-tr from-violet-500/15 to-sky-500/5 blur-3xl"
       />
 
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-orange-300/80">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-sky-300/80">
             Bulk pattern analysis
           </div>
           <h2 className="mt-3 font-display text-2xl sm:text-3xl font-bold leading-tight text-white">
             Analyze an entire{' '}
-            <span className="fire-text">TikTok account</span>
+            <span className="bg-gradient-to-r from-sky-300 via-blue-300 to-violet-300 bg-clip-text text-transparent">TikTok account</span>
           </h2>
           <p className="mt-2 text-sm text-zinc-400 max-w-xl">
             Drop any public handle and we&apos;ll fetch the last 30 videos, score them, and surface
@@ -95,7 +95,7 @@ export default function TikTokAccountCTA() {
         </div>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3 lg:min-w-[420px]">
-          <div className="flex items-center rounded-2xl border border-white/10 bg-zinc-950/60 px-4 py-3 focus-within:border-orange-400/50 transition-colors">
+          <div className="flex items-center rounded-2xl border border-white/10 bg-zinc-950/60 px-4 py-3 transition-colors focus-within:border-sky-400/50">
             <span className="select-none text-zinc-500 text-sm">@</span>
             <input
               type="text"
@@ -115,11 +115,11 @@ export default function TikTokAccountCTA() {
             disabled={loading || !handle.trim()}
             className={[
               'rounded-2xl px-5 py-3',
-              'bg-gradient-to-r from-orange-500 to-pink-500',
+              'bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500',
               'text-sm font-semibold text-white',
-              'shadow-lg shadow-orange-500/25',
+              'shadow-lg shadow-sky-500/25',
               'transition-all duration-200',
-              'hover:opacity-95 hover:shadow-orange-500/40',
+              'hover:opacity-95 hover:shadow-sky-500/40',
               'disabled:opacity-40 disabled:cursor-not-allowed',
               'flex items-center justify-center gap-2',
             ].join(' ')}

@@ -131,9 +131,9 @@ export default function HookSpotlight({ roast, videoId }: HookSpotlightProps) {
       <div className="grid grid-cols-1 gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 backdrop-blur-sm sm:p-6 lg:grid-cols-[280px_1fr] lg:gap-7 lg:p-7">
         {/* Video clip panel */}
         <div className="relative">
-          <div className="pointer-events-none absolute -inset-6 rounded-[32px] bg-[radial-gradient(circle_at_35%_35%,rgba(59,130,246,0.2),transparent_38%),radial-gradient(circle_at_65%_68%,rgba(249,115,22,0.22),transparent_46%),radial-gradient(circle_at_55%_48%,rgba(236,72,153,0.14),transparent_52%)] blur-2xl" />
+          <div className="pointer-events-none absolute -inset-6 rounded-[32px] bg-[radial-gradient(circle_at_35%_35%,rgba(56,189,248,0.2),transparent_38%),radial-gradient(circle_at_65%_68%,rgba(99,102,241,0.2),transparent_46%),radial-gradient(circle_at_55%_48%,rgba(139,92,246,0.16),transparent_52%)] blur-2xl" />
           <div className="pointer-events-none absolute -inset-10 rounded-[42px] bg-[radial-gradient(circle,rgba(59,130,246,0.14),transparent_55%)] blur-[70px]" />
-          <div className="relative aspect-[9/16] w-full max-w-[280px] overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-950 shadow-[0_26px_80px_-34px_rgba(59,130,246,0.4),0_18px_48px_-28px_rgba(249,115,22,0.45)]">
+          <div className="relative aspect-[9/16] w-full max-w-[280px] overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-950 shadow-[0_26px_80px_-34px_rgba(59,130,246,0.45),0_18px_48px_-28px_rgba(99,102,241,0.32)]">
             {videoUrl && !videoError ? (
               <video
                 ref={videoRef}
@@ -170,9 +170,9 @@ export default function HookSpotlight({ roast, videoId }: HookSpotlightProps) {
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.15em] text-white/90 backdrop-blur-sm">
                 <span
-                  className={[
-                    'h-1.5 w-1.5 rounded-full',
-                    isPlaying ? 'bg-orange-400 animate-pulse' : 'bg-zinc-500',
+                    className={[
+                      'h-1.5 w-1.5 rounded-full',
+                    isPlaying ? 'bg-sky-400 animate-pulse' : 'bg-zinc-500',
                   ].join(' ')}
                 />
                 0:00 – 0:05

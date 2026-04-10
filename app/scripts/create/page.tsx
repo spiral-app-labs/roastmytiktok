@@ -51,8 +51,8 @@ function SelectPill({ label, selected, onClick }: { label: string; selected: boo
       onClick={onClick}
       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
         selected
-          ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg shadow-orange-500/25'
-          : 'bg-zinc-800/60 text-zinc-400 border border-zinc-700 hover:border-orange-500/40 hover:text-white'
+          ? 'bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 text-white shadow-lg shadow-sky-500/25'
+          : 'border border-zinc-700 bg-zinc-800/60 text-zinc-400 hover:border-sky-500/40 hover:text-white'
       }`}
     >
       {label}
@@ -110,7 +110,7 @@ function ScriptOutput({ script, onSave }: { script: GeneratedScript; onSave: () 
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">🎣</span>
           <h3 className="text-sm font-bold text-white uppercase tracking-wider">Hook Lab (0-5s)</h3>
-          <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">Primary</span>
+          <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-xs text-sky-300">Primary</span>
         </div>
         <p className="text-sm text-zinc-200 italic leading-relaxed">&ldquo;{script.hook}&rdquo;</p>
 
@@ -169,7 +169,7 @@ function ScriptOutput({ script, onSave }: { script: GeneratedScript; onSave: () 
           {script.scenes.map(scene => (
             <div key={scene.number} className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/50">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold text-orange-400">Scene {scene.number}</span>
+                <span className="text-xs font-bold text-sky-300">Scene {scene.number}</span>
                 <span className="text-xs text-zinc-600">[{scene.timing}]</span>
               </div>
               <p className="text-xs text-zinc-400 mb-1"><span className="text-zinc-600">Action:</span> {scene.action}</p>
@@ -188,7 +188,7 @@ function ScriptOutput({ script, onSave }: { script: GeneratedScript; onSave: () 
         <ul className="space-y-2">
           {script.onScreenText.map((text, i) => (
             <li key={i} className="text-xs text-zinc-300 flex gap-2">
-              <span className="text-orange-400 shrink-0">•</span>
+              <span className="shrink-0 text-sky-300">•</span>
               {text}
             </li>
           ))}
@@ -326,7 +326,7 @@ function ImproveOutput({
           <h3 className="text-sm font-bold text-white">Improved Script</h3>
           <button
             onClick={() => setShowOriginal(!showOriginal)}
-            className="text-xs text-zinc-500 hover:text-orange-400 transition-colors"
+            className="text-xs text-zinc-500 transition-colors hover:text-sky-400"
           >
             {showOriginal ? 'Hide' : 'Show'} original
           </button>
@@ -479,8 +479,8 @@ export default function ScriptStudioPage() {
     <div className="min-h-screen bg-[#0a0a0a]">
       {/* Ambient gradients */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-orange-500/5 blur-3xl" />
-        <div className="absolute -bottom-40 right-1/4 h-96 w-96 rounded-full bg-pink-500/5 blur-3xl" />
+        <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-sky-500/6 blur-3xl" />
+        <div className="absolute -bottom-40 right-1/4 h-96 w-96 rounded-full bg-violet-500/6 blur-3xl" />
       </div>
 
       <div className="relative mx-auto max-w-2xl px-4 py-12 sm:px-6">
@@ -495,7 +495,7 @@ export default function ScriptStudioPage() {
               <span className="text-3xl">✍️</span>
               <h1 className="text-2xl font-black tracking-tight text-white">Hook Lab</h1>
             </div>
-            <Link href="/scripts" className="text-sm text-zinc-500 hover:text-orange-400 transition-colors">
+            <Link href="/scripts" className="text-sm text-zinc-500 transition-colors hover:text-sky-400">
               Script History →
             </Link>
           </div>
@@ -516,7 +516,7 @@ export default function ScriptStudioPage() {
               onClick={() => { setMode('create'); setError(null); }}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 mode === 'create'
-                  ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 text-white shadow-lg shadow-sky-500/20'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -526,7 +526,7 @@ export default function ScriptStudioPage() {
               onClick={() => { setMode('improve'); setError(null); }}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 mode === 'improve'
-                  ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 text-white shadow-lg shadow-sky-500/20'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -553,7 +553,7 @@ export default function ScriptStudioPage() {
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   placeholder="e.g. 3 gym mistakes beginners make that are killing their gains"
-                  className="w-full h-24 bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-orange-500/40 focus:outline-none resize-none transition-colors"
+                  className="h-24 w-full rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-sky-500/40 focus:outline-none resize-none transition-colors"
                 />
               </GlassCard>
 
@@ -633,7 +633,7 @@ export default function ScriptStudioPage() {
                   value={scriptText}
                   onChange={(e) => setScriptText(e.target.value)}
                   placeholder="Paste your TikTok script here. Include everything - hook, dialogue, on-screen text, captions..."
-                  className="w-full h-48 bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-orange-500/40 focus:outline-none resize-none transition-colors font-mono"
+                  className="h-48 w-full rounded-xl border border-zinc-800 bg-zinc-900/80 p-3 font-mono text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-sky-500/40 focus:outline-none resize-none transition-colors"
                 />
                 <p className="text-xs text-zinc-600 mt-1">{scriptText.length} characters</p>
               </GlassCard>

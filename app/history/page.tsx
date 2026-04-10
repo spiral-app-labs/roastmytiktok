@@ -48,10 +48,10 @@ function VideoHistoryCard({ entry, index }: { entry: HistoryEntry; index: number
       <Link href={`/roast/${entry.id}`} className="block group">
         <GlassCard
           variant="interactive"
-          className="relative p-5 h-full overflow-hidden transition-all duration-200 group-hover:border-orange-500/30"
+          className="relative h-full overflow-hidden p-5 transition-all duration-200 group-hover:border-sky-500/30"
         >
           {/* Gradient border shimmer on hover */}
-          <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-br from-orange-500/5 via-transparent to-pink-500/5" />
+          <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-sky-500/6 via-transparent to-violet-500/6 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
           {/* Top: score ring + letter grade */}
           <div className="flex items-center justify-between mb-4">
@@ -77,7 +77,7 @@ function VideoHistoryCard({ entry, index }: { entry: HistoryEntry; index: number
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-3 border-t border-zinc-800/40">
-            <span className="text-xs font-semibold text-orange-400 group-hover:text-orange-300 transition-colors flex items-center gap-1">
+            <span className="flex items-center gap-1 text-xs font-semibold text-sky-400 transition-colors group-hover:text-sky-300">
               View Roast
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="transition-transform group-hover:translate-x-0.5">
                 <path d="M2.5 6h7m0 0L6.5 3m3 3L6.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -116,8 +116,8 @@ export default function HistoryPage() {
     <main className="min-h-screen pb-20 relative">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-orange-500/6 to-transparent blur-3xl" />
-        <div className="absolute bottom-1/3 right-0 w-[400px] h-[400px] bg-gradient-to-tl from-pink-500/4 to-transparent blur-3xl" />
+        <div className="absolute top-0 left-1/2 h-[500px] w-[700px] -translate-x-1/2 bg-gradient-to-b from-sky-500/8 to-transparent blur-3xl" />
+        <div className="absolute bottom-1/3 right-0 h-[400px] w-[400px] bg-gradient-to-tl from-violet-500/6 to-transparent blur-3xl" />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 pt-12">
@@ -128,7 +128,7 @@ export default function HistoryPage() {
           className="mb-8"
         >
           <PageHeader
-            title={<span className="fire-text">Your Roast History</span>}
+            title={<span className="bg-gradient-to-r from-sky-300 via-blue-300 to-violet-300 bg-clip-text text-transparent">Your Roast History</span>}
             subtitle={
               loading
                 ? 'Loading your shame...'
@@ -213,7 +213,7 @@ export default function HistoryPage() {
               {history.length >= 2 && (
                 <Link
                   href="/compare"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-orange-400 hover:text-orange-300 transition-colors"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-sky-400 transition-colors hover:text-sky-300"
                 >
                   ⚔️ Compare two videos
                 </Link>
@@ -228,7 +228,7 @@ export default function HistoryPage() {
               )}
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-orange-400 transition-colors"
+                className="inline-flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-sky-400"
               >
                 + Upload another video
               </Link>

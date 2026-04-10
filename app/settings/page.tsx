@@ -248,8 +248,8 @@ export default function SettingsPage() {
       <div className="min-h-screen bg-[#0a0a0a]">
         {/* Ambient gradients */}
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-orange-500/5 blur-3xl" />
-          <div className="absolute -bottom-40 right-1/4 h-96 w-96 rounded-full bg-pink-500/5 blur-3xl" />
+          <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-sky-500/6 blur-3xl" />
+          <div className="absolute -bottom-40 right-1/4 h-96 w-96 rounded-full bg-violet-500/6 blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-2xl px-4 py-12 sm:px-6">
@@ -277,7 +277,7 @@ export default function SettingsPage() {
                     <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest ${
                       isFree
                         ? "bg-zinc-800 text-zinc-300"
-                        : "bg-gradient-to-r from-orange-500 to-pink-500 text-white"
+                        : "bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 text-white"
                     }`}>
                       {plan}
                     </span>
@@ -297,7 +297,7 @@ export default function SettingsPage() {
                   ) : (
                     <Link
                       href="/pricing"
-                      className="rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 px-4 py-2 text-xs font-bold text-white shadow shadow-orange-500/20 transition hover:opacity-90"
+                      className="rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-4 py-2 text-xs font-bold text-white shadow shadow-sky-500/20 transition hover:opacity-90"
                     >
                       Upgrade to Pro →
                     </Link>
@@ -314,7 +314,7 @@ export default function SettingsPage() {
                     </p>
                     <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-800">
                       <div
-                        className="h-1.5 rounded-full bg-gradient-to-r from-orange-500 to-pink-500"
+                        className="h-1.5 rounded-full bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500"
                         style={{ width: `${Math.min((roastsUsed / Math.max(roastsLimit, 1)) * 100, 100)}%` }}
                       />
                     </div>
@@ -330,7 +330,7 @@ export default function SettingsPage() {
 
                 {isFree && (
                   <p className="mt-4 text-xs text-zinc-500">
-                    <Link href="/pricing" className="text-orange-400 hover:underline">View all plans</Link>
+                    <Link href="/pricing" className="text-sky-400 hover:underline">View all plans</Link>
                     {" "}to unlock unlimited roasts, priority processing, and account-level analysis.
                   </p>
                 )}
@@ -348,7 +348,7 @@ export default function SettingsPage() {
                   <select
                     value={nicheCategory}
                     onChange={(e) => setNicheCategory(e.target.value)}
-                    className="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:border-orange-500/40 focus:outline-none transition-colors capitalize"
+                    className="w-full rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-2.5 text-sm capitalize text-zinc-200 focus:border-sky-500/40 focus:outline-none transition-colors"
                   >
                     <option value="">Select your niche...</option>
                     {NICHE_CATEGORIES.map((n) => (
@@ -367,7 +367,7 @@ export default function SettingsPage() {
                       onChange={(e) => setCreatorInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCreator())}
                       placeholder="@username"
-                      className="flex-1 bg-zinc-900/80 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-orange-500/40 focus:outline-none transition-colors"
+                      className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-sky-500/40 focus:outline-none transition-colors"
                     />
                     <button
                       onClick={addCreator}
@@ -404,9 +404,9 @@ export default function SettingsPage() {
                     nicheAnalyzing
                       ? "bg-zinc-800 text-zinc-500 cursor-wait"
                       : nicheCategory
-                      ? "bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow shadow-orange-500/20 hover:opacity-90"
+                      ? "bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 text-white shadow shadow-sky-500/20 hover:opacity-90"
                       : "bg-zinc-800 text-zinc-600 cursor-not-allowed"
-                  }`}
+                    }`}
                 >
                   {nicheAnalyzing ? "Analyzing..." : "Analyze Niche"}
                 </button>

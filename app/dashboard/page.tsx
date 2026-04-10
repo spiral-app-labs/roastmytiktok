@@ -35,11 +35,11 @@ function UploadVideoButton({
 }) {
   return (
     <div className={`relative inline-flex ${className}`}>
-      <div className="pointer-events-none absolute inset-0 rounded-full bg-orange-500/58 opacity-90 blur-[34px] scale-[1.2]" />
+      <div className="pointer-events-none absolute inset-0 scale-[1.2] rounded-full bg-sky-500/50 opacity-90 blur-[34px]" />
       <button
         type="button"
         onClick={onClick}
-        className="relative inline-flex cursor-pointer items-center gap-2.5 rounded-full bg-orange-500 px-6 py-3.5 text-[15px] font-semibold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_18px_44px_rgba(249,115,22,0.22)] transition-transform duration-200 hover:scale-[1.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f5f2] dark:focus-visible:ring-offset-[#09090b]"
+        className="relative inline-flex cursor-pointer items-center gap-2.5 rounded-full bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-6 py-3.5 text-[15px] font-semibold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_18px_44px_rgba(59,130,246,0.24)] transition-transform duration-200 hover:scale-[1.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5f5f2] dark:focus-visible:ring-offset-[#09090b]"
       >
         <Plus className="h-5 w-5" />
         Upload video
