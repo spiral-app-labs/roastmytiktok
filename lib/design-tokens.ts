@@ -61,11 +61,11 @@ export const colors = {
 } as const;
 
 export const gradients = {
-  primary: 'from-orange-500 to-pink-500',
-  primaryBg: 'bg-gradient-to-r from-orange-500 to-pink-500',
+  primary: 'from-sky-500 via-blue-500 to-violet-500',
+  primaryBg: 'bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500',
   heroTopLeft: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251,146,60,0.12), transparent)',
   heroBottomRight: 'radial-gradient(ellipse 60% 40% at 80% 80%, rgba(236,72,153,0.08), transparent)',
-  subtleGlow: 'from-orange-500/5 to-pink-500/5',
+  subtleGlow: 'from-sky-500/6 to-violet-500/6',
 } as const;
 
 export const borderRadius = {
@@ -84,8 +84,8 @@ export const backdropBlur = {
 
 export const shadows = {
   card: 'shadow-2xl shadow-black/50',
-  button: 'shadow-lg shadow-orange-500/25',
-  buttonHover: 'hover:shadow-orange-500/40',
+  button: 'shadow-lg shadow-sky-500/20',
+  buttonHover: 'hover:shadow-sky-500/35',
 } as const;
 
 export const spacing = {
@@ -104,7 +104,7 @@ export const glassCard = {
 } as const;
 
 export const button = {
-  primary: 'bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-orange-500/15',
+  primary: 'bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 text-white font-semibold hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-sky-500/20',
   secondary: 'bg-[#18181b] text-zinc-200 font-medium border border-zinc-800 hover:border-zinc-700 hover:bg-[#1f1f23] transition-all disabled:opacity-40 disabled:cursor-not-allowed',
   ghost: 'text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-all disabled:opacity-40 disabled:cursor-not-allowed',
   sizes: {

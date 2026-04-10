@@ -4,20 +4,20 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import GoViralMark from '@/components/branding/GoViralMark';
 import {
-  LayoutDashboard,
+  Home,
   Clock,
   BarChart3,
   Settings,
   LogOut,
   Menu,
   X,
-  Flame,
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Home', icon: Home },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/history', label: 'History', icon: Clock },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -87,12 +87,12 @@ export default function Sidebar() {
 
         <div className="px-1 pt-1">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-gradient-to-br from-sky-500 via-blue-500 to-violet-500 text-white shadow-[0_12px_30px_rgba(59,130,246,0.32)] dark:from-sky-400 dark:via-blue-300 dark:to-violet-400 dark:text-zinc-950 dark:shadow-[0_14px_34px_rgba(96,165,250,0.24)]">
-              <Flame className="h-4.5 w-4.5" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-sky-500/20 bg-sky-500/10 text-sky-600 shadow-[0_14px_34px_rgba(59,130,246,0.2)] dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300 dark:shadow-[0_14px_34px_rgba(96,165,250,0.16)]">
+              <GoViralMark className="h-6.5 w-6.5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="font-display text-[17px] font-semibold tracking-[-0.04em] text-zinc-950 dark:text-white">Go Viral</span>
+                <span className="font-display text-[18px] font-bold tracking-[-0.04em] text-zinc-950 dark:text-white">Go Viral</span>
                 <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                   Beta
                 </span>

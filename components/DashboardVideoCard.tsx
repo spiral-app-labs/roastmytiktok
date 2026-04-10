@@ -9,15 +9,15 @@ import { getSignedVideoUrl, useVideoThumbnail } from '@/lib/video-thumbnails';
 
 function scoreTone(score: number) {
   if (score >= 80) {
-    return 'text-emerald-700 dark:text-emerald-300';
+    return 'text-emerald-700 dark:text-emerald-200';
   }
   if (score >= 60) {
-    return 'text-amber-700 dark:text-amber-300';
+    return 'text-yellow-700 dark:text-yellow-300';
   }
   if (score >= 40) {
-    return 'text-orange-700 dark:text-orange-300';
+    return 'text-amber-700 dark:text-amber-300';
   }
-  return 'text-rose-700 dark:text-rose-300';
+  return 'text-rose-700 dark:text-rose-200';
 }
 
 const URL_CACHE_TTL = 50 * 60 * 1000; // 50 minutes (signed URLs expire at 60)
@@ -242,7 +242,7 @@ export default function DashboardVideoCard({
         )}
 
         {isBest && (
-          <span className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_10px_24px_rgba(16,185,129,0.38)] ring-1 ring-white/30 backdrop-blur-sm">
+          <span className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_12px_28px_rgba(52,211,153,0.45)] ring-1 ring-white/35 backdrop-blur-sm">
             <Crown className="h-3 w-3" />
             Top score
           </span>
@@ -256,10 +256,10 @@ export default function DashboardVideoCard({
       >
         <div className="flex items-baseline justify-between gap-2">
           <div className="flex min-w-0 items-baseline gap-1.5">
-            <span className={`font-display text-xl font-semibold leading-none tracking-tight ${toneClass}`}>
+            <span className={`font-display text-[2rem] font-black leading-none tracking-[-0.05em] ${toneClass}`}>
               {displayScore}
             </span>
-            <span className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="truncate text-[13px] text-zinc-500 dark:text-zinc-400">
               {scoreLabel}
             </span>
           </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { AGENTS } from '@/lib/agents';
 import { AgentRoast, RoastResult } from '@/lib/types';
@@ -24,85 +24,6 @@ interface AgentStatus {
   status: 'waiting' | 'analyzing' | 'done';
   result?: AgentRoast;
   score?: number;
-}
-
-// Fun rotating messages per agent while they analyze
-const AGENT_LOADING_MESSAGES: Record<string, string[]> = {
-  hook: [
-    `Judging your first 3 seconds like a TikTok addict with zero patience...`,
-    `Calculating how fast you'd make me scroll...`,
-    `Checking if you pass the "thumb stop" test...`,
-    `Asking: would I watch this or swipe immediately?`,
-  ],
-  visual: [
-    `Analyzing lighting like your mom's disappointed face...`,
-    `Checking if your background looks like a college dorm or a studio...`,
-    `Roasting your camera angle choices in real time...`,
-    `Figuring out if your setup says "creator" or "just got out of bed"...`,
-  ],
-  caption: [
-    `Reading your on-screen text with extreme judgment...`,
-    `Checking if anyone can actually read your captions...`,
-    `Looking for CTAs that probably don't exist...`,
-    `Evaluating your font choices (sorry in advance)...`,
-  ],
-  audio: [
-    `Listening closely and wincing occasionally...`,
-    `Checking if the music drowns you out (spoiler: probably)...`,
-    `Analyzing your voice energy and mic game...`,
-    `Asking: is this audio or a hostage situation?`,
-  ],
-  algorithm: [
-    `Doing TikTok algorithm math that would bore you to tears...`,
-    `Counting hashtags and judging each one personally...`,
-    `Checking your engagement bait strategy (or lack thereof)...`,
-    `Asking: did you study the algorithm or just wing it?`,
-  ],
-  authenticity: [
-    `Doing a full vibe check on your creator energy...`,
-    `Detecting scripted vs genuine human behavior...`,
-    `Asking the hard question: do people actually like you?`,
-    `Checking if your personality came through or stayed home...`,
-  ],
-  conversion: [
-    `Counting how many times you forgot to say "follow me"...`,
-    `Looking for CTAs that would actually make people act...`,
-    `Checking if this video converts or just exists...`,
-    `Running ROI analysis on your content strategy...`,
-  ],
-};
-
-const DEFAULT_LOADING_MESSAGES = [
-  `Waking up the AI agents...`,
-  `Tracing the weak spots in the video...`,
-  `Figuring out what earns the next second of attention...`,
-  `Packaging the roast into something useful...`,
-];
-
-function RotatingMessage({ messages }: { messages: string[] }) {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex(i => (i + 1) % messages.length);
-    }, 2200);
-    return () => clearInterval(timer);
-  }, [messages]);
-
-  return (
-    <AnimatePresence mode="wait">
-      <motion.span
-        key={index}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -6 }}
-        transition={{ duration: 0.35 }}
-        className="block"
-      >
-        {messages[index]}
-      </motion.span>
-    </AnimatePresence>
-  );
 }
 
 async function getImageDimensions(src: string): Promise<{ width: number | null; height: number | null }> {
@@ -133,13 +54,14 @@ export default function AnalyzePage() {
   const [thumbDataUrl, setThumbDataUrl] = useState<string | null>(() => getCachedThumbnail(id));
   const [thumbWidth, setThumbWidth] = useState<number | null>(null);
   const [thumbHeight, setThumbHeight] = useState<number | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const connectedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     const abortController = new AbortController();
 
-    async function loadThumbnail() {
+    async function loadMedia() {
       const cached = getCachedThumbnail(id);
       if (cached) {
         setThumbDataUrl(cached);
@@ -154,6 +76,7 @@ export default function AnalyzePage() {
       try {
         const signedUrl = await getSignedVideoUrl(id, abortController.signal);
         if (!signedUrl || cancelled) return;
+        setVideoUrl(signedUrl);
 
         const frame = await extractFirstFrame(signedUrl);
         if (cancelled) return;
@@ -173,7 +96,7 @@ export default function AnalyzePage() {
       }
     }
 
-    void loadThumbnail();
+    void loadMedia();
 
     return () => {
       cancelled = true;
@@ -341,6 +264,10 @@ export default function AnalyzePage() {
     if (!analysisDone) return hookStarted ? 'accessibility' : 'hook';
     return null;
   }, [agentStatuses, analysisDone, hookStarted]);
+  const activeAgent = useMemo(
+    () => AGENTS.find((agent) => agent.key === activePreviewDimension) ?? null,
+    [activePreviewDimension],
+  );
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
@@ -372,6 +299,7 @@ export default function AnalyzePage() {
             thumbDataUrl={thumbDataUrl}
             thumbWidth={thumbWidth}
             thumbHeight={thumbHeight}
+            videoUrl={videoUrl}
             activeDimension={activePreviewDimension}
           />
         </motion.div>
@@ -413,130 +341,30 @@ export default function AnalyzePage() {
           </motion.div>
         )}
 
-        {/* Agent Progress Cards */}
-        <div className="space-y-3 text-left">
-          {AGENTS.map((agent, i) => {
-            const status = agentStatuses[agent.key];
-            const isActive = status?.status === 'analyzing';
-            const isDone = status?.status === 'done';
-            const result = status?.result;
-            const loadingMessages = AGENT_LOADING_MESSAGES[agent.key] ?? DEFAULT_LOADING_MESSAGES;
-
-            return (
-              <motion.div
-                key={agent.key}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 }}
-                layout
-                className={`rounded-xl border transition-all duration-500 overflow-hidden ${
-                  isActive
-                    ? 'border-sky-500/50 bg-zinc-900/80 card-glow shadow-lg shadow-sky-500/10'
-                    : isDone
-                      ? 'bg-zinc-900/40 border-green-500/30'
-                      : 'bg-zinc-900/20 border-zinc-800/30 opacity-50'
-                }`}
-              >
-                <div className="flex items-center gap-4 p-4">
-                  {/* Emoji with pulse on active */}
-                  <motion.span
-                    className="text-2xl"
-                    animate={isActive ? { scale: [1, 1.2, 1] } : {}}
-                    transition={{ duration: 1, repeat: Infinity }}
-                  >
-                    {agent.emoji}
-                  </motion.span>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm">{agent.name}</div>
-                    {isActive ? (
-                      <div className="truncate text-xs text-sky-300/80">
-                        <RotatingMessage messages={loadingMessages} />
-                      </div>
-                    ) : (
-                      <div className="text-xs text-zinc-500">{agent.analyzes}</div>
-                    )}
-                  </div>
-
-                  <div className="text-sm flex items-center gap-2 shrink-0">
-                    {isDone ? (
-                      <motion.div
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 300 }}
-                        className="flex items-center gap-2"
-                      >
-                        {status.score !== undefined && (
-                          <span className={`text-xl font-bold font-mono ${
-                            status.score >= 70 ? 'text-green-400' :
-                            status.score >= 50 ? 'text-yellow-400' :
-                            'text-red-400'
-                          }`}>
-                            {status.score}<span className="text-xs text-zinc-500">/100</span>
-                          </span>
-                        )}
-                        <span className="text-green-500 text-lg">✓</span>
-                      </motion.div>
-                    ) : isActive ? (
-                      <span className="flex items-center gap-2 text-sky-300">
-                        <motion.span
-                          className="h-2.5 w-2.5 rounded-full bg-sky-400"
-                          animate={{ opacity: [1, 0.35, 1], scale: [1, 1.25, 1] }}
-                          transition={{ duration: 1.1, repeat: Infinity }}
-                        />
-                        <span className="text-xs">Analyzing</span>
-                      </span>
-                    ) : (
-                      <span className="text-zinc-600 text-xs">Waiting</span>
-                    )}
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {isDone && result && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.4, ease: 'easeOut' }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 pb-4 space-y-2 border-t border-zinc-800/50 pt-3">
-                        <p className="text-sm text-zinc-300 leading-relaxed">{result.roastText}</p>
-                        <div className="flex items-start gap-2 text-xs text-zinc-500 bg-zinc-800/30 rounded-lg p-2.5">
-                          <span className="mt-0.5 shrink-0 text-sky-300">💡</span>
-                          <span>{result.improvementTip}</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Active shimmer bar */}
-                {isActive && (
-                  <div className="h-0.5 bg-zinc-800 overflow-hidden">
-                    <motion.div
-                      className="h-full w-1/3 bg-gradient-to-r from-transparent via-sky-500 to-transparent"
-                      animate={{ x: ['-100%', '300%'] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                    />
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Bottom hint */}
-        {completedCount === 0 && !error && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2 }}
-            className="text-zinc-600 text-xs"
+        {!error && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12, duration: 0.4 }}
+            className="rounded-[24px] border border-white/[0.08] bg-white/[0.02] px-5 py-4 backdrop-blur-sm"
           >
-            Progress advances as each analysis stage finishes, then the final action plan is assembled.
-          </motion.p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                  Current pass
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {activeAgent ? `${activeAgent.emoji} ${activeAgent.name}` : 'Preparing hook read'}
+                </p>
+              </div>
+              <div className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-sky-300">
+                {completedCount}/{AGENTS.length} checks finished
+              </div>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+              {statusMessage}
+            </p>
+          </motion.div>
         )}
       </div>
     </main>

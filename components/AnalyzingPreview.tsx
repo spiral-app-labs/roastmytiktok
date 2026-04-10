@@ -7,6 +7,7 @@ interface Props {
   thumbDataUrl: string | null;
   thumbWidth: number | null;
   thumbHeight: number | null;
+  videoUrl?: string | null;
   /**
    * Which dimension is currently being analyzed. Drives both the bubble copy
    * (so the messages match what the AI is actually doing right now) and
@@ -112,10 +113,12 @@ export function AnalyzingPreview({
   thumbDataUrl,
   thumbWidth,
   thumbHeight,
+  videoUrl = null,
   activeDimension,
 }: Props) {
   const [bubbles, setBubbles] = useState<Bubble[]>(() => buildSetForDimension(activeDimension ?? 'generic'));
   const currentDimRef = useRef<string | null>(activeDimension ?? 'generic');
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Compute aspect ratio for the thumbnail wrapper. Defaults to 9:16 (TikTok)
   // when we don't yet have dimensions.
@@ -143,6 +146,36 @@ export function AnalyzingPreview({
       clearTimeout(t);
     };
   }, [activeDimension]);
+
+  useEffect(() => {
+    if (!videoUrl) return;
+    const el = videoRef.current;
+    if (!el) return;
+
+    const restartHookLoop = () => {
+      if (el.currentTime >= 6) {
+        el.currentTime = 0;
+        void el.play().catch(() => {});
+      }
+    };
+
+    const startPlayback = () => {
+      el.currentTime = 0;
+      void el.play().catch(() => {});
+    };
+
+    el.addEventListener('timeupdate', restartHookLoop);
+    el.addEventListener('loadedmetadata', startPlayback, { once: true });
+
+    if (el.readyState >= 1) {
+      startPlayback();
+    }
+
+    return () => {
+      el.removeEventListener('timeupdate', restartHookLoop);
+      el.removeEventListener('loadedmetadata', startPlayback);
+    };
+  }, [videoUrl]);
 
   return (
     <div className="relative w-full flex justify-center px-4 py-6">
@@ -186,7 +219,17 @@ export function AnalyzingPreview({
         <div className="absolute -inset-1 rounded-[28px] bg-gradient-to-b from-sky-500/35 via-blue-500/25 to-violet-500/20 blur-md opacity-80" />
         <div className="absolute inset-0 rounded-[26px] ring-1 ring-white/10" />
 
-        {thumbDataUrl ? (
+        {videoUrl ? (
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            muted
+            playsInline
+            autoPlay
+            preload="auto"
+            className="relative h-full w-full rounded-[26px] object-cover shadow-[0_30px_80px_-30px_rgba(59,130,246,0.55)]"
+          />
+        ) : thumbDataUrl ? (
           // Using a plain <img> on purpose: data URLs don't play nicely with next/image
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -197,6 +240,18 @@ export function AnalyzingPreview({
         ) : (
           <div className="relative flex h-full w-full items-center justify-center rounded-[26px] bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-[0_30px_80px_-30px_rgba(59,130,246,0.55)]">
             <span className="text-5xl">🎬</span>
+          </div>
+        )}
+
+        {videoUrl && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-white/90 backdrop-blur-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />
+              Hook loop
+            </span>
+            <span className="inline-flex items-center rounded-full bg-black/55 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-white/75 backdrop-blur-sm">
+              0:00 - 0:06
+            </span>
           </div>
         )}
 

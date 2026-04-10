@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import GoViralMark from '@/components/branding/GoViralMark';
 
 const APP_ROUTE_PREFIXES = ['/dashboard', '/history', '/analytics', '/analyze', '/roast', '/analyze-account', '/account', '/calendar', '/settings', '/compare', '/scripts'];
 const MARKETING_ROOT_PATHS = ['/', '/login', '/bypass'];
@@ -66,7 +67,7 @@ export default function AppNav() {
   const showAppNav = resolved && hasAccess && !MARKETING_ROOT_PATHS.includes(pathname);
 
   const appLinks = [
-    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/dashboard', label: 'Home' },
     { href: '/analyze-account', label: 'Account Analysis' },
     { href: '/calendar', label: 'Calendar' },
     { href: '/history', label: 'History' },
@@ -83,10 +84,12 @@ export default function AppNav() {
     <nav aria-label="Main navigation" className="sticky top-0 z-50 border-b border-white/5 bg-[#0b0908]/80 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link href={showAppNav ? '/dashboard' : '/'} className="flex items-center gap-3">
-          <span className="text-2xl">🔥</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-500/20 bg-sky-500/10 text-sky-400 shadow-[0_12px_30px_rgba(59,130,246,0.18)]">
+            <GoViralMark className="h-5.5 w-5.5" />
+          </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-black tracking-tight text-orange-400">Go Viral</span>
-            <span className="hidden rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-300 sm:inline-flex">
+            <span className="text-xl font-black tracking-tight text-sky-300">Go Viral</span>
+            <span className="hidden rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300 sm:inline-flex">
               Beta
             </span>
           </div>
