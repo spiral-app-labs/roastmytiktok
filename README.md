@@ -32,6 +32,12 @@ npm test
 
 `npm test` is intentionally pinned to the deterministic Node test runner with explicit files. That keeps boot clean in local/CI, avoids `npx` bootstrap noise, and guarantees at least one analysis-pipeline smoke path via `tests/hook-analysis-pipeline.test.mjs`.
 
+## Secret handling
+
+Run `npm run verify:secrets` before launch work that touches credentials. It verifies that `.env.local` and `.vercel/.env.development.local` are not tracked by git.
+
+Launch secret-handling and rotation steps are documented in [docs/launch-secret-handling.md](docs/launch-secret-handling.md).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
