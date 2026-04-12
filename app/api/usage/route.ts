@@ -1,12 +1,11 @@
 import { NextRequest } from 'next/server';
-import { getUsageSnapshot, getUsageSubject } from '@/lib/usage';
-import { isPaidUser } from '@/lib/rate-limit';
+import { getUsageSnapshot, resolveUsageContext } from '@/lib/usage';
 
 export async function GET(req: NextRequest) {
   try {
     const sessionId = req.nextUrl.searchParams.get('session_id');
-    const subject = getUsageSubject(req, sessionId);
-    const usage = await getUsageSnapshot(subject, isPaidUser(req) ? 'paid' : 'free');
+    const context = await resolveUsageContext(req, sessionId);
+    const usage = await getUsageSnapshot(context.subject, context.plan);
 
     return Response.json({ usage });
   } catch (error) {
