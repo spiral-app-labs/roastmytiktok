@@ -28,7 +28,6 @@ export default function TermsPage() {
               <li>You are the original creator of the video content.</li>
               <li>You own or have all necessary rights to the video.</li>
               <li>The video does not infringe on any third party&apos;s intellectual property, privacy, or other rights.</li>
-              <li>Any TikTok accounts you connect or analyze are your own accounts.</li>
             </ul>
             <p className="mt-3">
               We reserve the right to remove any content and terminate accounts that violate this policy.

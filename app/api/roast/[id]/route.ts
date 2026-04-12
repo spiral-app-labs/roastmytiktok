@@ -42,7 +42,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       agents,
       metadata: {
         duration: 0,
-        description: data.source === 'upload' ? 'Uploaded video' : 'TikTok URL',
+        description: 'Uploaded video',
       },
     });
   } catch (err) {

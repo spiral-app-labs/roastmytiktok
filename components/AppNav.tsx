@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import GoViralMark from '@/components/branding/GoViralMark';
 
-const APP_ROUTE_PREFIXES = ['/dashboard', '/history', '/analytics', '/analyze', '/roast', '/analyze-account', '/account', '/calendar', '/settings', '/compare', '/scripts'];
+const APP_ROUTE_PREFIXES = ['/dashboard', '/history', '/analytics', '/analyze', '/roast', '/calendar', '/settings', '/compare', '/scripts'];
 const MARKETING_ROOT_PATHS = ['/', '/login', '/bypass'];
 
 function isAppRoute(pathname: string) {
@@ -68,7 +68,6 @@ export default function AppNav() {
 
   const appLinks = [
     { href: '/dashboard', label: 'Home' },
-    { href: '/analyze-account', label: 'Account Analysis' },
     { href: '/calendar', label: 'Calendar' },
     { href: '/history', label: 'History' },
     { href: '/settings', label: '⚙️ Settings' },

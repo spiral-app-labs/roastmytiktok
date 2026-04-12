@@ -40,7 +40,7 @@ export default function RoastPage() {
     let cancelled = false;
 
     async function loadRoast() {
-      const source = searchParams.get('source') === 'upload' ? 'upload' : 'url';
+      const source = 'upload';
       const filename = searchParams.get('filename') ?? undefined;
 
       // Try sessionStorage first
