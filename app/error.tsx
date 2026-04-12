@@ -22,9 +22,9 @@ export default function Error({
 
       <div className="relative space-y-6">
         <p className="text-6xl">💥</p>
-        <h1 className="text-2xl font-bold text-white">Something broke</h1>
+        <h1 className="text-2xl font-bold text-white">Something broke on our side</h1>
         <p className="text-zinc-400 max-w-md mx-auto text-sm leading-relaxed">
-          Even our AI agents couldn&apos;t save this one. Try again - if it keeps happening, the team is probably already on it.
+          Your roast is still better off with a retry than a refresh spiral. Try again, and if this keeps happening we&apos;ll need to inspect the failure.
         </p>
 
         <div className="flex items-center justify-center gap-3 pt-2">

@@ -1,48 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AGENTS } from '@/lib/agents';
-
-function CountdownTimer({ launchDate }: { launchDate: string }) {
-  const calcTimeLeft = useCallback(() => {
-    const diff = new Date(launchDate).getTime() - Date.now();
-    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-    return {
-      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-      hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-      minutes: Math.floor((diff / (1000 * 60)) % 60),
-      seconds: Math.floor((diff / 1000) % 60),
-    };
-  }, [launchDate]);
-
-  const [timeLeft, setTimeLeft] = useState(calcTimeLeft);
-
-  useEffect(() => {
-    const timer = setInterval(() => setTimeLeft(calcTimeLeft()), 1000);
-    return () => clearInterval(timer);
-  }, [calcTimeLeft]);
-
-  const units = [
-    { label: 'Days', value: timeLeft.days },
-    { label: 'Hours', value: timeLeft.hours },
-    { label: 'Min', value: timeLeft.minutes },
-    { label: 'Sec', value: timeLeft.seconds },
-  ];
-
-  return (
-    <div className="flex gap-3 justify-center">
-      {units.map((unit) => (
-        <div key={unit.label} className="bg-zinc-900/80 border border-zinc-800 rounded-xl px-4 py-3 min-w-[72px]">
-          <div className="text-2xl md:text-3xl font-bold text-white tabular-nums">
-            {String(unit.value).padStart(2, '0')}
-          </div>
-          <div className="text-[10px] uppercase tracking-widest text-zinc-500 mt-1">{unit.label}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default function WaitlistLanding() {
   const [email, setEmail] = useState('');
@@ -51,8 +11,6 @@ export default function WaitlistLanding() {
   const [slotsRemaining, setSlotsRemaining] = useState(
     parseInt(process.env.NEXT_PUBLIC_SLOTS_REMAINING || '47', 10)
   );
-
-  const launchDate = process.env.NEXT_PUBLIC_LAUNCH_DATE || '2026-04-07T00:00:00Z';
 
   useEffect(() => {
     fetch('/api/waitlist')
@@ -126,7 +84,7 @@ export default function WaitlistLanding() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
             </span>
-            Launching April 7th
+            Waitlist open
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9]">
@@ -141,21 +99,23 @@ export default function WaitlistLanding() {
           </h2>
 
           <p className="text-base md:text-lg text-zinc-400 max-w-xl mx-auto leading-relaxed">
-            Upload your video. 6 AI agents tear it apart - frame by frame, word by word, beat by beat.
-            Your hook, your lighting, your audio, your captions. Nothing gets a pass.
-            Get the brutally honest feedback that will actually make you go viral.
+            Go Viral is live for creator feedback today, and this page is for people who want launch updates and early notice when new access tiers open up.
+            Join the list if you want the blunt version of what&apos;s shipping next.
           </p>
         </motion.div>
 
-        {/* Countdown */}
+        {/* Waitlist status */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-center space-y-3"
         >
-          <p className="text-xs uppercase tracking-widest text-zinc-500">Roasting begins in</p>
-          <CountdownTimer launchDate={launchDate} />
+          <p className="text-xs uppercase tracking-widest text-zinc-500">What this list is for</p>
+          <div className="mx-auto max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/60 px-6 py-5 text-sm leading-relaxed text-zinc-400">
+            We&apos;re using the waitlist to track interest for future launches, pricing updates, and broader access.
+            No fake countdown, no surprise charge, no pretending checkout is live when it isn&apos;t.
+          </div>
         </motion.div>
 
         {/* Email Capture */}
@@ -209,7 +169,7 @@ export default function WaitlistLanding() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                 </span>
                 <span className="text-red-400 font-semibold">{slotsRemaining} spots left</span>
-                <span className="text-zinc-600">- founding rate locked at signup</span>
+                <span className="text-zinc-600">in the current early-access batch</span>
               </div>
               <p className="text-zinc-600 text-xs text-center leading-relaxed">
                 By joining, you agree to receive launch updates at this email. No spam - unsubscribe anytime.
@@ -304,16 +264,16 @@ export default function WaitlistLanding() {
             </p>
             <p className="text-zinc-500 text-sm leading-relaxed">
               Cool. So did every creator sitting at 200 views wondering why the algorithm hates them.
-              Our agents have analyzed thousands of TikToks. They know exactly why yours isn&apos;t hitting.
+              The product is built to inspect your opener, delivery, pacing, visuals, and fix plan without sugarcoating the weak spots.
               The question is: can you handle hearing it?
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
             {[
-              { stat: '100+', label: 'Data points analyzed' },
               { stat: '6', label: 'AI agents' },
-              { stat: '30s', label: 'To destroy your ego' },
+              { stat: '1', label: 'Clear verdict' },
+              { stat: '1', label: 'Next fix to make' },
             ].map((item) => (
               <div key={item.label}>
                 <div className="text-2xl font-black fire-text">{item.stat}</div>
@@ -331,7 +291,7 @@ export default function WaitlistLanding() {
           className="text-center space-y-4 pb-8"
         >
           <p className="text-zinc-500 text-xs">
-            No free tier. No sugarcoating. Just the truth about your content.
+            Join the waitlist if you want launch updates without the fake urgency.
           </p>
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -340,7 +300,7 @@ export default function WaitlistLanding() {
             Claim Your Spot
           </button>
           <p className="text-zinc-600 text-xs">
-            {slotsRemaining} spots remaining at launch price
+            {slotsRemaining} spots remaining in the current early-access batch
           </p>
         </motion.div>
       </div>
