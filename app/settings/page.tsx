@@ -6,6 +6,7 @@ import Link from "next/link";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionId } from "@/lib/history";
+import { getSubscriptionSnapshot } from "@/lib/settings";
 import type { DebugLevel } from "@/lib/debug-types";
 
 const ADMIN_EMAILS = ["ethan@ethantalreja.com", "ethan@spiralapplabs.com"];
@@ -20,6 +21,14 @@ const DEBUG_LEVELS: { value: DebugLevel; label: string; description: string }[] 
   { value: "complex", label: "Complex", description: "All agent results, niche detection, hook summary, frame metadata." },
   { value: "extremely_verbose", label: "Extremely Verbose", description: "Everything in Complex + raw AI responses, transcript, errors, all timings." },
 ];
+
+interface UsageState {
+  plan: "free" | "paid";
+  roastsAllTime: number;
+  roastsInWindow: number;
+  minutesProcessedAllTime: number;
+  roastLimit: number | null;
+}
 
 // ─── Danger Modal ─────────────────────────────────────────────────────────────
 
@@ -100,10 +109,16 @@ export default function SettingsPage() {
   // Auth + admin state
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [subscriptionRenewalDate, setSubscriptionRenewalDate] = useState<string | null>(null);
   const [debugLevel, setDebugLevel] = useState<DebugLevel>("off");
   const [debugSaving, setDebugSaving] = useState(false);
   const [debugSaved, setDebugSaved] = useState(false);
-  const [usage, setUsage] = useState<{ roastsAllTime: number; roastsInWindow: number; minutesProcessedAllTime: number; roastLimit: number | null; } | null>(null);
+  const [usage, setUsage] = useState<UsageState | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
 
   // Niche state
   const [nicheCategory, setNicheCategory] = useState("");
@@ -119,6 +134,7 @@ export default function SettingsPage() {
       if (!user) return;
       setUserEmail(user.email ?? null);
       setUserId(user.id);
+      setSubscriptionRenewalDate(getSubscriptionSnapshot(user).renewalDate);
       const stored = user.user_metadata?.debug_level as string | undefined;
       const valid: DebugLevel[] = ["off", "simple", "complex", "extremely_verbose"];
       if (stored && valid.includes(stored as DebugLevel)) {
@@ -129,6 +145,14 @@ export default function SettingsPage() {
       const savedCreators = user.user_metadata?.inspiration_creators;
       if (savedNiche) setNicheCategory(savedNiche);
       if (savedCreators && Array.isArray(savedCreators)) setInspirationCreators(savedCreators);
+
+      fetch("/api/settings/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: getSessionId() }),
+      }).catch(() => {
+        // Keep silent here and surface errors only on user-triggered actions.
+      });
     });
 
     fetch(`/api/usage?session_id=${encodeURIComponent(getSessionId())}`)
@@ -138,6 +162,7 @@ export default function SettingsPage() {
       })
       .then((data) => {
         setUsage({
+          plan: data.usage?.plan === "paid" ? "paid" : "free",
           roastsAllTime: data.usage?.totals?.roastsAllTime ?? 0,
           roastsInWindow: data.usage?.totals?.roastsInWindow ?? 0,
           minutesProcessedAllTime: data.usage?.totals?.minutesProcessedAllTime ?? 0,
@@ -145,7 +170,7 @@ export default function SettingsPage() {
         });
       })
       .catch(() => {
-        setUsage({ roastsAllTime: 0, roastsInWindow: 0, minutesProcessedAllTime: 0, roastLimit: 3 });
+        setUsage({ plan: "free", roastsAllTime: 0, roastsInWindow: 0, minutesProcessedAllTime: 0, roastLimit: 3 });
       });
   }, []);
 
@@ -207,31 +232,95 @@ export default function SettingsPage() {
   }
 
   // Subscription (wired to Stripe billing portal)
-  const plan = "Free";
+  const plan = usage?.plan === "paid" ? "Pro" : "Free";
   const isFree = plan === "Free";
-  const renewalDate = "-";
+  const renewalDate = subscriptionRenewalDate;
   const roastsUsed = usage?.roastsInWindow ?? 0;
-  const roastsLimit = usage?.roastLimit ?? 3;
+  const roastsLimit = usage?.roastLimit;
+  const roastMeterWidth = roastsLimit == null
+    ? 100
+    : Math.min((roastsUsed / Math.max(roastsLimit, 1)) * 100, 100);
   const totalMinutesProcessed = usage?.minutesProcessedAllTime ?? 0;
   const totalRoasts = usage?.roastsAllTime ?? 0;
 
-  function deleteAccount() {
-    localStorage.clear();
-    setDangerModal(null);
-    window.location.href = "/";
+  async function openBillingPortal() {
+    setBillingLoading(true);
+    setSettingsError(null);
+    setSettingsMessage(null);
+
+    try {
+      const res = await fetch("/api/settings/billing-portal", { method: "POST" });
+      const data = await res.json().catch(() => null) as { error?: string; url?: string } | null;
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || "Failed to open billing");
+      }
+
+      window.location.href = data.url;
+    } catch (err) {
+      setSettingsError(err instanceof Error ? err.message : "Failed to open billing");
+    } finally {
+      setBillingLoading(false);
+    }
   }
 
-  function exportData() {
-    const data = {
-      exportedAt: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "goviral-data.json";
-    a.click();
-    URL.revokeObjectURL(url);
+  async function exportData() {
+    setExportLoading(true);
+    setSettingsError(null);
+    setSettingsMessage(null);
+
+    try {
+      const res = await fetch("/api/settings/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: getSessionId() }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to export your data");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "goviral-account-export.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      setSettingsMessage("Your account export is downloading.");
+    } catch (err) {
+      setSettingsError(err instanceof Error ? err.message : "Failed to export your data");
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
+  async function deleteAccount() {
+    setDeleteLoading(true);
+    setSettingsError(null);
+    setSettingsMessage(null);
+
+    try {
+      const res = await fetch("/api/settings/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: getSessionId() }),
+      });
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to delete your account");
+      }
+
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      setDangerModal(null);
+      window.location.href = "/login?account_deleted=1";
+    } catch (err) {
+      setSettingsError(err instanceof Error ? err.message : "Failed to delete your account");
+      setDangerModal(null);
+    } finally {
+      setDeleteLoading(false);
+    }
   }
 
   return (
@@ -239,10 +328,10 @@ export default function SettingsPage() {
       <ConfirmModal
         open={dangerModal === "delete"}
         title="Delete your account?"
-        description="This will permanently delete your account, all your roasts, and linked data. This action cannot be undone."
-        confirmLabel="Yes, delete my account"
+        description="This permanently deletes your Go Viral account plus any roast history already linked to it. If you still have an active subscription, cancel it from billing before deleting."
+        confirmLabel={deleteLoading ? "Deleting..." : "Yes, delete my account"}
         onConfirm={deleteAccount}
-        onCancel={() => setDangerModal(null)}
+        onCancel={() => !deleteLoading && setDangerModal(null)}
       />
 
       <div className="min-h-screen bg-[#0a0a0a]">
@@ -265,6 +354,15 @@ export default function SettingsPage() {
           </motion.div>
 
           <div className="space-y-6">
+            {(settingsMessage || settingsError) && (
+              <div className={`rounded-2xl border px-4 py-3 text-sm ${
+                settingsError
+                  ? "border-red-900/50 bg-red-950/20 text-red-300"
+                  : "border-sky-900/50 bg-sky-950/20 text-sky-200"
+              }`}>
+                {settingsError ?? settingsMessage}
+              </div>
+            )}
 
             {/* ── 1. Subscription ────────────────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.05 }}>
@@ -282,18 +380,19 @@ export default function SettingsPage() {
                       {plan}
                     </span>
                     {!isFree && (
-                      <span className="text-xs text-zinc-500">Renews {renewalDate}</span>
+                      <span className="text-xs text-zinc-500">
+                        {renewalDate ? `Renews ${new Date(renewalDate).toLocaleDateString()}` : "Subscription active"}
+                      </span>
                     )}
                   </div>
                   {!isFree ? (
-                    <a
-                      href="https://billing.stripe.com/p/login/"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={openBillingPortal}
+                      disabled={billingLoading}
                       className="rounded-xl border border-zinc-700 bg-zinc-800/60 px-4 py-2 text-xs font-semibold text-zinc-200 transition hover:border-zinc-500 hover:text-white"
                     >
-                      Manage Subscription →
-                    </a>
+                      {billingLoading ? "Opening..." : "Manage Subscription →"}
+                    </button>
                   ) : (
                     <Link
                       href="/pricing"
@@ -307,24 +406,30 @@ export default function SettingsPage() {
                 {/* Usage stats */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                    <p className="text-xs text-zinc-500 mb-1">Roasts in the last 24 hours</p>
+                    <p className="text-xs text-zinc-500 mb-1">Completed roasts in the last 24 hours</p>
                     <p className="text-2xl font-black text-white">
                       {roastsUsed}
-                      <span className="ml-1 text-base font-normal text-zinc-500">/ {roastsLimit}</span>
+                      <span className="ml-1 text-base font-normal text-zinc-500">
+                        / {roastsLimit == null ? "Unlimited" : roastsLimit}
+                      </span>
                     </p>
                     <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-800">
                       <div
                         className="h-1.5 rounded-full bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500"
-                        style={{ width: `${Math.min((roastsUsed / Math.max(roastsLimit, 1)) * 100, 100)}%` }}
+                        style={{ width: `${roastMeterWidth}%` }}
                       />
                     </div>
-                    <p className="mt-2 text-xs text-zinc-500">This cap is now backed by persisted successful analyses, not a memory-only IP bucket.</p>
+                    <p className="mt-2 text-xs text-zinc-500">
+                      {isFree
+                        ? "Free access is enforced from completed analyses tied to your account, session, or fallback IP."
+                        : "Paid access keeps the same persisted meter, but the free roast cap is removed."}
+                    </p>
                   </div>
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                    <p className="text-xs text-zinc-500 mb-1">Total usage</p>
+                    <p className="text-xs text-zinc-500 mb-1">Lifetime completed usage</p>
                     <p className="text-2xl font-black text-white">{totalRoasts} roasts</p>
-                    <p className="mt-1 text-sm text-zinc-400">{totalMinutesProcessed.toFixed(1)} minutes processed</p>
-                    <p className="mt-2 text-xs text-zinc-500">Every completed roast now records real video minutes for future plan caps.</p>
+                    <p className="mt-1 text-sm text-zinc-400">{totalMinutesProcessed.toFixed(1)} uploaded-video minutes processed</p>
+                    <p className="mt-2 text-xs text-zinc-500">Minutes now come from stored `processed_seconds` on completed sessions instead of a partial query snapshot.</p>
                   </div>
                 </div>
 
@@ -481,23 +586,25 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between rounded-xl border border-zinc-800/60 bg-zinc-900/30 px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold text-zinc-200">Export your data</p>
-                      <p className="text-xs text-zinc-500">Download all your roasts and settings as JSON.</p>
+                      <p className="text-xs text-zinc-500">Download the account data currently stored for you on Go Viral as JSON.</p>
                     </div>
                     <button
                       onClick={exportData}
+                      disabled={exportLoading}
                       className="rounded-xl border border-zinc-700 bg-zinc-800/60 px-4 py-2 text-xs font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-white"
                     >
-                      Export →
+                      {exportLoading ? "Exporting..." : "Export →"}
                     </button>
                   </div>
 
                   <div className="flex items-center justify-between rounded-xl border border-red-900/40 bg-red-950/20 px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold text-red-300">Delete account</p>
-                      <p className="text-xs text-red-400/60">Permanently deletes your account and all data.</p>
+                      <p className="text-xs text-red-400/60">Permanently deletes your account and the data linked to it after any active subscription is canceled.</p>
                     </div>
                     <button
                       onClick={() => setDangerModal("delete")}
+                      disabled={deleteLoading}
                       className="rounded-xl border border-red-800/60 bg-red-900/30 px-4 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-900/50 hover:text-red-300"
                     >
                       Delete account
