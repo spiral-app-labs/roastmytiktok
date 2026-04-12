@@ -5,26 +5,11 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
-const FREE_FEATURES = [
-  { text: `Full video upload + roast flow`, icon: `🎬` },
-  { text: `Overall score, verdict, and full agent breakdowns`, icon: `📊` },
-  { text: `Actionable fixes on every roast`, icon: `💬` },
-  { text: `Saved history and replays`, icon: `🤖` },
-];
-
 const PRO_FEATURES = [
-  { text: `Everything in Monthly`, icon: `♾️`, highlight: true },
-  { text: `Lower effective monthly price`, icon: `🔍`, highlight: true },
-  { text: `Higher limits and extras as they roll out`, icon: `💡`, highlight: true },
-  { text: `Priority processing`, icon: `⚡`, highlight: false },
-  { text: `Export reports`, icon: `📄`, highlight: false },
-  { text: `Best value for frequent creators`, icon: `🏆`, highlight: false },
-];
-
-const SOCIAL_PROOF = [
-  { name: `@brayden.creates`, text: `went from 200 to 14k followers in 3 weeks after fixing what Go Viral flagged. no cap.` },
-  { name: `@liftwithlaura`, text: `the hook agent roasted me so hard I completely rethought my content. 10/10 worth it.` },
-  { name: `@techwithterry`, text: `this thing found issues my editor didn't even catch. brutal but accurate every time.` },
+  { text: `Reserve a yearly billing preference`, icon: `🗓️`, highlight: true },
+  { text: `Get first notice when annual billing is real`, icon: `📬`, highlight: true },
+  { text: `No charge is collected on this page today`, icon: `🧾`, highlight: true },
+  { text: `Uses the same live roast product you can try free`, icon: `🎬`, highlight: false },
 ];
 
 const FAQ = [
@@ -34,7 +19,7 @@ const FAQ = [
   },
   {
     q: `Can I cancel anytime?`,
-    a: `Yes. Cancel in your account settings and you keep access through the end of your billing period. No games.`,
+    a: `There is no live self-serve billing flow on this page yet. If you join the paid-interest list, you are only saving your preference and we will email before any real billing starts.`,
   },
   {
     q: `What file types do you support?`,
@@ -42,15 +27,15 @@ const FAQ = [
   },
   {
     q: `Is there a free trial for Pro?`,
-    a: `Yes - there is still a 7-day trial before the subscription kicks in.`,
+    a: `Not today. Free access is the live way to try Go Viral right now.`,
   },
   {
     q: `What's the difference between free and paid?`,
-    a: `Free gets you a full roast with all 6 agents, a score, and actionable fixes. Paid plans unlock unlimited roasts, priority processing, and export reports.`,
+    a: `Free access is live today. Monthly and yearly buttons currently save your billing preference and add you to the waitlist for paid access updates.`,
   },
   {
     q: `Will this actually help me grow?`,
-    a: `We focus on the first 2-3 seconds - the hook - because that's what TikTok's algorithm tests first. Fix the hook, and the algorithm gives you more distribution. Creators who apply the reshoot plan typically see 5-40x improvement on their next video.`,
+    a: `The product is built to show where your opener, pacing, clarity, and execution lose attention, then give you a sharper fix plan. Growth still depends on whether you actually make the changes.`,
   },
   {
     q: `How is this different from other TikTok analytics tools?`,
@@ -119,7 +104,7 @@ function PlanSignupPanel({ plan, label, buttonClass }: { plan: "monthly" | "year
             <div className="mt-3 rounded-xl border border-zinc-700 bg-zinc-950/80 p-4">
               {status === "success" ? (
                 <p className="text-sm text-zinc-300 text-center py-1">
-                  You&apos;re on the list - we&apos;ll activate your plan and email you when billing goes live.
+                  You&apos;re on the list. We&apos;ll email you before this plan becomes a real checkout option.
                 </p>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-3">
@@ -141,7 +126,7 @@ function PlanSignupPanel({ plan, label, buttonClass }: { plan: "monthly" | "year
                     disabled={status === "loading"}
                     className="w-full py-2.5 rounded-lg font-semibold text-sm fire-gradient text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
-                    {status === "loading" ? "Saving…" : "Lock in beta rate →"}
+                    {status === "loading" ? "Saving…" : "Join paid waitlist →"}
                   </button>
                 </form>
               )}
@@ -317,7 +302,7 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
         >
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-zinc-300 mb-1">Monthly</h2>
-            <p className="text-zinc-500 text-sm">Unlimited analysis in beta once your plan is activated</p>
+            <p className="text-zinc-500 text-sm">Tell us you want a monthly option when paid access opens</p>
           </div>
 
           <div className="mb-8">
@@ -328,14 +313,19 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
           <div className="mb-8">
             <PlanSignupPanel
               plan="monthly"
-              label="Choose Monthly Beta"
+              label="Join Monthly Waitlist"
               buttonClass="block w-full text-center py-3 px-6 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all"
             />
           </div>
 
           <div className="space-y-3 flex-1">
-            <p className="text-xs text-zinc-600 uppercase tracking-wider font-medium mb-2">Everything in Free, plus</p>
-            {FREE_FEATURES.map((f) => (
+            <p className="text-xs text-zinc-600 uppercase tracking-wider font-medium mb-2">What&apos;s true right now</p>
+            {[
+              { icon: '🎬', text: 'Go Viral already offers free roasts today' },
+              { icon: '📬', text: 'This button only saves your monthly billing preference' },
+              { icon: '🧾', text: 'No payment is collected from this page' },
+              { icon: '🔔', text: 'We email before any paid flow goes live' },
+            ].map((f) => (
               <li key={f.text} className="flex items-start gap-2.5 text-sm text-zinc-400 list-none">
                 <span className="mt-0.5 shrink-0">{f.icon}</span>
                 {f.text}
@@ -352,12 +342,12 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
           className="relative bg-zinc-900/60 border border-orange-500/30 rounded-2xl p-7 flex flex-col card-glow"
         >
           <div className="absolute -top-3 left-6 text-xs font-semibold px-3 py-1 rounded-full fire-gradient text-white shadow-lg">
-            Best Value
+            Annual Interest
           </div>
 
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-white mb-1">Yearly</h2>
-            <p className="text-zinc-500 text-sm">Save 20% once yearly beta billing is activated</p>
+            <p className="text-zinc-500 text-sm">Save your spot if you want annual billing once it actually exists</p>
           </div>
 
           <div className="mb-1">
@@ -393,14 +383,14 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
           <div className="mb-3">
             <PlanSignupPanel
               plan="yearly"
-              label="Choose Yearly Beta →"
+              label="Join Yearly Waitlist →"
               buttonClass="block w-full text-center py-4 px-6 rounded-xl font-bold fire-gradient text-white hover:opacity-90 transition-opacity text-base shadow-lg shadow-orange-500/20"
             />
           </div>
-          <p className="text-center text-xs text-zinc-500 mb-8">We&apos;ll email you when billing activates. You&apos;re locked in at the beta rate.</p>
+          <p className="text-center text-xs text-zinc-500 mb-8">You&apos;re saving interest in yearly billing, not completing a purchase.</p>
 
           <div className="space-y-3 flex-1">
-            <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-2">Everything in Monthly, plus</p>
+            <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-2">What&apos;s true right now</p>
             {PRO_FEATURES.map((f) => (
               <li key={f.text} className={`flex items-start gap-2.5 text-sm list-none ${f.highlight ? 'text-zinc-200' : 'text-zinc-400'}`}>
                 <span className="mt-0.5 shrink-0">{f.icon}</span>
@@ -419,14 +409,14 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
       >
         <div className="grid gap-4 md:grid-cols-[1.2fr,2fr]">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">beta checkout path</p>
-            <h3 className="text-2xl font-bold text-white">the signup and payment path is explicit, even before self-serve billing is live.</h3>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-orange-400">current access path</p>
+            <h3 className="text-2xl font-bold text-white">The paid path is transparent: this page records interest, not a real checkout.</h3>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              ['1', 'create account', 'sign in first so your roasts, history, and plan choice are tied to your account.'],
-              ['2', 'choose a plan', 'free stays card-free. monthly or yearly marks the beta plan you want activated.'],
-              ['3', 'activate billing in onboarding', 'during private beta, paid billing is finalized in onboarding instead of pretending there is a live checkout flow today.'],
+              ['1', 'try the product free', 'Upload a video, get a roast, and see whether the feedback format helps you.'],
+              ['2', 'pick a billing preference', 'Monthly or yearly buttons tell us which paid option you want when paid access is ready.'],
+              ['3', 'watch for the real launch', 'We email before self-serve billing goes live instead of pretending checkout is live today.'],
             ].map(([step, title, desc]) => (
               <div key={step} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
                 <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full border border-orange-500/25 bg-orange-500/10 text-sm font-bold text-orange-400">{step}</div>
@@ -446,7 +436,7 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
         className="w-full max-w-4xl mb-20 bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6"
       >
         <h3 className="text-center text-sm font-semibold text-zinc-300 mb-6 uppercase tracking-wider">
-          Compare plans at a glance
+          Current access at a glance
         </h3>
         <div className="grid grid-cols-4 gap-3 text-sm">
           <div className="text-zinc-500 font-medium"></div>
@@ -457,38 +447,18 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
             [`Full agent breakdowns`, `✓`, `✓`, `✓`],
             [`Hook rewrites`, `✓`, `✓`, `✓`],
             [`Reshoot plan`, `✓`, `✓`, `✓`],
-            [`Roast limit`, `3 total`, `Unlimited`, `Unlimited`],
+            [`Roast limit today`, `3 total`, `Waitlist`, `Waitlist`],
             [`Saved history`, `✓`, `✓`, `✓`],
-            [`Account analysis`, `-`, `✓`, `✓`],
-            [`Priority processing`, `-`, `✓`, `✓`],
-            [`Export reports`, `-`, `-`, `✓`],
-            [`Price`, `$0`, `$${monthlyPrice.toFixed(2)}/mo`, `$${yearlyMonthly.toFixed(2)}/mo`],
+            [`Compare two roasts`, `✓`, `✓`, `✓`],
+            [`Account analysis`, `✓`, `✓`, `✓`],
+            [`Paid checkout today`, `-`, `Not live`, `Not live`],
+            [`Planned price`, `$0`, `$${monthlyPrice.toFixed(2)}/mo`, `$${yearlyMonthly.toFixed(2)}/mo`],
           ].map(([feature, free, monthly, yearly]) => (
             <div key={feature} className="contents">
               <div className="text-zinc-400 py-2 border-t border-zinc-800/50">{feature}</div>
               <div className="text-center text-zinc-600 py-2 border-t border-zinc-800/50">{free}</div>
               <div className="text-center text-zinc-500 py-2 border-t border-zinc-800/50">{monthly}</div>
               <div className="text-center py-2 border-t border-zinc-800/50 text-orange-400 font-medium">{yearly}</div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Social proof */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="w-full max-w-3xl mb-20"
-      >
-        <h3 className="text-center text-2xl font-bold text-white mb-8">
-          Creators who fixed their TikTok
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {SOCIAL_PROOF.map((review) => (
-            <div key={review.name} className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5">
-              <p className="text-sm text-zinc-300 leading-relaxed mb-4">{`"${review.text}"`}</p>
-              <p className="text-xs text-zinc-500 font-medium">{review.name}</p>
             </div>
           ))}
         </div>
@@ -517,7 +487,7 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
         className="text-center max-w-lg mx-auto"
       >
         <h3 className="text-2xl font-bold text-white mb-2">Ready to see what&apos;s actually killing your videos?</h3>
-        <p className="text-zinc-500 text-sm mb-6">Start free with no card, or save a paid beta plan now and finish billing during onboarding.</p>
+        <p className="text-zinc-500 text-sm mb-6">Start free with no card, or join the paid waitlist if you want first notice when checkout becomes real.</p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/dashboard"
@@ -529,10 +499,10 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
             href="/login"
             className="inline-block py-4 px-10 rounded-xl font-semibold border border-zinc-700 text-zinc-300 hover:border-orange-500/40 hover:text-white transition-all text-base"
           >
-Choose Paid Beta
+            Join Paid Waitlist
           </Link>
         </div>
-        <p className="text-zinc-600 text-xs mt-4">Free stays card-free. Paid beta billing is activated after sign-in during onboarding.</p>
+        <p className="text-zinc-600 text-xs mt-4">Free access is live. Paid checkout is not live on this page yet.</p>
       </motion.div>
     </main>
   );

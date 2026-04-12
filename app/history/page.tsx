@@ -131,10 +131,10 @@ export default function HistoryPage() {
             title={<span className="bg-gradient-to-r from-sky-300 via-blue-300 to-violet-300 bg-clip-text text-transparent">Your Roast History</span>}
             subtitle={
               loading
-                ? 'Loading your shame...'
+                ? 'Loading your past roasts...'
                 : history.length === 0
-                  ? 'No roasts yet. Go get destroyed.'
-                  : `${history.length} roast${history.length !== 1 ? 's' : ''}. ${history.length >= 3 ? 'The pattern is becoming clear.' : 'Keep going.'}`
+                  ? 'No roasts yet. Start with one video and build a baseline.'
+                  : `${history.length} roast${history.length !== 1 ? 's' : ''} saved. ${history.length >= 3 ? 'You have enough signal to spot patterns.' : 'One more roast will make the comparisons sharper.'}`
             }
             backHref="/"
             backLabel="← Roast another"

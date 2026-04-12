@@ -111,12 +111,12 @@ export default function ComparePage() {
   }
 
   if (history.length < 2) {
-    return (
+      return (
       <main className="min-h-screen pb-20 relative">
         <div className="relative z-10 max-w-4xl mx-auto px-4 pt-12">
           <PageHeader title={<span className="fire-text">Compare Two Videos</span>} subtitle="You need at least two roasts before we can crown a winner." backHref="/history" backLabel="← Back to history" />
           <div className="max-w-md mx-auto mt-12">
-            <EmptyState icon="⚔️" title="not enough ammo yet" description="roast at least two videos, then come back and we'll tell you which one deserves distribution." cta={{ label: 'Roast another video', href: '/' }} />
+            <EmptyState icon="⚔️" title="Compare starts after roast two" description="Roast at least two videos, then come back to see what actually improved, regressed, or stayed flat." cta={{ label: 'Roast another video', href: '/' }} />
           </div>
         </div>
       </main>
@@ -165,7 +165,7 @@ export default function ComparePage() {
 
         {selectedA === selectedB && (
           <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
-            pick two different videos. comparing a video to itself is a nice confidence exercise, not a feature.
+            Pick two different videos. Self-comparison is not useful signal.
           </div>
         )}
 
@@ -343,7 +343,7 @@ export default function ComparePage() {
         )}
 
         {comparing && (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 px-4 py-6 text-center text-zinc-400">loading both roasts and picking a fight...</div>
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 px-4 py-6 text-center text-zinc-400">Loading both roasts and lining up the differences...</div>
         )}
 
         <div className="flex items-center gap-4 text-sm text-zinc-500">

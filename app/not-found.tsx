@@ -13,10 +13,10 @@ export default function NotFound() {
           404
         </p>
         <h1 className="text-2xl font-bold text-white">
-          This page got zero views too
+          This page isn&apos;t here
         </h1>
         <p className="text-zinc-400 max-w-md mx-auto text-sm leading-relaxed">
-          Whatever you were looking for isn&apos;t here. Maybe the URL is wrong, or maybe this page just had a weak hook.
+          The link is broken, expired, or pointed at a route that doesn&apos;t exist. Head back home or jump into the dashboard.
         </p>
 
         <div className="flex items-center justify-center gap-3 pt-2">
