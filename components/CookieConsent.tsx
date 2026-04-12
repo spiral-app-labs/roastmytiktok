@@ -10,11 +10,17 @@ export function CookieConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    try {
-      if (!localStorage.getItem(STORAGE_KEY)) {
-        setVisible(true);
+    const timer = window.setTimeout(() => {
+      try {
+        if (!localStorage.getItem(STORAGE_KEY)) {
+          setVisible(true);
+        }
+      } catch {
+        /* SSR or storage unavailable */
       }
-    } catch { /* SSR or storage unavailable */ }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   function accept() {

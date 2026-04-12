@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useMotionValue, useTransform, animate, useReducedMotion } from 'framer-motion';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 
 interface ScoreRingProps {
   score: number;
@@ -101,7 +101,7 @@ export function ScoreRing({ score, size = 180 }: ScoreRingProps) {
   const palette = useMemo(() => getPalette(score), [score]);
 
   // Unique IDs so multiple rings on the same page don't collide
-  const uid = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+  const uid = useId().replace(/:/g, '');
   const glowFilterId = `score-ring-glow-${uid}`;
   const gradientId = `score-ring-gradient-${uid}`;
   const trackGradientId = `score-ring-track-${uid}`;

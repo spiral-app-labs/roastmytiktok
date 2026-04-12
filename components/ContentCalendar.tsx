@@ -22,10 +22,18 @@ function usePostingTracker() {
   const [postedDays, setPostedDays] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('rmt_posting_tracker');
-      if (stored) setPostedDays(new Set(JSON.parse(stored)));
-    } catch { /* ignore */ }
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = localStorage.getItem('rmt_posting_tracker');
+        if (stored) {
+          setPostedDays(new Set(JSON.parse(stored)));
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const toggleDay = (dateKey: string) => {
@@ -208,11 +216,7 @@ function PostingTracker({ plan }: { plan: PostingPlan }) {
 
 export default function ContentCalendar({ initialNiche }: { initialNiche?: NicheCategory }) {
   const [niche, setNiche] = useState<NicheCategory>(initialNiche ?? 'comedy');
-  const [plan, setPlan] = useState<PostingPlan>(() => getPostingPlan(initialNiche ?? 'comedy'));
-
-  useEffect(() => {
-    setPlan(getPostingPlan(niche));
-  }, [niche]);
+  const plan = getPostingPlan(niche);
 
   return (
     <div className="space-y-6">

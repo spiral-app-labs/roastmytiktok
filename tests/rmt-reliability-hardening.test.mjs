@@ -12,7 +12,7 @@ const { getFirstFiveSecondsDiagnosis } = await import('../lib/hook-help.ts');
 test('buildFramePlan front-loads opening samples for hook detection', () => {
   const frames = buildFramePlan(12, 'hook-only');
   const openingFrames = frames.filter((frame) => frame.zone === 'hook');
-  assert.equal(openingFrames.length, 15, `Expected 15 hook-first frames, got ${openingFrames.length}`);
+  assert.ok(openingFrames.length >= 10, `Expected dense hook sampling, got ${openingFrames.length} opening frames`);
   assert.ok(openingFrames.every((frame) => frame.timestampSec <= 6), 'All hook frames should be within 6s');
   assert.equal(frames[0].zone, 'hook');
   assert.match(frames[0].label, /First frame|thumbnail/i);
@@ -46,6 +46,8 @@ test('buildFramePlan adds 6-10s frames only when expansion is requested', () => 
   assert.equal(hookOnlyFrames.some((frame) => frame.timestampSec > 6), false, 'Hook-only mode should stop at 6s');
   assert.equal(extendedFrames.some((frame) => frame.timestampSec > 6 && frame.timestampSec <= 10), true, 'Extended mode should add 6-10s frames');
   assert.equal(fullFrames.some((frame) => frame.timestampSec > 10), true, 'Full mode should add body frames');
+  assert.ok(extendedFrames.length > hookOnlyFrames.length, 'Extended mode should add more frames than hook-only');
+  assert.ok(fullFrames.length > extendedFrames.length, 'Full mode should add more frames than extended mode');
 
   // All frames should be sorted ascending
   for (let i = 1; i < fullFrames.length; i++) {

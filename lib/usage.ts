@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server.js';
+import { supabaseServer } from './supabase-server.ts';
 
 export type UsageSubject =
   | { type: 'session'; id: string }
