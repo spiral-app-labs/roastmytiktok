@@ -1,5 +1,3 @@
-const DEFAULT_SUPABASE_URL = 'https://eayiazyiotnkggnsvhto.supabase.co';
-
 function getRequiredEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
@@ -55,10 +53,7 @@ export function getSupabasePublicEnv() {
 }
 
 export function getSupabaseServiceEnv(options?: { allowPlaceholderServiceRole?: boolean }) {
-  const url =
-    process.env.SUPABASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
-    DEFAULT_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL?.trim() || getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL');
 
   const serviceRoleKey = options?.allowPlaceholderServiceRole
     ? process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-build-key'
