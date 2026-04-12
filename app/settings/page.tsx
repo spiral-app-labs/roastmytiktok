@@ -21,6 +21,14 @@ const DEBUG_LEVELS: { value: DebugLevel; label: string; description: string }[] 
   { value: "extremely_verbose", label: "Extremely Verbose", description: "Everything in Complex + raw AI responses, transcript, errors, all timings." },
 ];
 
+interface UsageState {
+  plan: "free" | "paid";
+  roastsAllTime: number;
+  roastsInWindow: number;
+  minutesProcessedAllTime: number;
+  roastLimit: number | null;
+}
+
 // ─── Danger Modal ─────────────────────────────────────────────────────────────
 
 function ConfirmModal({
@@ -103,7 +111,7 @@ export default function SettingsPage() {
   const [debugLevel, setDebugLevel] = useState<DebugLevel>("off");
   const [debugSaving, setDebugSaving] = useState(false);
   const [debugSaved, setDebugSaved] = useState(false);
-  const [usage, setUsage] = useState<{ roastsAllTime: number; roastsInWindow: number; minutesProcessedAllTime: number; roastLimit: number | null; } | null>(null);
+  const [usage, setUsage] = useState<UsageState | null>(null);
 
   // Niche state
   const [nicheCategory, setNicheCategory] = useState("");
@@ -138,6 +146,7 @@ export default function SettingsPage() {
       })
       .then((data) => {
         setUsage({
+          plan: data.usage?.plan === "paid" ? "paid" : "free",
           roastsAllTime: data.usage?.totals?.roastsAllTime ?? 0,
           roastsInWindow: data.usage?.totals?.roastsInWindow ?? 0,
           minutesProcessedAllTime: data.usage?.totals?.minutesProcessedAllTime ?? 0,
@@ -145,7 +154,7 @@ export default function SettingsPage() {
         });
       })
       .catch(() => {
-        setUsage({ roastsAllTime: 0, roastsInWindow: 0, minutesProcessedAllTime: 0, roastLimit: 3 });
+        setUsage({ plan: "free", roastsAllTime: 0, roastsInWindow: 0, minutesProcessedAllTime: 0, roastLimit: 3 });
       });
   }, []);
 
@@ -207,11 +216,14 @@ export default function SettingsPage() {
   }
 
   // Subscription (wired to Stripe billing portal)
-  const plan = "Free";
+  const plan = usage?.plan === "paid" ? "Pro" : "Free";
   const isFree = plan === "Free";
   const renewalDate = "-";
   const roastsUsed = usage?.roastsInWindow ?? 0;
-  const roastsLimit = usage?.roastLimit ?? 3;
+  const roastsLimit = usage?.roastLimit;
+  const roastMeterWidth = roastsLimit == null
+    ? 100
+    : Math.min((roastsUsed / Math.max(roastsLimit, 1)) * 100, 100);
   const totalMinutesProcessed = usage?.minutesProcessedAllTime ?? 0;
   const totalRoasts = usage?.roastsAllTime ?? 0;
 
@@ -307,24 +319,30 @@ export default function SettingsPage() {
                 {/* Usage stats */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                    <p className="text-xs text-zinc-500 mb-1">Roasts in the last 24 hours</p>
+                    <p className="text-xs text-zinc-500 mb-1">Completed roasts in the last 24 hours</p>
                     <p className="text-2xl font-black text-white">
                       {roastsUsed}
-                      <span className="ml-1 text-base font-normal text-zinc-500">/ {roastsLimit}</span>
+                      <span className="ml-1 text-base font-normal text-zinc-500">
+                        / {roastsLimit == null ? "Unlimited" : roastsLimit}
+                      </span>
                     </p>
                     <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-800">
                       <div
                         className="h-1.5 rounded-full bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500"
-                        style={{ width: `${Math.min((roastsUsed / Math.max(roastsLimit, 1)) * 100, 100)}%` }}
+                        style={{ width: `${roastMeterWidth}%` }}
                       />
                     </div>
-                    <p className="mt-2 text-xs text-zinc-500">This cap is now backed by persisted successful analyses, not a memory-only IP bucket.</p>
+                    <p className="mt-2 text-xs text-zinc-500">
+                      {isFree
+                        ? "Free access is enforced from completed analyses tied to your account, session, or fallback IP."
+                        : "Paid access keeps the same persisted meter, but the free roast cap is removed."}
+                    </p>
                   </div>
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                    <p className="text-xs text-zinc-500 mb-1">Total usage</p>
+                    <p className="text-xs text-zinc-500 mb-1">Lifetime completed usage</p>
                     <p className="text-2xl font-black text-white">{totalRoasts} roasts</p>
-                    <p className="mt-1 text-sm text-zinc-400">{totalMinutesProcessed.toFixed(1)} minutes processed</p>
-                    <p className="mt-2 text-xs text-zinc-500">Every completed roast now records real video minutes for future plan caps.</p>
+                    <p className="mt-1 text-sm text-zinc-400">{totalMinutesProcessed.toFixed(1)} uploaded-video minutes processed</p>
+                    <p className="mt-2 text-xs text-zinc-500">Minutes now come from stored `processed_seconds` on completed sessions instead of a partial query snapshot.</p>
                   </div>
                 </div>
 

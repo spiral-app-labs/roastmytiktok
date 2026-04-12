@@ -1,39 +1,37 @@
 import { NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabaseServer } from '@/lib/supabase-server';
-import { isPaidUser } from '@/lib/rate-limit';
-import { enforceUsageCap } from '@/lib/usage';
+import { enforceUsageCap, resolveUsageContext } from '@/lib/usage';
 
 export async function POST(request: NextRequest) {
-  // Rate limit: free users get 3/day, paid users are unlimited
-  if (!isPaidUser(request)) {
-    try {
-      const contentTypeHeader = request.headers.get('content-type') ?? '';
-      let sessionIdForLimit: string | undefined;
+  let sessionIdForUsage: string | undefined;
+  const contentTypeHeader = request.headers.get('content-type') ?? '';
 
-      if (contentTypeHeader.includes('application/json')) {
-        const body = await request.clone().json().catch(() => null) as { sessionId?: string } | null;
-        sessionIdForLimit = body?.sessionId;
-      } else if (
-        contentTypeHeader.includes('multipart/form-data') ||
-        contentTypeHeader.includes('application/x-www-form-urlencoded')
-      ) {
-        const formData = await request.clone().formData().catch(() => null);
-        sessionIdForLimit = typeof formData?.get('session_id') === 'string'
-          ? (formData?.get('session_id') as string)
-          : undefined;
-      }
-
-      const limited = await enforceUsageCap(request, sessionIdForLimit);
-      if (limited) return limited;
-    } catch (err) {
-      console.warn('[analyze] Usage cap check failed, allowing request:', err);
+  try {
+    if (contentTypeHeader.includes('application/json')) {
+      const body = await request.clone().json().catch(() => null) as { sessionId?: string } | null;
+      sessionIdForUsage = body?.sessionId;
+    } else if (
+      contentTypeHeader.includes('multipart/form-data') ||
+      contentTypeHeader.includes('application/x-www-form-urlencoded')
+    ) {
+      const formData = await request.clone().formData().catch(() => null);
+      sessionIdForUsage = typeof formData?.get('session_id') === 'string'
+        ? (formData?.get('session_id') as string)
+        : undefined;
     }
+  } catch (err) {
+    console.warn('[analyze] Failed to resolve usage identity from request body:', err);
   }
 
   try {
-    const contentTypeHeader = request.headers.get('content-type') ?? '';
+    const limited = await enforceUsageCap(request, sessionIdForUsage);
+    if (limited) return limited;
+  } catch (err) {
+    console.warn('[analyze] Usage cap check failed, allowing request:', err);
+  }
 
+  try {
     let payload: {
       filename?: string;
       contentType?: string;
@@ -64,6 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { filename, contentType, sessionId } = payload;
+    const usageContext = await resolveUsageContext(request, sessionId ?? sessionIdForUsage);
 
     if (!filename) {
       return Response.json(
@@ -97,10 +96,13 @@ export async function POST(request: NextRequest) {
     // Create session record so the GET handler can find the video
     const { error: insertError } = await supabaseServer.from('rmt_roast_sessions').insert({
       id,
-      session_id: sessionId ?? 'anonymous',
+      session_id: usageContext.sessionId ?? 'anonymous',
+      user_id: usageContext.userId,
+      client_ip: usageContext.clientIp,
       source: 'upload',
       filename,
       video_url: storagePath,
+      analysis_status: 'pending',
       overall_score: 0,
       verdict: '',
       agent_scores: {},
