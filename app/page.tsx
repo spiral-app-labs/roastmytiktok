@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadQueueUI from '@/components/UploadQueueUI';
-import { AccountCTA } from '@/components/AccountCTA';
 import { GlassCard, GradientButton } from '@/components/ui';
 
 // Floating particle for background
@@ -554,7 +553,6 @@ export default function Home() {
             </span>
           ))}
         </div>
-        <AccountCTA />
         {usage && usage.used > 0 && (
           usage.used >= usage.limit ? (
             <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300 flex items-center justify-between gap-3">

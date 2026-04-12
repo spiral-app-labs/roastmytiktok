@@ -19,7 +19,6 @@ export default function PrivacyPage() {
               <li><strong className="text-zinc-300">Account info:</strong> Email address and name (via Google OAuth or magic link sign-in).</li>
               <li><strong className="text-zinc-300">Waitlist email:</strong> If you join the waitlist before launch, we collect your email address to send you launch updates.</li>
               <li><strong className="text-zinc-300">Uploaded videos:</strong> Video files you upload for analysis.</li>
-              <li><strong className="text-zinc-300">TikTok account data:</strong> Public profile information and video metadata when you use Account Analysis.</li>
               <li><strong className="text-zinc-300">Usage data:</strong> Roast history, scores, and interaction patterns within the app.</li>
             </ul>
           </section>

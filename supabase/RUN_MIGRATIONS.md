@@ -14,6 +14,3 @@ Copy and run: `supabase/002_add_result_json.sql`
 Copy and run: `supabase/003_trending_content.sql`
 
 All three are idempotent (use `CREATE IF NOT EXISTS`) — safe to re-run.
-
-## 006 — Account analyses table
-Copy and run: `supabase/006_account_analyses.sql`

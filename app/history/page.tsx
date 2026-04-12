@@ -72,7 +72,7 @@ function VideoHistoryCard({ entry, index }: { entry: HistoryEntry; index: number
           <div className="flex items-center gap-2 text-xs text-zinc-500 mb-4">
             <span>{getRelativeDate(entry.date)}</span>
             <span>·</span>
-            <span>{entry.source === 'upload' ? '📎 Upload' : '🔗 URL'}</span>
+            <span>{entry.source === 'upload' ? '📎 Upload' : 'Imported result'}</span>
           </div>
 
           {/* Actions */}
@@ -216,14 +216,6 @@ export default function HistoryPage() {
                   className="inline-flex items-center gap-2 text-sm font-semibold text-sky-400 transition-colors hover:text-sky-300"
                 >
                   ⚔️ Compare two videos
-                </Link>
-              )}
-              {history.length >= 3 && (
-                <Link
-                  href="/analyze-account"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  📊 Analyze account patterns
                 </Link>
               )}
               <Link

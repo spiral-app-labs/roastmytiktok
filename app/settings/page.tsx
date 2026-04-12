@@ -331,7 +331,7 @@ export default function SettingsPage() {
                 {isFree && (
                   <p className="mt-4 text-xs text-zinc-500">
                     <Link href="/pricing" className="text-sky-400 hover:underline">View all plans</Link>
-                    {" "}to unlock unlimited roasts, priority processing, and account-level analysis.
+                    {" "}to unlock unlimited roasts, priority processing, and export reports.
                   </p>
                 )}
               </GlassCard>

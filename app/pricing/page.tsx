@@ -16,7 +16,6 @@ const PRO_FEATURES = [
   { text: `Everything in Monthly`, icon: `♾️`, highlight: true },
   { text: `Lower effective monthly price`, icon: `🔍`, highlight: true },
   { text: `Higher limits and extras as they roll out`, icon: `💡`, highlight: true },
-  { text: `Account-level analysis`, icon: `📈`, highlight: false },
   { text: `Priority processing`, icon: `⚡`, highlight: false },
   { text: `Export reports`, icon: `📄`, highlight: false },
   { text: `Best value for frequent creators`, icon: `🏆`, highlight: false },
@@ -47,7 +46,7 @@ const FAQ = [
   },
   {
     q: `What's the difference between free and paid?`,
-    a: `Free gets you a full roast with all 6 agents, a score, and actionable fixes. Paid plans unlock unlimited roasts, account-level analysis, priority processing, and export reports.`,
+    a: `Free gets you a full roast with all 6 agents, a score, and actionable fixes. Paid plans unlock unlimited roasts, priority processing, and export reports.`,
   },
   {
     q: `Will this actually help me grow?`,
