@@ -126,7 +126,6 @@ Manual follow-up still required before launch:
 2. Ensure the runtime image or host includes `ffmpeg` and `ffprobe`.
 3. Run `npm ci`, `npm run verify:secrets`, `npm run lint`, `npm test`, and `npm run build`.
 4. Confirm any optional feature without its env secret is intentionally disabled before launch.
-
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
