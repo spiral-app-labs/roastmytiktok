@@ -20,6 +20,18 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## QA Happy Path
+
+Run the install once, then use the same commands locally and in CI:
+
+```bash
+npm ci
+npm run lint
+npm test
+```
+
+`npm test` is intentionally pinned to the deterministic Node test runner with explicit files. That keeps boot clean in local/CI, avoids `npx` bootstrap noise, and guarantees at least one analysis-pipeline smoke path via `tests/hook-analysis-pipeline.test.mjs`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

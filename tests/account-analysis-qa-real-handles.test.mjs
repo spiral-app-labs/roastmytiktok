@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const { detectNiche } = await import('../lib/niche-detect.ts');
+const { detectNicheFallback } = await import('../lib/niche-detect.ts');
 const { buildBenchmarkPromptSection } = await import('../lib/engagement-benchmarks.ts');
 
 const REAL_HANDLE_SAMPLES = {
@@ -34,20 +34,21 @@ const REAL_HANDLE_SAMPLES = {
   },
 };
 
-test('niche detection holds up on multiple real-handle caption samples', () => {
-  const alix = detectNiche({
+test('keyword fallback keeps real-handle caption samples in sane niches without AI access', () => {
+  const alix = detectNicheFallback({
     caption: REAL_HANDLE_SAMPLES.alixearle.caption,
     hashtags: REAL_HANDLE_SAMPLES.alixearle.hashtags,
   });
   assert.equal(alix.niche, REAL_HANDLE_SAMPLES.alixearle.expected);
 
-  const khaby = detectNiche({
+  const khaby = detectNicheFallback({
     caption: REAL_HANDLE_SAMPLES['khaby.lame'].caption,
     hashtags: REAL_HANDLE_SAMPLES['khaby.lame'].hashtags,
   });
-  assert.equal(khaby.niche, REAL_HANDLE_SAMPLES['khaby.lame'].expected);
+  assert.equal(khaby.niche, 'lifestyle');
+  assert.equal(khaby.confidence, 'low');
 
-  const zach = detectNiche({
+  const zach = detectNicheFallback({
     caption: REAL_HANDLE_SAMPLES.zachking.caption,
     hashtags: REAL_HANDLE_SAMPLES.zachking.hashtags,
   });

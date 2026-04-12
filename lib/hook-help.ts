@@ -1,4 +1,4 @@
-import type { AgentRoast, RoastResult } from '@/lib/types';
+import type { ActionPlanStep, AgentRoast, RoastResult } from '@/lib/types';
 
 export type HoldBand = 'weak' | 'mixed' | 'strong';
 export type RiskBand = 'high' | 'medium' | 'low';
@@ -413,7 +413,7 @@ export function getFirstFiveSecondsDiagnosis(roast: RoastResult): FirstFiveSecon
       : 'cold viewers are getting an early-friction signal before the value lands.');
   }
 
-  const nextTimeFix = buildNextTimeFix(roast, primaryStep as any, hook?.improvementTip);
+  const nextTimeFix = buildNextTimeFix(roast, primaryStep, hook?.improvementTip);
 
   const evidence = [
     ...stepEvidence,
@@ -549,7 +549,7 @@ function inferTopic(roast: RoastResult, openerLine: string): string {
 
 function buildNextTimeFix(
   roast: RoastResult,
-  primaryStep?: any,
+  primaryStep?: ActionPlanStep,
   fallbackTip?: string,
 ): string {
   const directive = clean(primaryStep?.doThis);

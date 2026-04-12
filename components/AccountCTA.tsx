@@ -51,11 +51,15 @@ export function AccountCTA() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem(LINKED_HANDLE_KEY);
-    const wasDismissed = localStorage.getItem(DISMISSED_KEY) === 'true';
-    setLinkedHandle(saved);
-    setDismissed(wasDismissed);
+    const timer = window.setTimeout(() => {
+      const saved = localStorage.getItem(LINKED_HANDLE_KEY);
+      const wasDismissed = localStorage.getItem(DISMISSED_KEY) === 'true';
+      setLinkedHandle(saved);
+      setDismissed(wasDismissed);
+      setMounted(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleDismiss = () => {
