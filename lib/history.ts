@@ -1,22 +1,10 @@
 'use client';
 
+import { createClient } from './supabase/client';
 import { RoastResult, DimensionKey } from './types';
+import type { HistoryEntry, HistoryLoadResult } from './history-types';
 
-export interface HistoryEntry {
-  id: string;
-  date: string;
-  overallScore: number;
-  /** Distinct viral potential score (0-100) produced by the verdict pass.
-   * Legacy entries saved before this field existed will have it undefined -
-   * consumers should fall back to overallScore. */
-  viralPotential?: number;
-  verdict: string;
-  source: 'upload' | 'url';
-  filename?: string;
-  url?: string;
-  agentScores: Record<DimensionKey, number>;
-  findings: Record<DimensionKey, string[]>;
-}
+export type { HistoryEntry, HistoryFallbackReason, HistoryLoadResult, HistoryLoadSource, HistoryPersistence } from './history-types';
 
 export interface ChronicIssue {
   dimension: DimensionKey;
@@ -70,22 +58,97 @@ export function getHistory(): HistoryEntry[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) as HistoryEntry[] : [];
+    return parsed.map((entry) => ({ ...entry, persistence: 'local' }));
   } catch {
     return [];
   }
 }
 
-/** Fetch history from localStorage */
+function sortHistoryEntries(entries: HistoryEntry[]): HistoryEntry[] {
+  return [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+function dedupeMergedHistory(accountEntries: HistoryEntry[], localEntries: HistoryEntry[]): HistoryEntry[] {
+  const accountIds = new Set(accountEntries.map((entry) => entry.id));
+  const localOnlyEntries = localEntries.filter((entry) => !accountIds.has(entry.id));
+  return sortHistoryEntries([...accountEntries, ...localOnlyEntries]);
+}
+
+export async function fetchHistoryState(): Promise<HistoryLoadResult> {
+  const localEntries = sortHistoryEntries(getHistory());
+
+  if (typeof window === 'undefined') {
+    return {
+      entries: [],
+      source: 'local',
+      fallbackReason: 'server_unavailable',
+      hasLocalOnly: false,
+    };
+  }
+
+  try {
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+      return {
+        entries: localEntries,
+        source: 'local',
+        fallbackReason: 'signed_out',
+        hasLocalOnly: localEntries.length > 0,
+      };
+    }
+
+    try {
+      await fetch('/api/settings/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: getSessionId() }),
+      });
+    } catch {
+      /* keep going - account history can still load without the claim */
+    }
+
+    const response = await fetch('/api/history', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`history request failed with ${response.status}`);
+    }
+
+    const payload = await response.json() as { entries?: HistoryEntry[] };
+    const accountEntries = sortHistoryEntries(
+      (payload.entries ?? []).map((entry) => ({ ...entry, persistence: 'account' }))
+    );
+    const mergedEntries = dedupeMergedHistory(accountEntries, localEntries);
+
+    return {
+      entries: mergedEntries,
+      source: 'account',
+      hasLocalOnly: mergedEntries.some((entry) => entry.persistence === 'local'),
+    };
+  } catch (error) {
+    console.error('[history] Falling back to browser-local history:', error);
+    return {
+      entries: localEntries,
+      source: 'local',
+      fallbackReason: 'server_unavailable',
+      hasLocalOnly: localEntries.length > 0,
+    };
+  }
+}
+
+/** Fetch history, preferring account-backed data for signed-in users */
 export async function fetchHistory(): Promise<HistoryEntry[]> {
-  return getHistory();
+  const result = await fetchHistoryState();
+  return result.entries;
 }
 
 /** Save a roast result to history - localStorage + Supabase */
 export function saveToHistory(result: RoastResult, source: 'upload' | 'url', filename?: string): void {
   if (typeof window === 'undefined') return;
   const history = getHistory();
-  const sessionId = getSessionId();
 
   const entry: HistoryEntry = {
     id: result.id,
@@ -102,6 +165,7 @@ export function saveToHistory(result: RoastResult, source: 'upload' | 'url', fil
     findings: Object.fromEntries(
       result.agents.map(a => [a.agent, a.findings.slice(0, 2)])
     ) as Record<DimensionKey, string[]>,
+    persistence: 'local',
   };
 
   // Don't save duplicates
