@@ -1645,7 +1645,11 @@ Rules:
           const findings = Object.fromEntries(DIMENSION_ORDER.map(d => [d, agentResults[d].findings]));
 
           await supabaseServer.from('rmt_roast_sessions').update({
+            analysis_status: 'completed',
+            completed_at: new Date().toISOString(),
             overall_score: overallScore,
+            processed_minutes: videoDuration ? Number((videoDuration.durationSeconds / 60).toFixed(2)) : null,
+            processed_seconds: videoDuration ? Number(videoDuration.durationSeconds.toFixed(2)) : null,
             verdict,
             agent_scores: agentScores,
             findings,
@@ -1662,6 +1666,7 @@ Rules:
         logFailure('agent', id, err, { stage: 'stream-outer' });
         try {
           await supabaseServer.from('rmt_roast_sessions').update({
+            analysis_status: 'failed',
             verdict: 'Analysis failed',
           }).eq('id', id);
         } catch (saveErr) {
