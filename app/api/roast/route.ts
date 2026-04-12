@@ -5,7 +5,7 @@ const FREE_LIMIT = { name: 'roast-free', max: 3, windowMs: 24 * 60 * 60 * 1000 }
 
 export async function POST(request: NextRequest) {
   // Rate limit: free users get 3/day, paid users are unlimited
-  if (!isPaidUser(request)) {
+  if (!(await isPaidUser(request))) {
     const limited = checkRateLimit(request, FREE_LIMIT);
     if (limited) return limited;
   }

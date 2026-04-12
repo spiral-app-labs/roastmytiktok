@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseServer } from '@/lib/supabase-server';
+import { createClient } from '@/lib/supabase/server';
 
 interface RateLimitEntry {
   count: number;
@@ -78,8 +80,27 @@ export function checkRateLimit(req: NextRequest, opts: RateLimitOptions): NextRe
 }
 
 /**
- * Check if a request has a paid bypass cookie (indicating paid user).
+ * Check Supabase user_entitlements table to determine if the authenticated
+ * user has a paid plan. Falls back to false on any error so gating is
+ * always conservative.
  */
-export function isPaidUser(req: NextRequest): boolean {
-  return req.cookies.get('rmt_paid_bypass')?.value === '1';
+export async function isPaidUser(req: NextRequest): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data, error } = await supabaseServer
+      .from('user_entitlements')
+      .select('plan')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error || !data) return false;
+    return ['paid', 'monthly', 'yearly'].includes(data.plan);
+  } catch (err) {
+    console.warn('[rate-limit] isPaidUser check failed, defaulting to free:', err);
+    void req;
+    return false;
+  }
 }

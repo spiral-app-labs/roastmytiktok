@@ -6,7 +6,7 @@ import { enforceUsageCap } from '@/lib/usage';
 
 export async function POST(request: NextRequest) {
   // Rate limit: free users get 3/day, paid users are unlimited
-  if (!isPaidUser(request)) {
+  if (!(await isPaidUser(request))) {
     try {
       const contentTypeHeader = request.headers.get('content-type') ?? '';
       let sessionIdForLimit: string | undefined;
