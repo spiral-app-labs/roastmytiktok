@@ -1,6 +1,5 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server.js';
-import { supabaseServer } from './supabase-server.ts';
 
 export type UsagePlan = 'free' | 'paid';
 
@@ -54,6 +53,18 @@ export function getClientIp(req: NextRequest): string {
   return ip.trim() || 'unknown';
 }
 
+async function getSupabaseServer() {
+  const modulePath = './supabase-server.ts';
+  const module = await import(modulePath);
+  return module.supabaseServer;
+}
+
+async function getResolveRequestEntitlement() {
+  const modulePath = './rate-limit.ts';
+  const module = await import(modulePath);
+  return module.resolveRequestEntitlement;
+}
+
 function normalizeSessionId(sessionId?: string | null): string | null {
   if (!sessionId) return null;
   const trimmed = sessionId.trim();
@@ -90,7 +101,7 @@ export function getUsageSubject(
 }
 
 export async function resolveUsageContext(req: NextRequest, sessionId?: string | null): Promise<UsageContext> {
-  const { resolveRequestEntitlement } = await import('./rate-limit.ts');
+  const resolveRequestEntitlement = await getResolveRequestEntitlement();
   const { plan, userId } = await resolveRequestEntitlement(req);
   const clientIp = getClientIp(req);
   const normalizedSessionId = normalizeSessionId(sessionId);
@@ -189,6 +200,7 @@ export function buildUsageSnapshotFromRows(
 
 export async function getUsageSnapshot(subject: UsageSubject, plan: UsagePlan = 'free'): Promise<UsageSnapshot> {
   const filter = buildSubjectFilter(subject);
+  const supabaseServer = await getSupabaseServer();
 
   const { data, error } = await supabaseServer
     .from('rmt_roast_sessions')
