@@ -43,10 +43,10 @@ export default function CalendarPage() {
             Roast a Video
           </Link>
           <Link
-            href="/analyze-account"
+            href="/history"
             className="bg-zinc-800 text-zinc-300 font-semibold px-8 py-3 rounded-xl hover:bg-zinc-700 transition-colors text-center"
           >
-            Analyze Account
+            View Roast History
           </Link>
         </motion.div>
       </div>
