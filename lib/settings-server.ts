@@ -39,7 +39,7 @@ export async function listOwnedRoastSessions(userId: string) {
   const serviceSupabase = createServiceClient();
   const { data, error } = await serviceSupabase
     .from('rmt_roast_sessions')
-    .select('id, created_at, source, filename, video_url, tiktok_url, overall_score, verdict, agent_scores, findings, result_json')
+    .select('id, created_at, source, filename, video_url, tiktok_url, overall_score, verdict, agent_scores, findings, result_json, analysis_status')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 

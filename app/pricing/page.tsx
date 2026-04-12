@@ -31,7 +31,7 @@ const FAQ = [
   },
   {
     q: `What's the difference between free and paid?`,
-    a: `Free access is live today. Monthly and yearly buttons currently save your billing preference and add you to the waitlist for paid access updates.`,
+    a: `Free access is live today. Signed-in users keep their roast history on their account across browsers and devices on every tier. Monthly and yearly buttons currently save your billing preference and add you to the waitlist for paid access updates.`,
   },
   {
     q: `Will this actually help me grow?`,
@@ -448,9 +448,9 @@ Every plan starts with the same analysis-first teardown: why the opener lost att
             [`Hook rewrites`, `✓`, `✓`, `✓`],
             [`Reshoot plan`, `✓`, `✓`, `✓`],
             [`Roast limit today`, `3 total`, `Waitlist`, `Waitlist`],
-            [`Saved history`, `✓`, `✓`, `✓`],
+            [`Account-backed history (signed in)`, `✓`, `✓`, `✓`],
             [`Compare two roasts`, `✓`, `✓`, `✓`],
-            [`Account analysis`, `✓`, `✓`, `✓`],
+            [`Cross-device history sync`, `✓`, `✓`, `✓`],
             [`Paid checkout today`, `-`, `Not live`, `Not live`],
             [`Planned price`, `$0`, `$${monthlyPrice.toFixed(2)}/mo`, `$${yearlyMonthly.toFixed(2)}/mo`],
           ].map(([feature, free, monthly, yearly]) => (

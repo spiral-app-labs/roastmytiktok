@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { getHistory, type HistoryEntry } from '@/lib/history';
+import { fetchHistoryState, getHistory, type HistoryEntry, type HistoryLoadResult } from '@/lib/history';
 import DashboardVideoCard from '@/components/DashboardVideoCard';
 import UploadModal from '@/components/dashboard/UploadModal';
 
@@ -53,6 +53,7 @@ export default function DashboardPage() {
   const [authorized, setAuthorized] = useState(false);
   const [checking, setChecking] = useState(true);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyState, setHistoryState] = useState<HistoryLoadResult | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [uploadOpen, setUploadOpen] = useState(false);
 
@@ -62,7 +63,14 @@ export default function DashboardPage() {
         const bypassRes = await fetch('/api/bypass/check');
         const bypassData = await bypassRes.json();
         if (bypassData.bypassed) {
-          setHistory(getHistory());
+          const localHistory = getHistory();
+          setHistory(localHistory);
+          setHistoryState({
+            entries: localHistory,
+            source: 'local',
+            fallbackReason: 'bypass',
+            hasLocalOnly: localHistory.length > 0,
+          });
           setAuthorized(true);
           setChecking(false);
           return;
@@ -77,7 +85,9 @@ export default function DashboardPage() {
       } = await supabase.auth.getSession();
 
       if (session?.user) {
-        setHistory(getHistory());
+        const nextHistoryState = await fetchHistoryState();
+        setHistory(nextHistoryState.entries);
+        setHistoryState(nextHistoryState);
         setAuthorized(true);
         setChecking(false);
         return;
@@ -91,8 +101,19 @@ export default function DashboardPage() {
 
   const closeUpload = useCallback(() => {
     setUploadOpen(false);
-    // Refresh history in case the user returned from a completed upload.
-    setHistory(getHistory());
+    void fetchHistoryState().then((nextHistoryState) => {
+      setHistory(nextHistoryState.entries);
+      setHistoryState(nextHistoryState);
+    }).catch(() => {
+      const localHistory = getHistory();
+      setHistory(localHistory);
+      setHistoryState({
+        entries: localHistory,
+        source: 'local',
+        fallbackReason: 'server_unavailable',
+        hasLocalOnly: localHistory.length > 0,
+      });
+    });
   }, []);
 
   const visibleEntries = useMemo(() => history.slice(0, visibleCount), [history, visibleCount]);
@@ -133,9 +154,22 @@ export default function DashboardPage() {
               Your videos
             </h1>
             {totalVideos > 0 && (
-              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                {totalVideos} {totalVideos === 1 ? 'video' : 'videos'}
-              </p>
+              <>
+                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                  {totalVideos} {totalVideos === 1 ? 'video' : 'videos'}
+                </p>
+                {historyState && (
+                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    {historyState.source === 'account'
+                      ? historyState.hasLocalOnly
+                        ? 'Account history loaded. Items marked local only are still saved only on this browser.'
+                        : 'Account history is synced to your sign-in and follows you across devices.'
+                      : historyState.fallbackReason === 'server_unavailable'
+                        ? 'Account history is unavailable right now, so this dashboard is showing browser-local history.'
+                        : 'This dashboard is using browser-local history only.'}
+                  </p>
+                )}
+              </>
             )}
           </div>
 
