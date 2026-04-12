@@ -1,14 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceEnv } from '../lib/supabase/env';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://eayiazyiotnkggnsvhto.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const { url, serviceRoleKey } = getSupabaseServiceEnv();
 
-if (!SUPABASE_SERVICE_KEY) {
-  console.error('Missing SUPABASE_SERVICE_ROLE_KEY env var');
-  process.exit(1);
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(url, serviceRoleKey);
 
 interface ViralTip {
   category: 'hook' | 'format' | 'audio' | 'cta' | 'timing' | 'general';
