@@ -1,16 +1,15 @@
-import { NextRequest } from 'next/server';
+import { getSupabasePublicEnv } from '@/lib/supabase/env';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://eayiazyiotnkggnsvhto.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+const { url, anonKey } = getSupabasePublicEnv();
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   try {
-    const functionUrl = `${SUPABASE_URL}/functions/v1/tiktok-trend-scraper`;
+    const functionUrl = `${url}/functions/v1/tiktok-trend-scraper`;
 
     const resp = await fetch(functionUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${anonKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({}),
