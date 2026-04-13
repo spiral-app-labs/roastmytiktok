@@ -80,8 +80,9 @@ These must exist for any production build:
 
 `Billing portal`
 
-- Required only if billing is live: `STRIPE_SECRET_KEY`
-- Current behavior when absent: `/api/settings/billing-portal` returns `503`
+- Required only if billing is live: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`
+- Used by: `/api/stripe/checkout`, `/api/stripe/webhook`, and `/api/settings/billing-portal`
+- Current behavior when absent: billing routes return an error instead of creating checkout or portal sessions
 
 `Password-gated bypass routes`
 
