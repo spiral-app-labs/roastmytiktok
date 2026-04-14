@@ -50,6 +50,39 @@ export async function listOwnedRoastSessions(userId: string) {
   return data ?? [];
 }
 
+export async function getOwnedRoastSessionById<T = Record<string, unknown>>(userId: string, roastId: string, columns = '*') {
+  const serviceSupabase = createServiceClient();
+  const { data, error } = await serviceSupabase
+    .from('rmt_roast_sessions')
+    .select(columns)
+    .eq('id', roastId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? null) as T | null;
+}
+
+export async function listOwnedRoastSessionsBySessionId<T = Record<string, unknown>>(userId: string, sessionId: string, columns: string) {
+  const serviceSupabase = createServiceClient();
+  const { data, error } = await serviceSupabase
+    .from('rmt_roast_sessions')
+    .select(columns)
+    .eq('session_id', sessionId)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as T[];
+}
+
 export async function listNicheProfile(userId: string) {
   const serviceSupabase = createServiceClient();
   const { data, error } = await serviceSupabase

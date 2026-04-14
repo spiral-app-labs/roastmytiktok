@@ -1,17 +1,24 @@
 import { NextRequest } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server';
+import { getOwnedRoastSessionById, requireAuthenticatedUser } from '@/lib/settings-server';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   try {
-    const { data, error } = await supabaseServer
-      .from('rmt_roast_sessions')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const auth = await requireAuthenticatedUser();
+    if ('error' in auth) return auth.error;
 
-    if (error || !data) {
+    const data = await getOwnedRoastSessionById<{
+      id: string;
+      tiktok_url: string | null;
+      overall_score: number | null;
+      verdict: string | null;
+      agent_scores: Record<string, number> | null;
+      findings: Record<string, string[]> | null;
+      result_json: Record<string, unknown> | null;
+    }>(auth.user.id, id);
+
+    if (!data) {
       return Response.json({ error: 'Roast not found' }, { status: 404 });
     }
 

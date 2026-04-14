@@ -23,6 +23,7 @@ import { detectTikTokSound } from '@/lib/tiktok-sound-detect';
 import { getFirstFiveSecondsDiagnosis } from '@/lib/hook-help';
 import { buildHookAnalysisPrompt, deriveHookAnalysis, parseHookAnalysisResponse } from '@/lib/hook-analysis';
 import { getMissingRuntimeDependencies } from '@/lib/runtime-dependencies';
+import { getOwnedRoastSessionById, requireAuthenticatedUser } from '@/lib/settings-server';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 const HOOK_AUDIO_WINDOW_SEC = 6;
@@ -828,6 +829,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const requestHost = req.nextUrl.host;
   const missingRuntimeDeps = getMissingRuntimeDependencies(['ffmpeg', 'ffprobe']);
 
+  const auth = await requireAuthenticatedUser();
+  if ('error' in auth) return auth.error;
+
   if (missingRuntimeDeps.length > 0) {
     return Response.json(
       {
@@ -842,13 +846,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const platform = (req.nextUrl.searchParams.get('platform') === 'reels' ? 'reels' : 'tiktok') as 'tiktok' | 'reels';
 
   // Fetch video path from Supabase session record
-  const { data: session, error: sessionError } = await supabaseServer
-    .from('rmt_roast_sessions')
-    .select('video_url, filename, tiktok_url, created_at, description')
-    .eq('id', id)
-    .single();
+  const session = await getOwnedRoastSessionById<{
+    video_url: string | null;
+    filename: string | null;
+    tiktok_url: string | null;
+    created_at: string | null;
+    description: string | null;
+  }>(
+    auth.user.id,
+    id,
+    'video_url, filename, tiktok_url, created_at, description',
+  );
 
-  if (sessionError || !session?.video_url) {
+  if (!session?.video_url) {
     return Response.json({ error: 'Video not found. It may have expired.' }, { status: 404 });
   }
 
