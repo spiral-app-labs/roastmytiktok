@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { supabaseServer } from '@/lib/supabase-server';
+import { requireAuthenticatedUser } from '@/lib/settings-server';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -41,13 +42,16 @@ async function scrapeCreatorMetadata(handle: string): Promise<CreatorMetadata> {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuthenticatedUser();
+  if ('error' in auth) return auth.error;
+
   try {
     const body = await request.json();
-    const { niche_category, inspiration_creators, user_id } = body as {
+    const { niche_category, inspiration_creators } = body as {
       niche_category: string;
       inspiration_creators: string[];
-      user_id?: string;
     };
+    const userId = auth.user.id;
 
     if (!niche_category) {
       return Response.json({ error: 'niche_category is required' }, { status: 400 });
@@ -55,40 +59,27 @@ export async function POST(request: NextRequest) {
 
     // Upsert niche profile
     let profileId: string;
-    if (user_id) {
-      const { data: existing } = await supabaseServer
-        .from('niche_profiles')
-        .select('id')
-        .eq('user_id', user_id)
-        .single();
+    const { data: existing } = await supabaseServer
+      .from('niche_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
 
-      if (existing) {
-        profileId = existing.id;
-        await supabaseServer
-          .from('niche_profiles')
-          .update({
-            niche_category,
-            inspiration_creators: inspiration_creators || [],
-            last_analyzed_at: new Date().toISOString(),
-          })
-          .eq('id', profileId);
-      } else {
-        const { data: created } = await supabaseServer
-          .from('niche_profiles')
-          .insert({
-            user_id,
-            niche_category,
-            inspiration_creators: inspiration_creators || [],
-            last_analyzed_at: new Date().toISOString(),
-          })
-          .select('id')
-          .single();
-        profileId = created!.id;
-      }
+    if (existing) {
+      profileId = existing.id;
+      await supabaseServer
+        .from('niche_profiles')
+        .update({
+          niche_category,
+          inspiration_creators: inspiration_creators || [],
+          last_analyzed_at: new Date().toISOString(),
+        })
+        .eq('id', profileId);
     } else {
       const { data: created } = await supabaseServer
         .from('niche_profiles')
         .insert({
+          user_id: userId,
           niche_category,
           inspiration_creators: inspiration_creators || [],
           last_analyzed_at: new Date().toISOString(),
@@ -112,6 +103,7 @@ export async function POST(request: NextRequest) {
       for (const creator of creatorData) {
         for (const video of creator.videos) {
           await supabaseServer.from('creator_content').insert({
+            niche_profile_id: profileId,
             creator_handle: creator.handle,
             caption: video.caption,
             hashtags: video.hashtags,

@@ -27,8 +27,15 @@ CREATE TRIGGER trg_waitlist_position
 -- RLS
 ALTER TABLE rmt_waitlist ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "allow_insert_waitlist" ON rmt_waitlist
-  FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "allow_insert_waitlist" ON rmt_waitlist;
+DROP POLICY IF EXISTS "allow_select_waitlist" ON rmt_waitlist;
+DROP POLICY IF EXISTS "public_can_join_waitlist" ON rmt_waitlist;
 
-CREATE POLICY "allow_select_waitlist" ON rmt_waitlist
-  FOR SELECT USING (true);
+CREATE POLICY "public_can_join_waitlist" ON rmt_waitlist
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    email IS NOT NULL
+    AND length(trim(email)) > 3
+    AND coalesce(free_pro, false) = false
+  );

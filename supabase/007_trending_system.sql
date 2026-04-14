@@ -18,7 +18,13 @@ create index if not exists idx_rmt_trending_type on rmt_trending_content(type);
 create index if not exists idx_rmt_trending_status on rmt_trending_content(status);
 create index if not exists idx_rmt_trending_last_seen on rmt_trending_content(last_seen_at desc);
 alter table rmt_trending_content enable row level security;
-create policy "allow_all" on rmt_trending_content for all using (true) with check (true);
+drop policy if exists "allow_all" on rmt_trending_content;
+drop policy if exists "public_can_read_trending_content" on rmt_trending_content;
+
+create policy "public_can_read_trending_content" on rmt_trending_content
+  for select
+  to anon, authenticated
+  using (status <> 'dead');
 
 -- Snapshots for tracking rank/engagement over time
 create table if not exists rmt_trending_snapshots (
@@ -33,7 +39,7 @@ create table if not exists rmt_trending_snapshots (
 create index if not exists idx_rmt_snapshots_content on rmt_trending_snapshots(trending_content_id);
 create index if not exists idx_rmt_snapshots_at on rmt_trending_snapshots(snapshot_at desc);
 alter table rmt_trending_snapshots enable row level security;
-create policy "allow_all" on rmt_trending_snapshots for all using (true) with check (true);
+drop policy if exists "allow_all" on rmt_trending_snapshots;
 
 -- Curated viral tips (seeded by script, updated by cron)
 create table if not exists rmt_viral_tips (
@@ -50,4 +56,10 @@ create table if not exists rmt_viral_tips (
 create index if not exists idx_rmt_tips_category on rmt_viral_tips(category);
 create index if not exists idx_rmt_tips_active on rmt_viral_tips(active) where active = true;
 alter table rmt_viral_tips enable row level security;
-create policy "allow_all" on rmt_viral_tips for all using (true) with check (true);
+drop policy if exists "allow_all" on rmt_viral_tips;
+drop policy if exists "public_can_read_active_viral_tips" on rmt_viral_tips;
+
+create policy "public_can_read_active_viral_tips" on rmt_viral_tips
+  for select
+  to anon, authenticated
+  using (active = true);

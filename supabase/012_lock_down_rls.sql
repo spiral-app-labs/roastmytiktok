@@ -1,53 +1,88 @@
--- Niche Intelligence tables for Script Studio
--- Migration 008: niche_profiles, creator_content, niche_patterns
+-- Migration 012: lock down permissive RLS policies on roast, waitlist, trending, and niche tables
 
-CREATE TABLE niche_profiles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
-  niche_category TEXT NOT NULL,
-  inspiration_creators TEXT[] DEFAULT '{}',
-  last_analyzed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+ALTER TABLE rmt_roast_sessions ENABLE ROW LEVEL SECURITY;
 
-CREATE TABLE creator_content (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  niche_profile_id UUID REFERENCES niche_profiles(id) ON DELETE CASCADE,
-  creator_handle TEXT NOT NULL,
-  video_id TEXT,
-  caption TEXT,
-  hashtags TEXT[] DEFAULT '{}',
-  views BIGINT,
-  likes BIGINT,
-  comments BIGINT,
-  shares BIGINT,
-  saves BIGINT,
-  posted_at TIMESTAMPTZ,
-  duration INTEGER,
-  audio_name TEXT,
-  scraped_at TIMESTAMPTZ DEFAULT now()
-);
+DROP POLICY IF EXISTS "allow_all" ON rmt_roast_sessions;
+DROP POLICY IF EXISTS "users_can_insert_own_roast_sessions" ON rmt_roast_sessions;
+DROP POLICY IF EXISTS "users_can_read_own_roast_sessions" ON rmt_roast_sessions;
+DROP POLICY IF EXISTS "users_can_update_own_roast_sessions" ON rmt_roast_sessions;
+DROP POLICY IF EXISTS "users_can_delete_own_roast_sessions" ON rmt_roast_sessions;
+
+CREATE POLICY "users_can_insert_own_roast_sessions" ON rmt_roast_sessions
+  FOR INSERT
+  TO authenticated
+  WITH CHECK ((select auth.uid()) = user_id);
+
+CREATE POLICY "users_can_read_own_roast_sessions" ON rmt_roast_sessions
+  FOR SELECT
+  TO authenticated
+  USING ((select auth.uid()) = user_id);
+
+CREATE POLICY "users_can_update_own_roast_sessions" ON rmt_roast_sessions
+  FOR UPDATE
+  TO authenticated
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
+
+CREATE POLICY "users_can_delete_own_roast_sessions" ON rmt_roast_sessions
+  FOR DELETE
+  TO authenticated
+  USING ((select auth.uid()) = user_id);
+
+ALTER TABLE rmt_waitlist ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "allow_insert_waitlist" ON rmt_waitlist;
+DROP POLICY IF EXISTS "allow_select_waitlist" ON rmt_waitlist;
+DROP POLICY IF EXISTS "public_can_join_waitlist" ON rmt_waitlist;
+
+CREATE POLICY "public_can_join_waitlist" ON rmt_waitlist
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    email IS NOT NULL
+    AND length(trim(email)) > 3
+    AND coalesce(free_pro, false) = false
+  );
+
+ALTER TABLE tmt_trending_content ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "allow_all" ON tmt_trending_content;
+
+ALTER TABLE rmt_viral_patterns ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "allow_all" ON rmt_viral_patterns;
+DROP POLICY IF EXISTS "public_can_read_viral_patterns" ON rmt_viral_patterns;
+
+CREATE POLICY "public_can_read_viral_patterns" ON rmt_viral_patterns
+  FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+ALTER TABLE rmt_trending_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rmt_trending_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rmt_viral_tips ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "allow_all" ON rmt_trending_content;
+DROP POLICY IF EXISTS "allow_all" ON rmt_trending_snapshots;
+DROP POLICY IF EXISTS "allow_all" ON rmt_viral_tips;
+DROP POLICY IF EXISTS "public_can_read_trending_content" ON rmt_trending_content;
+DROP POLICY IF EXISTS "public_can_read_active_viral_tips" ON rmt_viral_tips;
+
+CREATE POLICY "public_can_read_trending_content" ON rmt_trending_content
+  FOR SELECT
+  TO anon, authenticated
+  USING (status <> 'dead');
+
+CREATE POLICY "public_can_read_active_viral_tips" ON rmt_viral_tips
+  FOR SELECT
+  TO anon, authenticated
+  USING (active = true);
 
 ALTER TABLE creator_content
   ADD COLUMN IF NOT EXISTS niche_profile_id UUID REFERENCES niche_profiles(id) ON DELETE CASCADE;
 
-CREATE TABLE niche_patterns (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  niche_profile_id UUID REFERENCES niche_profiles(id),
-  pattern_type TEXT NOT NULL,
-  pattern_data JSONB DEFAULT '{}',
-  confidence_score FLOAT,
-  sample_video_ids TEXT[] DEFAULT '{}',
-  generated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Indexes
-CREATE INDEX IF NOT EXISTS idx_niche_profiles_user_id ON niche_profiles(user_id);
-CREATE INDEX IF NOT EXISTS idx_creator_content_handle ON creator_content(creator_handle);
 CREATE INDEX IF NOT EXISTS idx_creator_content_profile_id ON creator_content(niche_profile_id);
-CREATE INDEX IF NOT EXISTS idx_niche_patterns_profile_id ON niche_patterns(niche_profile_id);
 
--- RLS policies
 ALTER TABLE niche_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE creator_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE niche_patterns ENABLE ROW LEVEL SECURITY;

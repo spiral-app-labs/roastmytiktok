@@ -13,4 +13,10 @@ create table if not exists rmt_viral_patterns (
 create index if not exists idx_rmt_patterns_hook_type on rmt_viral_patterns(hook_type);
 create index if not exists idx_rmt_patterns_category on rmt_viral_patterns(category);
 alter table rmt_viral_patterns enable row level security;
-create policy "allow_all" on rmt_viral_patterns for all using (true) with check (true);
+drop policy if exists "allow_all" on rmt_viral_patterns;
+drop policy if exists "public_can_read_viral_patterns" on rmt_viral_patterns;
+
+create policy "public_can_read_viral_patterns" on rmt_viral_patterns
+  for select
+  to anon, authenticated
+  using (true);

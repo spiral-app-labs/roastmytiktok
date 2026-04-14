@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "verify:rls": "node scripts/verify-supabase-rls.mjs",
     "test": "node --test --experimental-strip-types tests/account-analysis-qa-real-handles.test.mjs tests/creator-delta-analysis.test.mjs tests/hook-analysis-pipeline.test.mjs tests/rmt-reliability-hardening.test.mjs tests/usage-metering.test.mjs",
     "verify:secrets": "node scripts/check-secret-files.mjs"
   },
