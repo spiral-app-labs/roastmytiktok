@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og';
-import { supabaseServer } from '@/lib/supabase-server';
 
 export const alt = 'Go Viral - Results';
 export const size = { width: 1200, height: 630 };
@@ -22,32 +21,10 @@ function getScoreColor(score: number): string {
 }
 
 export default async function OGImage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-
-  let score = 42;
-  let verdict = 'The AI agents have spoken. Your TikTok has been thoroughly roasted.';
-  let topFinding = 'Multiple areas need immediate improvement.';
-
-  try {
-    const { data } = await supabaseServer
-      .from('rmt_roast_sessions')
-      .select('overall_score, verdict, result_json')
-      .eq('id', id)
-      .single();
-
-    if (data) {
-      score = data.overall_score ?? score;
-      if (data.verdict) verdict = data.verdict.slice(0, 120);
-
-      if (data.result_json?.agents?.length) {
-        const agents: Array<{ score: number; findings: string[] }> = data.result_json.agents;
-        const lowest = agents.slice().sort((a: { score: number }, b: { score: number }) => a.score - b.score)[0];
-        if (lowest?.findings?.[0]) {
-          topFinding = lowest.findings[0].slice(0, 90);
-        }
-      }
-    }
-  } catch { /* use defaults */ }
+  const score = 42;
+  const verdict = 'The AI agents have spoken. Your TikTok has been thoroughly roasted.';
+  const topFinding = 'Multiple areas need immediate improvement.';
+  await params;
 
   const grade = getLetterGrade(score);
   const color = getScoreColor(score);

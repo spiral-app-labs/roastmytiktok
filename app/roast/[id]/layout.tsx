@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import AppShell from '@/components/AppShell';
-import { supabaseServer } from '@/lib/supabase-server';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -10,23 +9,8 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
 
-  let title = 'Go Viral - Results';
-  let description = 'See how AI agents diagnosed this TikTok video.';
-
-  try {
-    const { data } = await supabaseServer
-      .from('rmt_roast_sessions')
-      .select('overall_score, verdict, filename')
-      .eq('id', id)
-      .single();
-
-    if (data) {
-      title = `My TikTok scored ${data.overall_score}/100 - Go Viral Analysis`;
-      if (data.verdict) {
-        description = data.verdict.slice(0, 155);
-      }
-    }
-  } catch { /* fallback metadata */ }
+  const title = 'Go Viral - Results';
+  const description = 'See how AI agents diagnosed this TikTok video.';
 
   const ogImageUrl = `/roast/${id}/opengraph-image`;
 
