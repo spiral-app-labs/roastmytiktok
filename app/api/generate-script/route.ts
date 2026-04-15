@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { fetchTrendingContext, buildScriptTrendingContext } from '@/lib/trending-context';
 import { type ScriptFormat, getFormatById } from '@/lib/script-formats';
+import { requireAuthenticatedAiAccess } from '@/lib/ai-access';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -139,6 +140,11 @@ Requirements:
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuthenticatedAiAccess('generate_script');
+    if ('error' in auth) {
+      return auth.error;
+    }
+
     const body = await request.json();
     const mode = body.mode || 'reshoot';
 
