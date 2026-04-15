@@ -108,7 +108,6 @@ export default function SettingsPage() {
 
   // Auth + admin state
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [subscriptionRenewalDate, setSubscriptionRenewalDate] = useState<string | null>(null);
   const [debugLevel, setDebugLevel] = useState<DebugLevel>("off");
   const [debugSaving, setDebugSaving] = useState(false);
@@ -133,7 +132,6 @@ export default function SettingsPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       setUserEmail(user.email ?? null);
-      setUserId(user.id);
       const stored = user.user_metadata?.debug_level as string | undefined;
       const valid: DebugLevel[] = ["off", "simple", "complex", "extremely_verbose"];
       if (stored && valid.includes(stored as DebugLevel)) {
@@ -204,7 +202,6 @@ export default function SettingsPage() {
         body: JSON.stringify({
           niche_category: nicheCategory,
           inspiration_creators: inspirationCreators,
-          user_id: userId,
         }),
       });
       if (!res.ok) {

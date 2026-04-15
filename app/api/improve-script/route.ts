@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { fetchTrendingContext, buildScriptTrendingContext } from '@/lib/trending-context';
+import { requireAuthenticatedAiAccess } from '@/lib/ai-access';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -24,6 +25,11 @@ export interface ImprovedScript {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuthenticatedAiAccess('improve_script');
+    if ('error' in auth) {
+      return auth.error;
+    }
+
     const body = await request.json();
     const { script, focus_area, niche_context } = body as {
       script: string;
