@@ -34,7 +34,7 @@ npm test
 
 ## Secret handling
 
-Run `npm run verify:secrets` before launch work that touches credentials. It verifies that `.env.local` and `.vercel/.env.development.local` are not tracked by git.
+Run `npm run verify:secrets` before launch work that touches credentials. It fails closed if `.env.local` or `.vercel/.env.development.local` exists anywhere under the repo root, if either file is tracked, or if reachable git history still contains those repo-local env paths or known historical secret identifiers that should have been purged.
 
 Launch secret-handling and rotation steps are documented in [docs/launch-secret-handling.md](docs/launch-secret-handling.md).
 
@@ -110,15 +110,16 @@ These must exist for any production build:
 Code and repo state after this change:
 
 - `.env.example` is the canonical contract and contains placeholders only
-- `.env.local` remains untracked and should never be committed
+- no live secret-bearing local env files should exist under the repo root
 - hardcoded fallback coupling to a specific Supabase project URL was removed from `lib/supabase/env.ts`
 
 Manual follow-up still required before launch:
 
-1. Rotate every production secret that has ever been pasted into chat, issue text, or other non-secret channels.
-2. At minimum, rotate the current Supabase service-role style secret, then update Vercel/Supabase/local secret stores with the replacement.
-3. Review and rotate `ANTHROPIC_API_KEY`, `GOOGLE_GEMINI_API_KEY`, `ASSEMBLYAI_API_KEY`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, `CRON_SECRET`, and `BYPASS_PASSWORD` if any of them were previously shared outside a secret manager.
-4. Verify the old secret values are invalidated before reopening production traffic.
+1. Rotate `SUPABASE_SERVICE_ROLE_KEY`, `VERCEL_OIDC_TOKEN`, `BYPASS_PASSWORD`, and `BRAVE_SEARCH_API_KEY` anywhere those credentials are still valid.
+2. Update only approved secret stores with the replacements: Vercel project env vars, Supabase secret stores, and local shell-level secret injection outside the repo tree.
+3. Review and rotate `ANTHROPIC_API_KEY`, `GOOGLE_GEMINI_API_KEY`, `ASSEMBLYAI_API_KEY`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, and `CRON_SECRET` if any of them were previously shared outside a secret manager.
+4. Purge any reachable history that still contains the historical Brave key or explicitly sign off on why that history remains accessible.
+5. Verify the old secret values are invalidated before reopening production traffic.
 
 ### Deploy checklist
 
