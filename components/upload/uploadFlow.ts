@@ -1,10 +1,11 @@
 'use client';
 
-export const MAX_VIDEO_SIZE_BYTES = 150 * 1024 * 1024;
-export const MAX_VIDEO_SIZE_MB = Math.round(MAX_VIDEO_SIZE_BYTES / (1024 * 1024));
-
-export const SUPPORTED_VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm'] as const;
-export const SUPPORTED_VIDEO_MIME_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'] as const;
+import {
+  SUPPORTED_VIDEO_EXTENSIONS,
+  SUPPORTED_VIDEO_MIME_TYPES,
+  getUploadValidationError,
+  validateUploadDescriptor,
+} from '@/lib/upload-validation';
 
 export type UploadErrorCode =
   | 'file_too_large'
@@ -27,9 +28,9 @@ export function isSupportedVideoFile(file: File): boolean {
 export function getUploadErrorMessage(code: UploadErrorCode): string {
   switch (code) {
     case 'file_too_large':
-      return `Video is over ${MAX_VIDEO_SIZE_MB}MB. Try compressing it or trimming to under 3 minutes.`;
+      return getUploadValidationError('file_too_large');
     case 'unsupported_format':
-      return 'We support MP4, MOV, and WebM. Convert your file and try again.';
+      return getUploadValidationError('unsupported_content_type');
     case 'rate_limited':
       return "You've hit your free limit. Upgrade to analyze more videos.";
     case 'analysis_failed':
@@ -39,11 +40,17 @@ export function getUploadErrorMessage(code: UploadErrorCode): string {
 }
 
 export function validateVideoFile(file: File): string | null {
-  if (file.size > MAX_VIDEO_SIZE_BYTES) {
-    return getUploadErrorMessage('file_too_large');
-  }
+  const validation = validateUploadDescriptor({
+    filename: file.name,
+    contentType: file.type,
+    sizeBytes: file.size,
+  });
 
-  if (!isSupportedVideoFile(file)) {
+  if (!validation.ok) {
+    if (validation.issue === 'file_too_large') {
+      return getUploadErrorMessage('file_too_large');
+    }
+
     return getUploadErrorMessage('unsupported_format');
   }
 
