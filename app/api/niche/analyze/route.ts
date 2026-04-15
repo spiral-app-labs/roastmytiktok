@@ -1,10 +1,15 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { supabaseServer } from '@/lib/supabase-server';
+import { requireAuthenticatedAiAccess } from '@/lib/ai-access';
+import { createServiceClient } from '@/lib/supabase/server';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+const MAX_INSPIRATION_CREATORS = 3;
+const SCRAPE_TIMEOUT_MS = 5000;
+const SCRAPE_TOTAL_BUDGET_MS = 12000;
 
 interface CreatorMetadata {
   handle: string;
@@ -16,14 +21,14 @@ interface CreatorMetadata {
   }>;
 }
 
-async function scrapeCreatorMetadata(handle: string): Promise<CreatorMetadata> {
+async function scrapeCreatorMetadata(handle: string, timeoutMs = SCRAPE_TIMEOUT_MS): Promise<CreatorMetadata> {
   const cleanHandle = handle.replace(/^@/, '');
   const videos: CreatorMetadata['videos'] = [];
 
   try {
     // Use TikTok's oembed endpoint for basic metadata
     const oembedUrl = `https://www.tiktok.com/oembed?url=https://www.tiktok.com/@${encodeURIComponent(cleanHandle)}`;
-    const res = await fetch(oembedUrl, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(oembedUrl, { signal: AbortSignal.timeout(timeoutMs) });
     if (res.ok) {
       const data = await res.json();
       if (data.title) {
@@ -40,84 +45,119 @@ async function scrapeCreatorMetadata(handle: string): Promise<CreatorMetadata> {
   return { handle: cleanHandle, videos };
 }
 
+async function scrapeCreatorsWithinBudget(handles: string[]) {
+  const startedAt = Date.now();
+  const creatorData: CreatorMetadata[] = [];
+
+  for (const handle of handles.slice(0, MAX_INSPIRATION_CREATORS)) {
+    const elapsedMs = Date.now() - startedAt;
+    const remainingBudgetMs = SCRAPE_TOTAL_BUDGET_MS - elapsedMs;
+    if (remainingBudgetMs <= 0) {
+      break;
+    }
+
+    const timeoutMs = Math.max(1000, Math.min(SCRAPE_TIMEOUT_MS, remainingBudgetMs));
+    try {
+      creatorData.push(await scrapeCreatorMetadata(handle, timeoutMs));
+    } catch {
+      // Ignore individual scrape failures so one bad creator does not burn the whole analysis budget.
+    }
+  }
+
+  return creatorData;
+}
+
 export async function POST(request: NextRequest) {
+  const auth = await requireAuthenticatedAiAccess('niche_analyze');
+  if ('error' in auth) {
+    return auth.error;
+  }
+
   try {
+    const serviceSupabase = createServiceClient();
     const body = await request.json();
-    const { niche_category, inspiration_creators, user_id } = body as {
+    const { niche_category, inspiration_creators } = body as {
       niche_category: string;
       inspiration_creators: string[];
-      user_id?: string;
     };
 
     if (!niche_category) {
       return Response.json({ error: 'niche_category is required' }, { status: 400 });
     }
 
-    // Upsert niche profile
-    let profileId: string;
-    if (user_id) {
-      const { data: existing } = await supabaseServer
-        .from('niche_profiles')
-        .select('id')
-        .eq('user_id', user_id)
-        .single();
+    const safeCreators = Array.isArray(inspiration_creators)
+      ? inspiration_creators
+          .filter((handle): handle is string => typeof handle === 'string')
+          .map((handle) => handle.trim().replace(/^@/, ''))
+          .filter((handle) => handle.length > 0)
+          .slice(0, MAX_INSPIRATION_CREATORS)
+      : [];
 
-      if (existing) {
-        profileId = existing.id;
-        await supabaseServer
-          .from('niche_profiles')
-          .update({
-            niche_category,
-            inspiration_creators: inspiration_creators || [],
-            last_analyzed_at: new Date().toISOString(),
-          })
-          .eq('id', profileId);
-      } else {
-        const { data: created } = await supabaseServer
-          .from('niche_profiles')
-          .insert({
-            user_id,
-            niche_category,
-            inspiration_creators: inspiration_creators || [],
-            last_analyzed_at: new Date().toISOString(),
-          })
-          .select('id')
-          .single();
-        profileId = created!.id;
+    // Upsert niche profile for the authenticated user only
+    let profileId: string;
+    const { data: existing, error: existingError } = await serviceSupabase
+      .from('niche_profiles')
+      .select('id')
+      .eq('user_id', auth.user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingError) {
+      throw new Error(existingError.message);
+    }
+
+    if (existing) {
+      profileId = existing.id;
+      const { error: updateError } = await serviceSupabase
+        .from('niche_profiles')
+        .update({
+          niche_category,
+          inspiration_creators: safeCreators,
+          last_analyzed_at: new Date().toISOString(),
+        })
+        .eq('id', profileId);
+
+      if (updateError) {
+        throw new Error(updateError.message);
       }
     } else {
-      const { data: created } = await supabaseServer
+      const { data: created, error: createError } = await serviceSupabase
         .from('niche_profiles')
         .insert({
+          user_id: auth.user.id,
           niche_category,
-          inspiration_creators: inspiration_creators || [],
+          inspiration_creators: safeCreators,
           last_analyzed_at: new Date().toISOString(),
         })
         .select('id')
         .single();
-      profileId = created!.id;
+
+      if (createError || !created) {
+        throw new Error(createError?.message || 'Failed to create niche profile');
+      }
+
+      profileId = created.id;
     }
 
     // Scrape metadata from inspiration creators
-    const creatorData: CreatorMetadata[] = [];
-    if (inspiration_creators?.length) {
-      const results = await Promise.allSettled(
-        inspiration_creators.slice(0, 5).map(scrapeCreatorMetadata)
-      );
-      for (const r of results) {
-        if (r.status === 'fulfilled') creatorData.push(r.value);
-      }
+    const creatorData = safeCreators.length > 0
+      ? await scrapeCreatorsWithinBudget(safeCreators)
+      : [];
 
-      // Store scraped content
-      for (const creator of creatorData) {
-        for (const video of creator.videos) {
-          await supabaseServer.from('creator_content').insert({
+    // Store scraped content
+    for (const creator of creatorData) {
+      for (const video of creator.videos) {
+        const { error: creatorContentError } = await serviceSupabase.from('creator_content').insert({
             creator_handle: creator.handle,
             caption: video.caption,
             hashtags: video.hashtags,
             views: video.views,
             likes: video.likes,
           });
+
+        if (creatorContentError) {
+          console.warn('[niche/analyze] Failed to persist creator content:', creatorContentError.message);
         }
       }
     }
@@ -191,10 +231,14 @@ Respond with ONLY valid JSON:
     }
 
     // Delete old patterns for this profile
-    await supabaseServer
+    const { error: deleteError } = await serviceSupabase
       .from('niche_patterns')
       .delete()
       .eq('niche_profile_id', profileId);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
 
     // Store each pattern type
     const patternEntries = Object.entries(patterns).map(([type, data]) => ({
@@ -205,7 +249,10 @@ Respond with ONLY valid JSON:
       sample_video_ids: creatorData.flatMap(c => c.videos.map(() => c.handle)).slice(0, 5),
     }));
 
-    await supabaseServer.from('niche_patterns').insert(patternEntries);
+    const { error: insertPatternsError } = await serviceSupabase.from('niche_patterns').insert(patternEntries);
+    if (insertPatternsError) {
+      throw new Error(insertPatternsError.message);
+    }
 
     return Response.json({
       profile_id: profileId,

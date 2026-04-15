@@ -380,7 +380,7 @@ export default function Home() {
                 {[
                   { step: '1', icon: '🔑', title: 'unlock beta', desc: 'enter your invite code to get inside the private product.' },
                   { step: '2', icon: '👤', title: 'create your account', desc: 'sign in with google or magic link so your results stay attached to you.' },
-                  { step: '3', icon: '🚀', title: 'pick your path', desc: 'start free for limited analyses or choose a monthly beta plan.' },
+                  { step: '3', icon: '🚀', title: 'pick your path', desc: 'start free for limited analyses or upgrade to Pro for unlimited paid access.' },
                 ].map((item) => (
                   <div key={item.step} className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-4 backdrop-blur-sm flex items-start gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/15 border border-orange-500/25 text-sm font-bold text-orange-400 shrink-0 mt-0.5">

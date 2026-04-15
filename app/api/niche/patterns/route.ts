@@ -1,50 +1,26 @@
 import { NextRequest } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server';
+import { listNichePatterns, listNicheProfile, requireAuthenticatedUser } from '@/lib/settings-server';
 
 export async function GET(request: NextRequest) {
+  void request;
+
+  const auth = await requireAuthenticatedUser();
+  if ('error' in auth) {
+    return auth.error;
+  }
+
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('user_id');
-    const profileId = searchParams.get('profile_id');
-
-    if (!userId && !profileId) {
-      return Response.json({ error: 'user_id or profile_id is required' }, { status: 400 });
-    }
-
-    // Get niche profile
-    let profile;
-    if (profileId) {
-      const { data } = await supabaseServer
-        .from('niche_profiles')
-        .select('*')
-        .eq('id', profileId)
-        .single();
-      profile = data;
-    } else {
-      const { data } = await supabaseServer
-        .from('niche_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      profile = data;
-    }
+    const profile = await listNicheProfile(auth.user.id);
 
     if (!profile) {
       return Response.json({ profile: null, patterns: [] });
     }
 
-    // Get patterns
-    const { data: patterns } = await supabaseServer
-      .from('niche_patterns')
-      .select('*')
-      .eq('niche_profile_id', profile.id)
-      .order('generated_at', { ascending: false });
+    const patterns = await listNichePatterns(profile.id);
 
     // Build structured response
     const patternMap: Record<string, unknown> = {};
-    for (const p of patterns || []) {
+    for (const p of patterns) {
       patternMap[p.pattern_type] = p.pattern_data;
     }
 
