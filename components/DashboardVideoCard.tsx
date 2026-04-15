@@ -247,6 +247,12 @@ export default function DashboardVideoCard({
             Top score
           </span>
         )}
+
+        {entry.persistence === 'local' && (
+          <span className="pointer-events-none absolute bottom-3 left-3 z-10 inline-flex items-center rounded-full border border-amber-300/30 bg-amber-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-50 backdrop-blur-sm">
+            Local only
+          </span>
+        )}
       </div>
 
       <Link

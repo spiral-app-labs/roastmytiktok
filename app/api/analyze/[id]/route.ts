@@ -22,6 +22,7 @@ import type { ActionPlanStep, RoastResult } from '@/lib/types';
 import { detectTikTokSound } from '@/lib/tiktok-sound-detect';
 import { getFirstFiveSecondsDiagnosis } from '@/lib/hook-help';
 import { buildHookAnalysisPrompt, deriveHookAnalysis, parseHookAnalysisResponse } from '@/lib/hook-analysis';
+import { getMissingRuntimeDependencies } from '@/lib/runtime-dependencies';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 const HOOK_AUDIO_WINDOW_SEC = 6;
@@ -825,6 +826,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const requestStartedAtMs = Date.now();
   const localhostDebug = isLocalhostRequest(req);
   const requestHost = req.nextUrl.host;
+  const missingRuntimeDeps = getMissingRuntimeDependencies(['ffmpeg', 'ffprobe']);
+
+  if (missingRuntimeDeps.length > 0) {
+    return Response.json(
+      {
+        error: `Video analysis is not enabled on this deployment. Missing runtime dependencies: ${missingRuntimeDeps.join(', ')}`,
+      },
+      { status: 503 },
+    );
+  }
 
   // Extract session_id and platform from query params
   const sessionId = req.nextUrl.searchParams.get('session_id') ?? 'server';

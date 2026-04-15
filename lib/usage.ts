@@ -55,14 +55,14 @@ export function getClientIp(req: NextRequest): string {
 
 async function getSupabaseServer() {
   const modulePath = './supabase-server.ts';
-  const module = await import(modulePath);
-  return module.supabaseServer;
+  const importedModule = await import(modulePath);
+  return importedModule.supabaseServer;
 }
 
 async function getResolveRequestEntitlement() {
   const modulePath = './rate-limit.ts';
-  const module = await import(modulePath);
-  return module.resolveRequestEntitlement;
+  const importedModule = await import(modulePath);
+  return importedModule.resolveRequestEntitlement;
 }
 
 function normalizeSessionId(sessionId?: string | null): string | null {

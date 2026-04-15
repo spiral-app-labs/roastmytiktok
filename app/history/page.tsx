@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { fetchHistory, HistoryEntry } from '@/lib/history';
+import { fetchHistoryState, type HistoryEntry, type HistoryLoadResult } from '@/lib/history';
 import { GlassCard, EmptyState, LoadingSkeleton, PageHeader } from '@/components/ui';
 import { ScoreRing } from '@/components/ScoreRing';
 
@@ -73,6 +73,12 @@ function VideoHistoryCard({ entry, index }: { entry: HistoryEntry; index: number
             <span>{getRelativeDate(entry.date)}</span>
             <span>·</span>
             <span>{entry.source === 'upload' ? '📎 Upload' : 'Imported result'}</span>
+            {entry.persistence === 'local' && (
+              <>
+                <span>·</span>
+                <span className="text-amber-300">Local only</span>
+              </>
+            )}
           </div>
 
           {/* Actions */}
@@ -101,13 +107,13 @@ function VideoHistoryCard({ entry, index }: { entry: HistoryEntry; index: number
 
 export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyState, setHistoryState] = useState<HistoryLoadResult | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchHistory().then(h => {
-      // Sort most recent first
-      const sorted = [...h].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setHistory(sorted);
+    fetchHistoryState().then((nextHistoryState) => {
+      setHistory(nextHistoryState.entries);
+      setHistoryState(nextHistoryState);
       setLoading(false);
     });
   }, []);
@@ -134,7 +140,9 @@ export default function HistoryPage() {
                 ? 'Loading your past roasts...'
                 : history.length === 0
                   ? 'No roasts yet. Start with one video and build a baseline.'
-                  : `${history.length} roast${history.length !== 1 ? 's' : ''} saved. ${history.length >= 3 ? 'You have enough signal to spot patterns.' : 'One more roast will make the comparisons sharper.'}`
+                  : historyState?.source === 'account'
+                    ? `${history.length} roast${history.length !== 1 ? 's' : ''} in your account history. ${historyState.hasLocalOnly ? 'Entries marked local only still live on this browser.' : 'Your signed-in history follows you across devices.'}`
+                    : `${history.length} browser-local roast${history.length !== 1 ? 's' : ''} saved on this device. Sign in to keep history across devices.`
             }
             backHref="/"
             backLabel="← Roast another"
@@ -173,23 +181,34 @@ export default function HistoryPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"
+            className="mb-6 space-y-3"
           >
-            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
-              <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Total</p>
-              <p className="text-lg font-bold text-white">{history.length}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
+                <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Total</p>
+                <p className="text-lg font-bold text-white">{history.length}</p>
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
+                <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Average</p>
+                <p className="text-lg font-bold text-orange-400">{Math.round(history.reduce((s, h) => s + h.overallScore, 0) / history.length)}</p>
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
+                <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Best</p>
+                <p className="text-lg font-bold text-green-400">{Math.max(...history.map(h => h.overallScore))}</p>
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
+                <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Needs Work</p>
+                <p className="text-lg font-bold text-red-400">{history.filter(h => h.overallScore < 50).length}</p>
+              </div>
             </div>
-            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
-              <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Average</p>
-              <p className="text-lg font-bold text-orange-400">{Math.round(history.reduce((s, h) => s + h.overallScore, 0) / history.length)}</p>
-            </div>
-            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
-              <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Best</p>
-              <p className="text-lg font-bold text-green-400">{Math.max(...history.map(h => h.overallScore))}</p>
-            </div>
-            <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl px-4 py-3 text-center">
-              <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Needs Work</p>
-              <p className="text-lg font-bold text-red-400">{history.filter(h => h.overallScore < 50).length}</p>
+            <div className="rounded-xl border border-zinc-800/50 bg-zinc-900/40 px-4 py-3 text-sm text-zinc-400">
+              {historyState?.source === 'account'
+                ? historyState.hasLocalOnly
+                  ? 'Account-backed history is live. Entries marked local only are still stored only on this browser until they are claimed or re-run while signed in.'
+                  : 'These analyses are loaded from your account-backed history, so clearing browser storage will not erase them.'
+                : historyState?.fallbackReason === 'server_unavailable'
+                  ? 'Account history could not be loaded, so this page fell back to browser-local storage.'
+                  : 'You are viewing browser-local history only. Sign in if you want saved history across browsers and devices.'}
             </div>
           </motion.div>
         )}
