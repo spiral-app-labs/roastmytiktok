@@ -1,22 +1,28 @@
 import { NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabaseServer } from '@/lib/supabase-server';
-import { enforceUsageCap, resolveUsageContext } from '@/lib/usage';
+import {
+  MAX_VIDEO_SIZE_BYTES,
+  getExtensionForMimeType,
+  getUploadValidationError,
+  validateUploadDescriptor,
+} from '@/lib/upload-validation';
+import { applyUsageCookie, enforceUsageCap, resolveUsageContext } from '@/lib/usage';
 
 export async function POST(request: NextRequest) {
-  let sessionIdForUsage: string | undefined;
+  let clientSessionId: string | undefined;
   const contentTypeHeader = request.headers.get('content-type') ?? '';
 
   try {
     if (contentTypeHeader.includes('application/json')) {
       const body = await request.clone().json().catch(() => null) as { sessionId?: string } | null;
-      sessionIdForUsage = body?.sessionId;
+      clientSessionId = body?.sessionId;
     } else if (
       contentTypeHeader.includes('multipart/form-data') ||
       contentTypeHeader.includes('application/x-www-form-urlencoded')
     ) {
       const formData = await request.clone().formData().catch(() => null);
-      sessionIdForUsage = typeof formData?.get('session_id') === 'string'
+      clientSessionId = typeof formData?.get('session_id') === 'string'
         ? (formData?.get('session_id') as string)
         : undefined;
     }
@@ -25,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const limited = await enforceUsageCap(request, sessionIdForUsage);
+    const limited = await enforceUsageCap(request, clientSessionId);
     if (limited) return limited;
   } catch (err) {
     console.warn('[analyze] Usage cap check failed, allowing request:', err);
@@ -35,6 +41,7 @@ export async function POST(request: NextRequest) {
     let payload: {
       filename?: string;
       contentType?: string;
+      sizeBytes?: number;
       sessionId?: string;
     };
 
@@ -49,6 +56,7 @@ export async function POST(request: NextRequest) {
       payload = {
         filename: video instanceof File ? video.name : undefined,
         contentType: video instanceof File ? video.type : undefined,
+        sizeBytes: video instanceof File ? video.size : undefined,
         sessionId:
           typeof formData.get('session_id') === 'string'
             ? (formData.get('session_id') as string)
@@ -61,18 +69,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { filename, contentType, sessionId } = payload;
-    const usageContext = await resolveUsageContext(request, sessionId ?? sessionIdForUsage);
+    const { filename, contentType, sizeBytes, sessionId } = payload;
+    const usageContext = await resolveUsageContext(request, sessionId ?? clientSessionId);
+    const validation = validateUploadDescriptor({ filename, contentType, sizeBytes });
 
-    if (!filename) {
+    if (!validation.ok) {
       return Response.json(
-        { error: 'filename is required' },
-        { status: 400 }
+        { error: getUploadValidationError(validation.issue) },
+        { status: validation.issue === 'file_too_large' ? 413 : 400 }
       );
     }
 
     const id = uuidv4();
-    const ext = filename.split('.').pop() || 'mp4';
+    const ext = getExtensionForMimeType(validation.normalizedContentType);
     const storagePath = `videos/${id}.${ext}`;
 
     // Ensure bucket exists (no-op if already created)
@@ -96,11 +105,12 @@ export async function POST(request: NextRequest) {
     // Create session record so the GET handler can find the video
     const { error: insertError } = await supabaseServer.from('rmt_roast_sessions').insert({
       id,
-      session_id: usageContext.sessionId ?? 'anonymous',
+      anonymous_session_id: usageContext.anonymousSessionId,
+      session_id: usageContext.clientSessionId ?? usageContext.anonymousSessionId ?? 'anonymous',
       user_id: usageContext.userId,
       client_ip: usageContext.clientIp,
       source: 'upload',
-      filename,
+      filename: validation.normalizedFilename,
       video_url: storagePath,
       analysis_status: 'pending',
       overall_score: 0,
@@ -117,13 +127,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return Response.json({
+    return applyUsageCookie(Response.json({
       id,
       videoPath: storagePath,
-      contentType: contentType || 'video/mp4',
+      contentType: validation.normalizedContentType,
+      maxSizeBytes: MAX_VIDEO_SIZE_BYTES,
       signedUrl: signedData.signedUrl,
       token: signedData.token,
-    });
+    }), usageContext);
   } catch (err) {
     console.error('[analyze] Error:', err);
     return Response.json(

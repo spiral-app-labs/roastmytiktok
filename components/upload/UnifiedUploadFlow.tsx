@@ -75,6 +75,7 @@ export default function UnifiedUploadFlow({ variant = 'compact' }: UnifiedUpload
         body: JSON.stringify({
           filename: file.name,
           contentType: file.type || 'video/mp4',
+          sizeBytes: file.size,
           sessionId: getSessionId(),
         }),
       });
