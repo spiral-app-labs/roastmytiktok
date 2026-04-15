@@ -23,6 +23,7 @@ import { detectTikTokSound } from '@/lib/tiktok-sound-detect';
 import { getFirstFiveSecondsDiagnosis } from '@/lib/hook-help';
 import { buildHookAnalysisPrompt, deriveHookAnalysis, parseHookAnalysisResponse } from '@/lib/hook-analysis';
 import { getMissingRuntimeDependencies } from '@/lib/runtime-dependencies';
+import { getUploadValidationError, validateUploadDescriptor } from '@/lib/upload-validation';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 const HOOK_AUDIO_WINDOW_SEC = 6;
@@ -856,6 +857,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const ext = storagePath.split('.').pop() || 'mp4';
   const localPath = `/tmp/rmt-${id}.${ext}`;
 
+  const { data: fileInfo, error: fileInfoError } = await supabaseServer.storage
+    .from('roast-videos')
+    .info(storagePath);
+
+  if (fileInfoError || !fileInfo) {
+    return Response.json({ error: 'Failed to inspect uploaded video.' }, { status: 500 });
+  }
+
   // Download video from Supabase Storage to /tmp for ffmpeg
   const downloadStartedAtMs = Date.now();
   const { data: fileData, error: downloadError } = await supabaseServer.storage
@@ -868,6 +877,38 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const buffer = Buffer.from(await fileData.arrayBuffer());
+
+  const uploadValidation = validateUploadDescriptor({
+    filename: (session as { filename?: string | null }).filename,
+    contentType: fileInfo.contentType ?? fileData.type,
+    sizeBytes: Math.max(fileInfo.size ?? 0, buffer.byteLength),
+  });
+
+  if (!uploadValidation.ok) {
+    console.warn('[analyze] Removing non-conforming upload before analysis:', {
+      id,
+      storagePath,
+      issue: uploadValidation.issue,
+    });
+
+    await supabaseServer.storage
+      .from('roast-videos')
+      .remove([storagePath])
+      .catch((removeError) => {
+        console.error('[analyze] Failed to remove invalid upload:', removeError);
+      });
+
+    await supabaseServer.from('rmt_roast_sessions').update({
+      analysis_status: 'failed',
+      verdict: 'Invalid upload rejected',
+    }).eq('id', id);
+
+    return Response.json(
+      { error: getUploadValidationError(uploadValidation.issue) },
+      { status: uploadValidation.issue === 'file_too_large' ? 413 : 400 },
+    );
+  }
+
   await writeFile(localPath, buffer);
 
   const videoPath = localPath;

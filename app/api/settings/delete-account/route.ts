@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getSubscriptionSnapshot } from '@/lib/settings';
+import { getSubscriptionSnapshotForUserId } from '@/lib/entitlements';
 import { claimRoastSessionsForUser, deleteOwnedAccountData, requireAuthenticatedUser } from '@/lib/settings-server';
 import { createServiceClient } from '@/lib/supabase/server';
 
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null) as { sessionId?: string } | null;
     await claimRoastSessionsForUser(auth.user.id, body?.sessionId);
 
-    const subscription = getSubscriptionSnapshot(auth.user);
+    const subscription = await getSubscriptionSnapshotForUserId(auth.user.id);
     if (subscription.isSubscribed) {
       return Response.json(
         {
