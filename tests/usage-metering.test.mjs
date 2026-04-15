@@ -1,13 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const { buildUsageSnapshotFromRows, FREE_USAGE_CAP, resolveUsageSubjectFromIds } = await import('../lib/usage.ts');
+const {
+  buildUsageSnapshotFromRows,
+  FREE_USAGE_CAP,
+  normalizeIpAddress,
+  resolveUsageSubjectFromIds,
+} = await import('../lib/usage.ts');
 
 test('usage subject prefers account, then session, then real IP fallback', () => {
   assert.deepEqual(
     resolveUsageSubjectFromIds({
+      anonymousSessionId: 'rmt_srv_12345',
       clientIp: '203.0.113.10',
-      sessionId: 'rmt_session_12345',
       userId: '6a80c4e1-bf49-47d0-882f-b3c4183752d9',
     }),
     { type: 'account', id: '6a80c4e1-bf49-47d0-882f-b3c4183752d9' },
@@ -15,19 +20,25 @@ test('usage subject prefers account, then session, then real IP fallback', () =>
 
   assert.deepEqual(
     resolveUsageSubjectFromIds({
+      anonymousSessionId: 'rmt_srv_12345',
       clientIp: '203.0.113.10',
-      sessionId: 'rmt_session_12345',
     }),
-    { type: 'session', id: 'rmt_session_12345' },
+    { type: 'session', id: 'rmt_srv_12345' },
   );
 
   assert.deepEqual(
     resolveUsageSubjectFromIds({
       clientIp: '203.0.113.10',
-      sessionId: 'bad',
+      anonymousSessionId: 'bad',
     }),
     { type: 'ip', id: '203.0.113.10' },
   );
+});
+
+test('ip normalization strips ports and rejects invalid forwarded values', () => {
+  assert.equal(normalizeIpAddress('198.51.100.7:443'), '198.51.100.7');
+  assert.equal(normalizeIpAddress(' 2001:db8::10 '), '2001:db8::10');
+  assert.equal(normalizeIpAddress('not-an-ip'), null);
 });
 
 test('usage snapshot persists real roast counts and processed minutes from completed sessions', () => {

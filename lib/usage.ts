@@ -1,7 +1,12 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server.js';
+import crypto from 'node:crypto';
+import net from 'node:net';
 
 export type UsagePlan = 'free' | 'paid';
+const USAGE_COOKIE_NAME = 'rmt_usage';
+const USAGE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 180;
+const DEV_FALLBACK_USAGE_SECRET = 'dev-usage-secret-change-me';
 
 export type UsageSubject =
   | { type: 'account'; id: string }
@@ -9,11 +14,13 @@ export type UsageSubject =
   | { type: 'ip'; id: string };
 
 export interface UsageContext {
+  anonymousSessionId: string | null;
   clientIp: string;
+  clientSessionId: string | null;
   plan: UsagePlan;
-  sessionId: string | null;
   subject: UsageSubject;
   userId: string | null;
+  usageCookieValue: string | null;
 }
 
 export interface UsageSnapshot {
@@ -35,7 +42,10 @@ export interface UsageSnapshot {
 }
 
 interface UsageRow {
+  id?: string | null;
   analysis_status?: string | null;
+  anonymous_session_id?: string | null;
+  client_ip?: string | null;
   completed_at?: string | null;
   created_at?: string | null;
   overall_score?: number | null;
@@ -47,10 +57,127 @@ export const FREE_USAGE_CAP = {
   windowMs: 24 * 60 * 60 * 1000,
 } as const;
 
+export function normalizeIpAddress(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const withoutBrackets = trimmed.startsWith('[') && trimmed.endsWith(']')
+    ? trimmed.slice(1, -1)
+    : trimmed;
+  const ipv4PortMatch = withoutBrackets.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/);
+  const candidate = ipv4PortMatch ? ipv4PortMatch[1] : withoutBrackets;
+
+  if (net.isIP(candidate)) {
+    return candidate;
+  }
+
+  return null;
+}
+
+function getUsageSigningSecret(): string {
+  const configured = process.env.USAGE_SIGNING_SECRET?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (configured) {
+    return configured;
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    return DEV_FALLBACK_USAGE_SECRET;
+  }
+
+  throw new Error('Missing usage signing secret');
+}
+
+function signUsageValue(value: string): string {
+  return crypto
+    .createHmac('sha256', getUsageSigningSecret())
+    .update(value)
+    .digest('base64url');
+}
+
+function encodeUsageCookiePayload(sessionId: string, expiresAt: number): string {
+  return Buffer.from(JSON.stringify({ sessionId, expiresAt }), 'utf8').toString('base64url');
+}
+
+function decodeUsageCookiePayload(value: string): { expiresAt: number; sessionId: string } | null {
+  try {
+    const parsed = JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as {
+      expiresAt?: unknown;
+      sessionId?: unknown;
+    };
+    if (typeof parsed.sessionId !== 'string' || typeof parsed.expiresAt !== 'number') {
+      return null;
+    }
+
+    return {
+      sessionId: parsed.sessionId,
+      expiresAt: parsed.expiresAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function verifySignedUsageCookie(rawCookie?: string | null): string | null {
+  if (!rawCookie) return null;
+  const [payload, signature] = rawCookie.split('.');
+  if (!payload || !signature) return null;
+
+  const expected = signUsageValue(payload);
+  const left = Buffer.from(signature, 'utf8');
+  const right = Buffer.from(expected, 'utf8');
+  if (left.length !== right.length || !crypto.timingSafeEqual(left, right)) {
+    return null;
+  }
+
+  const decoded = decodeUsageCookiePayload(payload);
+  if (!decoded || decoded.expiresAt <= Date.now()) {
+    return null;
+  }
+
+  return normalizeSessionId(decoded.sessionId);
+}
+
+function createSignedUsageCookie(sessionId: string): string {
+  const payload = encodeUsageCookiePayload(sessionId, Date.now() + (USAGE_COOKIE_MAX_AGE_SECONDS * 1000));
+  return `${payload}.${signUsageValue(payload)}`;
+}
+
+function getAnonymousUsageIdentity(req: NextRequest): { cookieValue: string | null; sessionId: string } {
+  const existing = verifySignedUsageCookie(req.cookies.get(USAGE_COOKIE_NAME)?.value);
+  if (existing) {
+    return { sessionId: existing, cookieValue: null };
+  }
+
+  const sessionId = `rmt_srv_${crypto.randomUUID()}`;
+  return {
+    sessionId,
+    cookieValue: createSignedUsageCookie(sessionId),
+  };
+}
+
 export function getClientIp(req: NextRequest): string {
-  const forwarded = req.headers.get('x-forwarded-for');
-  const ip = forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
-  return ip.trim() || 'unknown';
+  const headerCandidates = [
+    req.headers.get('x-vercel-forwarded-for'),
+    req.headers.get('cf-connecting-ip'),
+    req.headers.get('x-real-ip'),
+    req.headers.get('x-forwarded-for'),
+  ];
+
+  for (const value of headerCandidates) {
+    if (!value) continue;
+
+    const normalized = value
+      .split(',')
+      .map((entry) => normalizeIpAddress(entry))
+      .find((entry): entry is string => !!entry);
+
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return 'unknown';
 }
 
 async function getSupabaseServer() {
@@ -72,15 +199,15 @@ function normalizeSessionId(sessionId?: string | null): string | null {
 }
 
 export function resolveUsageSubjectFromIds(params: {
+  anonymousSessionId?: string | null;
   clientIp: string;
-  sessionId?: string | null;
   userId?: string | null;
 }): UsageSubject {
   if (params.userId) {
     return { type: 'account', id: params.userId };
   }
 
-  const sessionId = normalizeSessionId(params.sessionId);
+  const sessionId = normalizeSessionId(params.anonymousSessionId);
   if (sessionId) {
     return { type: 'session', id: sessionId };
   }
@@ -90,32 +217,36 @@ export function resolveUsageSubjectFromIds(params: {
 
 export function getUsageSubject(
   req: NextRequest,
-  sessionId?: string | null,
+  anonymousSessionId?: string | null,
   userId?: string | null
 ): UsageSubject {
   return resolveUsageSubjectFromIds({
+    anonymousSessionId,
     clientIp: getClientIp(req),
-    sessionId,
     userId,
   });
 }
 
-export async function resolveUsageContext(req: NextRequest, sessionId?: string | null): Promise<UsageContext> {
+export async function resolveUsageContext(req: NextRequest, clientSessionId?: string | null): Promise<UsageContext> {
   const resolveRequestEntitlement = await getResolveRequestEntitlement();
   const { plan, userId } = await resolveRequestEntitlement(req);
   const clientIp = getClientIp(req);
-  const normalizedSessionId = normalizeSessionId(sessionId);
+  const normalizedClientSessionId = normalizeSessionId(clientSessionId);
+  const anonymousIdentity = userId ? null : getAnonymousUsageIdentity(req);
+  const anonymousSessionId = anonymousIdentity?.sessionId ?? null;
 
   return {
+    anonymousSessionId,
     clientIp,
+    clientSessionId: normalizedClientSessionId,
     plan,
-    sessionId: normalizedSessionId,
     subject: resolveUsageSubjectFromIds({
+      anonymousSessionId,
       clientIp,
-      sessionId: normalizedSessionId,
       userId,
     }),
     userId,
+    usageCookieValue: anonymousIdentity?.cookieValue ?? null,
   };
 }
 
@@ -125,7 +256,7 @@ function buildSubjectFilter(subject: UsageSubject) {
   }
 
   if (subject.type === 'session') {
-    return { column: 'session_id', value: subject.id } as const;
+    return { column: 'anonymous_session_id', value: subject.id } as const;
   }
 
   return { column: 'client_ip', value: subject.id } as const;
@@ -198,34 +329,82 @@ export function buildUsageSnapshotFromRows(
   };
 }
 
-export async function getUsageSnapshot(subject: UsageSubject, plan: UsagePlan = 'free'): Promise<UsageSnapshot> {
+async function getUsageRowsForSubject(subject: UsageSubject): Promise<UsageRow[]> {
   const filter = buildSubjectFilter(subject);
   const supabaseServer = await getSupabaseServer();
 
   const { data, error } = await supabaseServer
     .from('rmt_roast_sessions')
-    .select('analysis_status, completed_at, created_at, overall_score, processed_seconds')
+    .select('id, analysis_status, anonymous_session_id, client_ip, completed_at, created_at, overall_score, processed_seconds')
     .eq(filter.column, filter.value);
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return buildUsageSnapshotFromRows(subject, (data ?? []) as UsageRow[], plan);
+  return (data ?? []) as UsageRow[];
+}
+
+export async function getUsageSnapshot(subject: UsageSubject, plan: UsagePlan = 'free'): Promise<UsageSnapshot> {
+  const rows = await getUsageRowsForSubject(subject);
+  return buildUsageSnapshotFromRows(subject, rows, plan);
+}
+
+function mergeUsageRows(rows: UsageRow[]): UsageRow[] {
+  const merged = new Map<string, UsageRow>();
+
+  for (const row of rows) {
+    const key = row.id ?? JSON.stringify(row);
+    if (!merged.has(key)) {
+      merged.set(key, row);
+    }
+  }
+
+  return [...merged.values()];
+}
+
+export async function getUsageSnapshotForContext(context: UsageContext): Promise<UsageSnapshot> {
+  const primaryRows = await getUsageRowsForSubject(context.subject);
+
+  if (context.subject.type !== 'session' || context.clientIp === 'unknown') {
+    return buildUsageSnapshotFromRows(context.subject, primaryRows, context.plan);
+  }
+
+  const ipRows = await getUsageRowsForSubject({ type: 'ip', id: context.clientIp });
+  return buildUsageSnapshotFromRows(context.subject, mergeUsageRows([...primaryRows, ...ipRows]), context.plan);
 }
 
 function roundUsageNumber(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-export async function enforceUsageCap(req: NextRequest, sessionId?: string | null): Promise<NextResponse | null> {
-  const context = await resolveUsageContext(req, sessionId);
+export function applyUsageCookie(response: NextResponse, context: UsageContext): NextResponse {
+  if (!context.usageCookieValue) {
+    return response;
+  }
 
+  response.cookies.set(USAGE_COOKIE_NAME, context.usageCookieValue, {
+    httpOnly: true,
+    maxAge: USAGE_COOKIE_MAX_AGE_SECONDS,
+    path: '/',
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+
+  return response;
+}
+
+export async function enforceUsageCap(req: NextRequest, clientSessionId?: string | null): Promise<NextResponse | null> {
+  const context = await resolveUsageContext(req, clientSessionId);
+  return enforceUsageCapForResolvedContext(context);
+}
+
+export async function enforceUsageCapForResolvedContext(context: UsageContext): Promise<NextResponse | null> {
   if (context.plan === 'paid') {
     return null;
   }
 
-  const snapshot = await getUsageSnapshot(context.subject, context.plan);
+  const snapshot = await getUsageSnapshotForContext(context);
 
   if (snapshot.totals.roastsInWindow >= FREE_USAGE_CAP.roastsPerWindow) {
     const retryAfterSeconds = Math.max(
@@ -233,7 +412,7 @@ export async function enforceUsageCap(req: NextRequest, sessionId?: string | nul
       Math.ceil((new Date(snapshot.window.start).getTime() + FREE_USAGE_CAP.windowMs - Date.now()) / 1000)
     );
 
-    return NextResponse.json(
+    return applyUsageCookie(NextResponse.json(
       {
         error: 'Free limit reached. You\'ve used your 3 free roasts today.',
         upgradeUrl: '/pricing',
@@ -248,7 +427,7 @@ export async function enforceUsageCap(req: NextRequest, sessionId?: string | nul
           'X-RateLimit-Remaining': '0',
         },
       }
-    );
+    ), context);
   }
 
   return null;

@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabaseServer } from '@/lib/supabase-server';
 import {
@@ -7,10 +7,11 @@ import {
   getUploadValidationError,
   validateUploadDescriptor,
 } from '@/lib/upload-validation';
-import { applyUsageCookie, enforceUsageCap, resolveUsageContext } from '@/lib/usage';
+import { applyUsageCookie, enforceUsageCapForResolvedContext, resolveUsageContext, type UsageContext } from '@/lib/usage';
 
 export async function POST(request: NextRequest) {
   let clientSessionId: string | undefined;
+  let usageContext: UsageContext | null = null;
   const contentTypeHeader = request.headers.get('content-type') ?? '';
 
   try {
@@ -31,7 +32,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const limited = await enforceUsageCap(request, clientSessionId);
+    usageContext = await resolveUsageContext(request, clientSessionId);
+    const limited = await enforceUsageCapForResolvedContext(usageContext);
     if (limited) return limited;
   } catch (err) {
     console.warn('[analyze] Usage cap check failed, allowing request:', err);
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { filename, contentType, sizeBytes, sessionId } = payload;
-    const usageContext = await resolveUsageContext(request, sessionId ?? clientSessionId);
+    usageContext = usageContext ?? await resolveUsageContext(request, sessionId ?? clientSessionId);
     const validation = validateUploadDescriptor({ filename, contentType, sizeBytes });
 
     if (!validation.ok) {
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return applyUsageCookie(Response.json({
+    return applyUsageCookie(NextResponse.json({
       id,
       videoPath: storagePath,
       contentType: validation.normalizedContentType,
