@@ -112,7 +112,6 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -130,23 +129,6 @@ export default function Home() {
       });
     return () => { cancelled = true; };
   }, []);
-
-  // Fetch usage when bypassed
-  useEffect(() => {
-    if (!bypassed) return;
-    fetch('/api/usage')
-      .then((r) => r.json())
-      .then((data) => {
-        const snap = data?.usage;
-        if (snap) {
-          setUsage({
-            used: snap.totals.roastsInWindow,
-            limit: snap.caps.roastLimit ?? 3,
-          });
-        }
-      })
-      .catch(() => {});
-  }, [bypassed]);
 
   // Cycle testimonials
   useEffect(() => {
@@ -263,7 +245,7 @@ export default function Home() {
             transition={{ delay: 0.18 }}
             className="text-emerald-400 text-sm font-medium mb-3"
           >
-            ✓ Free to try — no credit card required
+            ✓ Invite-only beta for creators testing the full paid product
           </motion.p>
 
           <motion.p
@@ -302,7 +284,7 @@ export default function Home() {
                   disabled={loading || !password}
                   loading={loading}
                 >
-                  {loading ? 'Verifying...' : 'Roast My Video Free →'}
+                  {loading ? 'Verifying...' : 'Unlock Go Viral →'}
                 </GradientButton>
               </div>
               <AnimatePresence mode="wait">
@@ -328,7 +310,7 @@ export default function Home() {
             className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-zinc-600 mb-10"
           >
             {[
-              { icon: '🔒', text: 'No card required' },
+              { icon: '🔒', text: 'Invite-only beta' },
               { icon: '⚡', text: 'Results in ~60s' },
               { icon: '🎯', text: 'Analysis-first, not generic AI fluff' },
               { icon: '🔥', text: '6 specialized agents' },
@@ -380,7 +362,7 @@ export default function Home() {
                 {[
                   { step: '1', icon: '🔑', title: 'unlock beta', desc: 'enter your invite code to get inside the private product.' },
                   { step: '2', icon: '👤', title: 'create your account', desc: 'sign in with google or magic link so your results stay attached to you.' },
-                  { step: '3', icon: '🚀', title: 'pick your path', desc: 'start free for limited analyses or upgrade to Pro for unlimited paid access.' },
+                  { step: '3', icon: '🚀', title: 'start analyzing', desc: 'upload your post and get the full six-agent critique stack inside Go Viral.' },
                 ].map((item) => (
                   <div key={item.step} className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-4 backdrop-blur-sm flex items-start gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/15 border border-orange-500/25 text-sm font-bold text-orange-400 shrink-0 mt-0.5">
@@ -505,11 +487,11 @@ export default function Home() {
               <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/50 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs text-zinc-400">
                   <span className="text-emerald-400 text-base">✓</span>
-                  <span>No card required to start</span>
+                  <span>Invite-only access</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-zinc-400">
                   <span className="text-emerald-400 text-base">✓</span>
-                  <span>Cancel anytime during beta</span>
+                  <span>Full six-agent analysis</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-zinc-400">
                   <span className="text-emerald-400 text-base">✓</span>
@@ -553,18 +535,6 @@ export default function Home() {
             </span>
           ))}
         </div>
-        {usage && usage.used > 0 && (
-          usage.used >= usage.limit ? (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300 flex items-center justify-between gap-3">
-              <span>Daily limit reached ({usage.used}/{usage.limit} roasts used) - upgrade for unlimited</span>
-              <a href="/pricing" className="shrink-0 font-semibold text-amber-200 underline underline-offset-2 hover:text-white transition-colors">Upgrade</a>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/60 px-4 py-2.5 text-sm text-zinc-400 text-center">
-              {usage.used} of {usage.limit} free roasts used today
-            </div>
-          )
-        )}
       </div>
       <UploadQueueUI />
     </div>

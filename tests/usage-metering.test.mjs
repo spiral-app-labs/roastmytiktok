@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 
 const {
   buildUsageSnapshotFromRows,
-  FREE_USAGE_CAP,
   normalizeIpAddress,
   resolveUsageSubjectFromIds,
 } = await import('../lib/usage.ts');
@@ -56,10 +55,10 @@ test('usage snapshot persists real roast counts and processed minutes from compl
   assert.equal(usage.totals.roastsInWindow, 2);
   assert.equal(usage.totals.minutesProcessedAllTime, 4);
   assert.equal(usage.totals.minutesProcessedInWindow, 2);
-  assert.equal(usage.caps.roastLimit, FREE_USAGE_CAP.roastsPerWindow);
+  assert.equal(usage.caps.roastLimit, null);
 });
 
-test('usage snapshot stays cap-ready for paid plans by removing the roast limit while keeping totals', () => {
+test('usage snapshot keeps the roast limit cleared while retaining totals for paid plans', () => {
   const now = new Date('2026-04-05T03:00:00.000Z');
   const subject = { type: 'session', id: 'rmt_session_12345' };
   const usage = buildUsageSnapshotFromRows(subject, [

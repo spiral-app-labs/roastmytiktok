@@ -232,7 +232,7 @@ export default function AnalyzePage() {
           clearTimeout(timeout);
           eventSource.close();
           setError(
-            typeof data.message === 'string' && (data.message.includes('429') || data.message.toLowerCase().includes('free limit'))
+            typeof data.message === 'string' && (data.message.includes('429') || data.message.toLowerCase().includes('limit'))
               ? getUploadErrorMessage('rate_limited')
               : getUploadErrorMessage('analysis_failed')
           );
@@ -323,19 +323,13 @@ export default function AnalyzePage() {
           >
             {error === getUploadErrorMessage('rate_limited') ? (
               <div className="text-center space-y-3">
-                <p className="font-semibold text-sky-300">Free limit reached</p>
+                <p className="font-semibold text-sky-300">Analysis temporarily unavailable</p>
                 <p className="text-zinc-400 text-xs">{getUploadErrorMessage('rate_limited')}</p>
-                <a
-                  href="/pricing"
-                  className="inline-block rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
-                >
-                  Start Pro
-                </a>
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="block mt-1 mx-auto text-zinc-500 hover:text-zinc-300 transition-colors text-xs"
+                  className="block mx-auto rounded-xl border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
                 >
-                  ← Back to dashboard
+                  Back to dashboard
                 </button>
               </div>
             ) : (
