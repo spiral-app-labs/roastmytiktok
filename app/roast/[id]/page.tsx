@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import type { DimensionKey, RoastResult } from '@/lib/types';
+import { ensureRoastResultId } from '@/lib/roast-result';
 import { ScoreCard } from '@/components/ScoreCard';
 import { useScoreCardDownload } from '@/hooks/useScoreCardDownload';
 import { saveToHistory } from '@/lib/history';
@@ -47,7 +48,7 @@ export default function RoastPage() {
       try {
         const cached = sessionStorage.getItem(`roast_${id}`);
         if (cached) {
-          const parsed = JSON.parse(cached) as RoastResult;
+          const parsed = ensureRoastResultId(JSON.parse(cached) as RoastResult, id);
           if (cancelled) return;
           setRoast(parsed);
           setLoading(false);
@@ -67,7 +68,7 @@ export default function RoastPage() {
         const res = await fetch(`/api/roast/${id}`);
         if (cancelled) return;
         if (res.ok) {
-          const data = (await res.json()) as RoastResult;
+          const data = ensureRoastResultId((await res.json()) as RoastResult, id);
           if (cancelled) return;
           setRoast(data);
           if (!historySavedRef.current) {

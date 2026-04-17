@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { ensureRoastResultId } from '@/lib/roast-result';
 import { supabaseServer } from '@/lib/supabase-server';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -16,8 +17,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // If full result_json is available, return it directly
-    if (data.result_json) {
-      return Response.json(data.result_json);
+    if (data.result_json && typeof data.result_json === 'object' && !Array.isArray(data.result_json)) {
+      return Response.json(ensureRoastResultId(data.result_json, data.id));
     }
 
     // Fallback: construct partial result from individual columns
