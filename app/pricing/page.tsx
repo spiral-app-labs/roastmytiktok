@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -15,15 +15,15 @@ const FAQ = [
   },
   {
     q: "How does paid access work?",
-    a: "Checkout runs through Stripe. Once Stripe confirms the subscription, your account gets a server-side paid entitlement and the free roast cap is removed.",
+    a: "Checkout runs through Stripe. Once Stripe confirms the subscription, your account gets a server-side paid entitlement for Go Viral.",
   },
   {
     q: "Can I cancel anytime?",
     a: "Yes. Paid subscribers can open the Stripe billing portal from Settings to cancel or manage billing details.",
   },
   {
-    q: "What changes on Pro?",
-    a: "You keep the same full analysis format, but the daily free cap disappears and you get unlimited paid access tied to your account.",
+    q: "What comes with Pro?",
+    a: "You get the full six-agent roast workflow, account-backed access, and Stripe billing management tied to your subscription.",
   },
 ];
 
@@ -44,7 +44,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-export default function PricingPage() {
+function PricingPageContent() {
   const searchParams = useSearchParams();
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
@@ -69,7 +69,7 @@ export default function PricingPage() {
 
       if (!hasSession) {
         if (searchParams.get("checkout") === "cancelled") {
-          setMessage("Checkout was cancelled. Your free account still works normally.");
+          setMessage("Checkout was cancelled. You can restart it whenever you’re ready.");
         }
         return;
       }
@@ -156,13 +156,13 @@ export default function PricingPage() {
         className="mb-10 max-w-2xl text-center"
       >
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1.5 text-xs font-semibold text-orange-400">
-          🔥 Live Stripe checkout for Pro
+          🔥 Live Stripe checkout for Go Viral
         </div>
         <h1 className="mb-3 text-4xl font-bold text-white md:text-5xl">
-          Free gets you in. Pro removes the cap.
+          Go Viral is a paid product.
         </h1>
         <p className="text-lg text-zinc-400">
-          Every account gets the same full roast format. Pro keeps that analysis stack and removes the daily usage ceiling with billing handled through Stripe.
+          Subscribe for the full six-agent roast workflow, account-backed access, and Stripe-managed billing.
         </p>
       </motion.div>
 
@@ -184,20 +184,19 @@ export default function PricingPage() {
           className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/60 p-7"
         >
           <div className="mb-6">
-            <h2 className="mb-1 text-lg font-semibold text-zinc-300">Free</h2>
-            <p className="text-sm text-zinc-500">Start without a card and use the full analysis flow.</p>
+            <h2 className="mb-1 text-lg font-semibold text-zinc-300">What your subscription includes</h2>
+            <p className="text-sm text-zinc-500">One product, one workflow, and the full roast stack attached to your account.</p>
           </div>
 
           <div className="mb-8">
-            <span className="text-5xl font-bold text-white">$0</span>
-            <span className="ml-2 text-sm text-zinc-500">forever</span>
+            <span className="text-5xl font-bold text-white">Full access</span>
           </div>
 
           <Link
-            href="/dashboard"
+            href={signedIn ? "/dashboard" : "/"}
             className="mb-8 block rounded-xl border border-zinc-700 px-6 py-3 text-center font-semibold text-zinc-300 transition-all hover:border-orange-500/40 hover:text-white"
           >
-            Start Free
+            {signedIn ? "Open Dashboard" : "Back to Home"}
           </Link>
 
           <div className="flex-1 space-y-3">
@@ -206,7 +205,7 @@ export default function PricingPage() {
               "Full upload + roast workflow",
               "Score, verdict, and six-agent breakdown",
               "Hook rewrites and reshoot direction",
-              "3 completed roasts per 24 hours",
+              "Account-backed history and settings",
             ].map((item) => (
               <div key={item} className="flex items-start gap-2.5 text-sm text-zinc-400">
                 <span className="mt-0.5 shrink-0">✓</span>
@@ -227,8 +226,8 @@ export default function PricingPage() {
           </div>
 
           <div className="mb-6">
-            <h2 className="mb-1 text-lg font-semibold text-white">Paid</h2>
-            <p className="text-sm text-zinc-400">Server-backed entitlements, live checkout, and unlimited access.</p>
+            <h2 className="mb-1 text-lg font-semibold text-white">Go Viral Pro</h2>
+            <p className="text-sm text-zinc-400">Server-backed entitlements, live checkout, and billing managed through Stripe.</p>
           </div>
 
           <div className="mb-8">
@@ -251,7 +250,7 @@ export default function PricingPage() {
                 disabled={checkoutLoading || !sessionLoaded}
                 className="block w-full rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 px-6 py-4 text-base font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
               >
-                {checkoutLoading ? "Redirecting…" : signedIn ? "Start Pro Checkout" : "Sign In to Upgrade"}
+                {checkoutLoading ? "Redirecting…" : signedIn ? "Start Pro Checkout" : "Sign In to Subscribe"}
               </button>
             )}
             <p className="text-center text-xs text-zinc-500">
@@ -262,12 +261,12 @@ export default function PricingPage() {
           </div>
 
           <div className="flex-1 space-y-3">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">What changes on Pro</p>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">What you get</p>
             {[
-              "Unlimited completed roasts",
+              "Full six-agent analysis on every roast",
               "Paid access follows your signed-in account across devices",
               "Stripe billing portal for cancellation and payment updates",
-              "Same roast depth, without the free cap",
+              "Clean paid access without roast quota popups",
             ].map((item) => (
               <div key={item} className="flex items-start gap-2.5 text-sm text-zinc-200">
                 <span className="mt-0.5 shrink-0">⚡</span>
@@ -285,24 +284,22 @@ export default function PricingPage() {
         className="mb-16 w-full max-w-5xl rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6"
       >
         <h3 className="mb-6 text-center text-sm font-semibold uppercase tracking-wider text-zinc-300">
-          Billing truth table
+          What your subscription covers
         </h3>
-        <div className="grid grid-cols-3 gap-3 text-sm">
+        <div className="grid grid-cols-[1fr_auto] gap-3 text-sm">
           <div className="text-zinc-500 font-medium"></div>
-          <div className="text-center font-medium text-zinc-400">Free</div>
           <div className="text-center font-semibold text-white">Pro</div>
           {[
-            ["Full roast breakdown", "✓", "✓"],
-            ["Hook rewrites", "✓", "✓"],
-            ["Reshoot plan", "✓", "✓"],
-            ["Usage cap", "3 / day", "Unlimited"],
-            ["Checkout", "No card", "Live Stripe checkout"],
-            ["Billing management", "—", "Stripe portal in Settings"],
-          ].map(([feature, free, pro]) => (
+            ["Full roast breakdown", "Included"],
+            ["Hook rewrites", "Included"],
+            ["Reshoot plan", "Included"],
+            ["Account-backed access", "Included"],
+            ["Checkout", "Live Stripe checkout"],
+            ["Billing management", "Stripe portal in Settings"],
+          ].map(([feature, value]) => (
             <div key={feature} className="contents">
               <div className="border-t border-zinc-800/50 py-2 text-zinc-400">{feature}</div>
-              <div className="border-t border-zinc-800/50 py-2 text-center text-zinc-500">{free}</div>
-              <div className="border-t border-zinc-800/50 py-2 text-center font-medium text-orange-300">{pro}</div>
+              <div className="border-t border-zinc-800/50 py-2 text-center font-medium text-orange-300">{value}</div>
             </div>
           ))}
         </div>
@@ -330,24 +327,32 @@ export default function PricingPage() {
       >
         <h3 className="mb-2 text-2xl font-bold text-white">Ready to pressure-test your next post?</h3>
         <p className="mb-6 text-sm text-zinc-500">
-          Start free today, or move to Pro when you want unlimited account-backed access.
+          Start your subscription when you’re ready for account-backed access and the full Go Viral workflow.
         </p>
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/dashboard"
-            className="inline-block rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 px-10 py-4 text-base font-bold text-white transition-opacity hover:opacity-90"
-          >
-            Try Free Roast
-          </Link>
           <button
             onClick={isPaid ? openBillingPortal : startCheckout}
             disabled={(isPaid ? billingLoading : checkoutLoading) || !sessionLoaded}
-            className="inline-block rounded-xl border border-zinc-700 px-10 py-4 text-base font-semibold text-zinc-300 transition-all hover:border-orange-500/40 hover:text-white disabled:opacity-60"
+            className="inline-block rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 px-10 py-4 text-base font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
           >
-            {isPaid ? "Manage Billing" : signedIn ? "Upgrade to Pro" : "Sign In to Upgrade"}
+            {isPaid ? "Manage Billing" : signedIn ? "Start Pro Checkout" : "Sign In to Subscribe"}
           </button>
+          <Link
+            href={signedIn ? "/dashboard" : "/"}
+            className="inline-block rounded-xl border border-zinc-700 px-10 py-4 text-base font-semibold text-zinc-300 transition-all hover:border-orange-500/40 hover:text-white"
+          >
+            {signedIn ? "Open Dashboard" : "Back to Home"}
+          </Link>
         </div>
       </motion.div>
     </main>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={null}>
+      <PricingPageContent />
+    </Suspense>
   );
 }

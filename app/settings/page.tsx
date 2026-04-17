@@ -169,7 +169,7 @@ export default function SettingsPage() {
         setSubscriptionRenewalDate(data.subscription?.renewalDate ?? null);
       })
       .catch(() => {
-        setUsage({ plan: "free", roastsAllTime: 0, roastsInWindow: 0, minutesProcessedAllTime: 0, roastLimit: 3, renewalDate: null });
+        setUsage({ plan: "free", roastsAllTime: 0, roastsInWindow: 0, minutesProcessedAllTime: 0, roastLimit: null, renewalDate: null });
       });
   }, []);
 
@@ -230,14 +230,9 @@ export default function SettingsPage() {
   }
 
   // Subscription (wired to Stripe billing portal)
-  const plan = usage?.plan === "paid" ? "Pro" : "Free";
-  const isFree = plan === "Free";
+  const hasActiveSubscription = usage?.plan === "paid";
+  const planLabel = hasActiveSubscription ? "Pro" : "Inactive";
   const renewalDate = usage?.renewalDate ?? subscriptionRenewalDate;
-  const roastsUsed = usage?.roastsInWindow ?? 0;
-  const roastsLimit = usage?.roastLimit;
-  const roastMeterWidth = roastsLimit == null
-    ? 100
-    : Math.min((roastsUsed / Math.max(roastsLimit, 1)) * 100, 100);
   const totalMinutesProcessed = usage?.minutesProcessedAllTime ?? 0;
   const totalRoasts = usage?.roastsAllTime ?? 0;
 
@@ -365,25 +360,25 @@ export default function SettingsPage() {
             {/* ── 1. Subscription ────────────────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.05 }}>
               <GlassCard variant="surface" className="p-6">
-                <SectionHeader title="Subscription" subtitle="Your current plan and usage." />
+                <SectionHeader title="Subscription" subtitle="Your current billing and account status." />
 
                 {/* Plan badge row */}
                 <div className="mb-5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest ${
-                      isFree
-                        ? "bg-zinc-800 text-zinc-300"
-                        : "bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 text-white"
+                      hasActiveSubscription
+                        ? "bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 text-white"
+                        : "bg-zinc-800 text-zinc-300"
                     }`}>
-                      {plan}
+                      {planLabel}
                     </span>
-                    {!isFree && (
-                      <span className="text-xs text-zinc-500">
-                        {renewalDate ? `Renews ${new Date(renewalDate).toLocaleDateString()}` : "Subscription active"}
-                      </span>
-                    )}
+                    <span className="text-xs text-zinc-500">
+                      {hasActiveSubscription
+                        ? (renewalDate ? `Renews ${new Date(renewalDate).toLocaleDateString()}` : "Subscription active")
+                        : "No active Go Viral subscription"}
+                    </span>
                   </div>
-                  {!isFree ? (
+                  {hasActiveSubscription ? (
                     <button
                       onClick={openBillingPortal}
                       disabled={billingLoading}
@@ -396,31 +391,22 @@ export default function SettingsPage() {
                       href="/pricing"
                       className="rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-4 py-2 text-xs font-bold text-white shadow shadow-sky-500/20 transition hover:opacity-90"
                     >
-                      Upgrade to Pro →
+                      Start Pro →
                     </Link>
                   )}
                 </div>
 
-                {/* Usage stats */}
+                {/* Billing + usage stats */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                    <p className="text-xs text-zinc-500 mb-1">Completed roasts in the last 24 hours</p>
+                    <p className="text-xs text-zinc-500 mb-1">Billing status</p>
                     <p className="text-2xl font-black text-white">
-                      {roastsUsed}
-                      <span className="ml-1 text-base font-normal text-zinc-500">
-                        / {roastsLimit == null ? "Unlimited" : roastsLimit}
-                      </span>
+                      {hasActiveSubscription ? "Active" : "Inactive"}
                     </p>
-                    <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-800">
-                      <div
-                        className="h-1.5 rounded-full bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500"
-                        style={{ width: `${roastMeterWidth}%` }}
-                      />
-                    </div>
-                    <p className="mt-2 text-xs text-zinc-500">
-                      {isFree
-                        ? "Free access is enforced from completed analyses tied to your account, session, or fallback IP."
-                        : "Paid access keeps the same persisted meter, but the free roast cap is removed."}
+                    <p className="mt-2 text-sm text-zinc-400">
+                      {hasActiveSubscription
+                        ? "Your Go Viral subscription is active and managed through Stripe."
+                        : "Go Viral does not offer a free tier. Start Pro to reactivate paid access on this account."}
                     </p>
                   </div>
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
@@ -430,13 +416,6 @@ export default function SettingsPage() {
                     <p className="mt-2 text-xs text-zinc-500">Minutes now come from stored `processed_seconds` on completed sessions instead of a partial query snapshot.</p>
                   </div>
                 </div>
-
-                {isFree && (
-                  <p className="mt-4 text-xs text-zinc-500">
-                    <Link href="/pricing" className="text-sky-400 hover:underline">View all plans</Link>
-                    {" "}to unlock unlimited roasts, priority processing, and export reports.
-                  </p>
-                )}
               </GlassCard>
             </motion.div>
 

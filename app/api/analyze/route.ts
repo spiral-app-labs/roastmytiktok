@@ -7,7 +7,7 @@ import {
   getUploadValidationError,
   validateUploadDescriptor,
 } from '@/lib/upload-validation';
-import { applyUsageCookie, enforceUsageCapForResolvedContext, resolveUsageContext, type UsageContext } from '@/lib/usage';
+import { applyUsageCookie, resolveUsageContext, type UsageContext } from '@/lib/usage';
 
 export async function POST(request: NextRequest) {
   let clientSessionId: string | undefined;
@@ -29,14 +29,6 @@ export async function POST(request: NextRequest) {
     }
   } catch (err) {
     console.warn('[analyze] Failed to resolve usage identity from request body:', err);
-  }
-
-  try {
-    usageContext = await resolveUsageContext(request, clientSessionId);
-    const limited = await enforceUsageCapForResolvedContext(usageContext);
-    if (limited) return limited;
-  } catch (err) {
-    console.warn('[analyze] Usage cap check failed, allowing request:', err);
   }
 
   try {
@@ -72,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { filename, contentType, sizeBytes, sessionId } = payload;
-    usageContext = usageContext ?? await resolveUsageContext(request, sessionId ?? clientSessionId);
+    usageContext = await resolveUsageContext(request, sessionId ?? clientSessionId);
     const validation = validateUploadDescriptor({ filename, contentType, sizeBytes });
 
     if (!validation.ok) {

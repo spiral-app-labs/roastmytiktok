@@ -324,7 +324,7 @@ export function buildUsageSnapshotFromRows(
       minutesProcessedInWindow: roundUsageNumber(totals.minutesProcessedInWindow),
     },
     caps: {
-      roastLimit: plan === 'paid' ? null : FREE_USAGE_CAP.roastsPerWindow,
+      roastLimit: null,
     },
   };
 }
@@ -395,40 +395,11 @@ export function applyUsageCookie(response: NextResponse, context: UsageContext):
 }
 
 export async function enforceUsageCap(req: NextRequest, clientSessionId?: string | null): Promise<NextResponse | null> {
-  const context = await resolveUsageContext(req, clientSessionId);
-  return enforceUsageCapForResolvedContext(context);
+  await resolveUsageContext(req, clientSessionId);
+  return null;
 }
 
 export async function enforceUsageCapForResolvedContext(context: UsageContext): Promise<NextResponse | null> {
-  if (context.plan === 'paid') {
-    return null;
-  }
-
-  const snapshot = await getUsageSnapshotForContext(context);
-
-  if (snapshot.totals.roastsInWindow >= FREE_USAGE_CAP.roastsPerWindow) {
-    const retryAfterSeconds = Math.max(
-      1,
-      Math.ceil((new Date(snapshot.window.start).getTime() + FREE_USAGE_CAP.windowMs - Date.now()) / 1000)
-    );
-
-    return applyUsageCookie(NextResponse.json(
-      {
-        error: 'Free limit reached. You\'ve used your 3 free roasts today.',
-        upgradeUrl: '/pricing',
-        retryAfterSeconds,
-        usage: snapshot,
-      },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(retryAfterSeconds),
-          'X-RateLimit-Limit': String(FREE_USAGE_CAP.roastsPerWindow),
-          'X-RateLimit-Remaining': '0',
-        },
-      }
-    ), context);
-  }
-
+  void context;
   return null;
 }

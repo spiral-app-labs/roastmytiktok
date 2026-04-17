@@ -32,7 +32,7 @@ export function getUploadErrorMessage(code: UploadErrorCode): string {
     case 'unsupported_format':
       return getUploadValidationError('unsupported_content_type');
     case 'rate_limited':
-      return "You've hit your free limit. Upgrade to analyze more videos.";
+      return "We couldn't start another analysis right now. Try again in a bit.";
     case 'analysis_failed':
     default:
       return 'Analysis hit an error. Try again — if it keeps failing, the video may be too short or corrupted.';
