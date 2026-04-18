@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
       user_id: usageContext.userId,
       client_ip: usageContext.clientIp,
       source: 'upload',
+      analysis_intent: 'pre_post',
       filename,
       video_url: storagePath,
       analysis_status: 'pending',

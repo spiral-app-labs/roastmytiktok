@@ -9,7 +9,7 @@ import { detectSpeechMusic, AudioCharacteristics } from '@/lib/speech-music-dete
 import { assessTranscriptQuality } from '@/lib/transcript-quality';
 import { supabaseServer } from '@/lib/supabase-server';
 import { existsSync, unlinkSync } from 'fs';
-import { writeFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { DimensionKey, type AdminAnalyticsPayload, type AgentConfidence } from '@/lib/types';
 import { buildViewProjection } from '@/lib/view-projection';
 import { detectNiche, NicheDetection } from '@/lib/niche-detect';
@@ -18,11 +18,18 @@ import { getVideoDuration, analyzeDuration, DurationAnalysis } from '@/lib/video
 import { buildEvidenceLedger, buildFallbackActionPlan, parseStrategicSummary } from '@/lib/action-plan';
 import { sanitizeActionPlan, sanitizeAgentResult, sanitizeUserFacingText, sanitizePromptInput } from '@/lib/analysis-safety';
 import { logSuccess, logFailure } from '@/lib/analysis-logger';
-import type { ActionPlanStep, RoastResult } from '@/lib/types';
+import type { ActionPlanStep, AnalysisIntent, PostAuditResult, RoastResult } from '@/lib/types';
 import { detectTikTokSound } from '@/lib/tiktok-sound-detect';
 import { getFirstFiveSecondsDiagnosis } from '@/lib/hook-help';
 import { buildHookAnalysisPrompt, deriveHookAnalysis, parseHookAnalysisResponse } from '@/lib/hook-analysis';
 import { getMissingRuntimeDependencies } from '@/lib/runtime-dependencies';
+import {
+  downloadTikTokVideo,
+  fetchTikTokMetadata,
+  getSafeDownloadFilename,
+  getStoragePathForDownloadedVideo,
+} from '@/lib/tiktok-url-audit';
+import { buildFallbackPostAudit, parsePostAuditResponse } from '@/lib/post-audit';
 
 export const maxDuration = 120; // allow up to 2 min for analysis
 const HOOK_AUDIO_WINDOW_SEC = 6;
@@ -560,6 +567,29 @@ interface OnScreenTextResult {
   detectedText: string[];
 }
 
+interface SessionRow {
+  video_url: string | null;
+  filename?: string | null;
+  tiktok_url?: string | null;
+  created_at?: string | null;
+  description?: string | null;
+  source?: 'upload' | 'url' | null;
+  analysis_intent?: AnalysisIntent | null;
+  platform?: 'tiktok' | null;
+  platform_url?: string | null;
+  platform_metrics?: Record<string, unknown> | null;
+  linked_roast_id?: string | null;
+}
+
+interface LinkedRoastRow {
+  id: string;
+  verdict: string | null;
+  result_json?: {
+    actionPlan?: ActionPlanStep[];
+    verdict?: string;
+  } | null;
+}
+
 function isLocalhostRequest(req: NextRequest): boolean {
   const hostname = req.nextUrl.hostname || req.headers.get('host')?.split(':')[0] || '';
   return hostname === 'localhost' || hostname === '127.0.0.1';
@@ -568,6 +598,43 @@ function isLocalhostRequest(req: NextRequest): boolean {
 function getDimensionWeights(hookScore: number | undefined): Record<DimensionKey, number> {
   if (typeof hookScore !== 'number') return DIMENSION_WEIGHTS;
   return classifyHookStrength(hookScore) === 'weak' ? HOOK_FIRST_WEIGHTS : DIMENSION_WEIGHTS;
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return {};
+}
+
+function toOptionalNumber(value: unknown): number | undefined {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return undefined;
+  return Math.round(numeric);
+}
+
+function extractPlatformMetrics(value: unknown) {
+  const record = asObject(value);
+  return {
+    views: toOptionalNumber(record.views),
+    likes: toOptionalNumber(record.likes),
+    comments: toOptionalNumber(record.comments),
+    shares: toOptionalNumber(record.shares),
+    saves: toOptionalNumber(record.saves),
+  };
+}
+
+function formatPlatformMetricsForPrompt(metrics: ReturnType<typeof extractPlatformMetrics>): string {
+  const parts = [
+    typeof metrics.views === 'number' ? `${metrics.views.toLocaleString()} views` : null,
+    typeof metrics.likes === 'number' ? `${metrics.likes.toLocaleString()} likes` : null,
+    typeof metrics.comments === 'number' ? `${metrics.comments.toLocaleString()} comments` : null,
+    typeof metrics.shares === 'number' ? `${metrics.shares.toLocaleString()} shares` : null,
+    typeof metrics.saves === 'number' ? `${metrics.saves.toLocaleString()} saves` : null,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(' | ') : 'No platform metrics were available for this audit.';
 }
 
 function buildHookSummary(hookResult: AgentResult) {
@@ -826,7 +893,32 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const requestStartedAtMs = Date.now();
   const localhostDebug = isLocalhostRequest(req);
   const requestHost = req.nextUrl.host;
-  const missingRuntimeDeps = getMissingRuntimeDependencies(['ffmpeg', 'ffprobe']);
+
+  // Extract session_id and platform from query params
+  const sessionId = req.nextUrl.searchParams.get('session_id') ?? 'server';
+  const requestedPlatform = (req.nextUrl.searchParams.get('platform') === 'reels' ? 'reels' : 'tiktok') as 'tiktok' | 'reels';
+
+  // Fetch video path from Supabase session record
+  const { data: session, error: sessionError } = await supabaseServer
+    .from('rmt_roast_sessions')
+    .select('video_url, filename, tiktok_url, created_at, description, source, analysis_intent, platform, platform_url, platform_metrics, linked_roast_id')
+    .eq('id', id)
+    .single();
+
+  if (sessionError || !session) {
+    return Response.json({ error: 'Video not found. It may have expired.' }, { status: 404 });
+  }
+
+  const sessionRow = session as SessionRow;
+  const analysisIntent: AnalysisIntent = sessionRow.analysis_intent === 'post_post' ? 'post_post' : 'pre_post';
+  const platform = sessionRow.platform === 'tiktok' ? 'tiktok' : requestedPlatform;
+
+  const requiredRuntimeDeps = ['ffmpeg', 'ffprobe'] as Array<'ffmpeg' | 'ffprobe' | 'yt-dlp'>;
+  if (sessionRow.source === 'url' && !sessionRow.video_url) {
+    requiredRuntimeDeps.push('yt-dlp');
+  }
+
+  const missingRuntimeDeps = getMissingRuntimeDependencies(requiredRuntimeDeps);
 
   if (missingRuntimeDeps.length > 0) {
     return Response.json(
@@ -837,40 +929,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     );
   }
 
-  // Extract session_id and platform from query params
-  const sessionId = req.nextUrl.searchParams.get('session_id') ?? 'server';
-  const platform = (req.nextUrl.searchParams.get('platform') === 'reels' ? 'reels' : 'tiktok') as 'tiktok' | 'reels';
+  let linkedRoast: LinkedRoastRow | null = null;
+  if (analysisIntent === 'post_post' && sessionRow.linked_roast_id) {
+    const { data: linkedRoastData, error: linkedRoastError } = await supabaseServer
+      .from('rmt_roast_sessions')
+      .select('id, verdict, result_json')
+      .eq('id', sessionRow.linked_roast_id)
+      .maybeSingle();
 
-  // Fetch video path from Supabase session record
-  const { data: session, error: sessionError } = await supabaseServer
-    .from('rmt_roast_sessions')
-    .select('video_url, filename, tiktok_url, created_at, description')
-    .eq('id', id)
-    .single();
-
-  if (sessionError || !session?.video_url) {
-    return Response.json({ error: 'Video not found. It may have expired.' }, { status: 404 });
+    if (linkedRoastError) {
+      console.warn('[analyze] Failed to load linked roast context:', linkedRoastError.message);
+    } else if (linkedRoastData) {
+      linkedRoast = linkedRoastData as LinkedRoastRow;
+    }
   }
-
-  const storagePath = session.video_url as string;
-  const ext = storagePath.split('.').pop() || 'mp4';
-  const localPath = `/tmp/rmt-${id}.${ext}`;
-
-  // Download video from Supabase Storage to /tmp for ffmpeg
-  const downloadStartedAtMs = Date.now();
-  const { data: fileData, error: downloadError } = await supabaseServer.storage
-    .from('roast-videos')
-    .download(storagePath);
-  const downloadDurationMs = Date.now() - downloadStartedAtMs;
-
-  if (downloadError || !fileData) {
-    return Response.json({ error: 'Failed to retrieve video from storage.' }, { status: 500 });
-  }
-
-  const buffer = Buffer.from(await fileData.arrayBuffer());
-  await writeFile(localPath, buffer);
-
-  const videoPath = localPath;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -880,19 +952,97 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       };
 
       let audioPath: string | null = null;
+      let videoPath: string | null = null;
+      let sessionDescription = sessionRow.description ?? '';
+      let platformMetrics = extractPlatformMetrics(sessionRow.platform_metrics);
+      let workingFilename = sessionRow.filename ?? null;
+      let workingVideoUrl = sessionRow.video_url ?? null;
       const analysisStartedAtMs = Date.now();
       const stageTimings: Record<string, number> = {
-        session_lookup_and_download: analysisStartedAtMs - requestStartedAtMs,
-        video_download: downloadDurationMs,
+        session_lookup: analysisStartedAtMs - requestStartedAtMs,
       };
-      const uploadStartedAtIso = typeof (session as { created_at?: string | null }).created_at === 'string'
-        ? (session as { created_at?: string | null }).created_at ?? null
+      const uploadStartedAtIso = typeof sessionRow.created_at === 'string'
+        ? sessionRow.created_at ?? null
         : null;
 
       try {
+        if (sessionRow.source === 'url' && !workingVideoUrl) {
+          const platformUrl = sessionRow.platform_url ?? sessionRow.tiktok_url;
+          if (!platformUrl) {
+            throw new Error('TikTok URL not found for this audit session.');
+          }
+
+          send({ type: 'status', message: 'Validating public TikTok URL...' });
+          const metadataStartedAtMs = Date.now();
+          const metadata = await fetchTikTokMetadata(platformUrl);
+          stageTimings.url_metadata_fetch = Date.now() - metadataStartedAtMs;
+
+          sessionDescription = metadata.description || metadata.title || sessionDescription;
+          platformMetrics = extractPlatformMetrics(metadata.platformMetrics);
+
+          send({ type: 'status', message: 'Downloading posted TikTok video...' });
+          const downloadStartedAtMs = Date.now();
+          const download = await downloadTikTokVideo(platformUrl, `/tmp/rmt-url-${id}.%(ext)s`);
+          stageTimings.video_download = Date.now() - downloadStartedAtMs;
+          videoPath = download.filePath;
+          workingFilename = getSafeDownloadFilename(id, download.filePath);
+
+          send({ type: 'status', message: 'Saving downloaded video into the analysis workspace...' });
+          const storagePath = getStoragePathForDownloadedVideo(id, download.filePath);
+          const fileBuffer = await readFile(download.filePath);
+          await supabaseServer.storage
+            .createBucket('roast-videos', { public: false })
+            .catch(() => {});
+
+          const { error: uploadError } = await supabaseServer.storage
+            .from('roast-videos')
+            .upload(storagePath, fileBuffer, {
+              upsert: true,
+              contentType: 'video/mp4',
+            });
+
+          if (uploadError) {
+            throw new Error(`Failed to persist downloaded TikTok video: ${uploadError.message}`);
+          }
+
+          workingVideoUrl = storagePath;
+
+          await supabaseServer.from('rmt_roast_sessions').update({
+            video_url: storagePath,
+            filename: workingFilename,
+            description: sessionDescription || null,
+            platform_metrics: platformMetrics,
+          }).eq('id', id);
+        } else if (workingVideoUrl) {
+          const ext = workingVideoUrl.split('.').pop() || 'mp4';
+          videoPath = `/tmp/rmt-${id}.${ext}`;
+
+          send({ type: 'status', message: 'Loading your video into the analysis pipeline...' });
+          const downloadStartedAtMs = Date.now();
+          const { data: fileData, error: downloadError } = await supabaseServer.storage
+            .from('roast-videos')
+            .download(workingVideoUrl);
+          stageTimings.video_download = Date.now() - downloadStartedAtMs;
+
+          if (downloadError || !fileData) {
+            throw new Error('Failed to retrieve video from storage.');
+          }
+
+          const buffer = Buffer.from(await fileData.arrayBuffer());
+          await writeFile(videoPath, buffer);
+        } else {
+          throw new Error('Video not found. It may have expired.');
+        }
+
+        if (!videoPath) {
+          throw new Error('A local video file was not prepared for analysis.');
+        }
+
+        stageTimings.session_lookup_and_download = Date.now() - requestStartedAtMs;
+
         // Fetch repeat-issue context and TikTok sound metadata in parallel
         const chronicIssuesPromise = fetchChronicIssues(sessionId);
-        const detectedSoundPromise = detectTikTokSound((session as { video_url: string; filename?: string; tiktok_url?: string }).tiktok_url);
+        const detectedSoundPromise = detectTikTokSound(sessionRow.tiktok_url);
 
         // Extract hook frames first
         send({ type: 'status', message: 'Extracting hook frames (0-6s)...' });
@@ -1035,7 +1185,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const detectedSound = await detectedSoundPromise;
 
         // Detect niche from available signals (AI-based with fallback)
-        const sessionDescription = (session as { description?: string }).description ?? '';
         const nicheDetectionStart = Date.now();
         const nicheDetection: NicheDetection = await detectNiche({
           frameDescriptions: frameContextForNiche,
@@ -1502,10 +1651,33 @@ Rules:
           niche: { detected: nicheDetection.niche, subNiche: nicheDetection.subNiche, confidence: nicheDetection.confidence },
         };
         const viewProjectionData = buildViewProjection(viewProjectionInput as RoastResult);
+        const resultAgents = DIMENSION_ORDER.map((dim, index) => ({
+          agent: dim,
+          score: defaultAgentRows[index].score,
+          roastText: defaultAgentRows[index].roastText,
+          findings: defaultAgentRows[index].findings,
+          improvementTip: defaultAgentRows[index].improvementTip,
+          scoreJustification: defaultAgentRows[index].scoreJustification,
+          confidence: defaultAgentRows[index].confidence,
+          ...(defaultAgentRows[index].failed ? { failed: true, failureReason: defaultAgentRows[index].failureReason } : {}),
+          timestamp_seconds: AGENT_TIMESTAMPS[dim],
+        }));
+        const linkedRoastActionPlan = Array.isArray(linkedRoast?.result_json?.actionPlan)
+          ? sanitizeActionPlan(linkedRoast?.result_json?.actionPlan ?? [])
+          : [];
+        const linkedRoastContext = linkedRoast
+          ? {
+              id: linkedRoast.id,
+              verdict: linkedRoast.result_json?.verdict ?? linkedRoast.verdict ?? '',
+              actionPlan: linkedRoastActionPlan,
+            }
+          : null;
 
         const result: RoastResult = {
           id,
-          tiktokUrl: (session as { video_url: string; filename?: string; tiktok_url?: string }).tiktok_url ?? '',
+          tiktokUrl: sessionRow.tiktok_url ?? sessionRow.platform_url ?? '',
+          platform,
+          analysisIntent,
           overallScore,
           verdict,
           viralPotential,
@@ -1521,17 +1693,7 @@ Rules:
           ...(hookAnalysis ? { hookPredictions: hookAnalysis.predictions, fixTracks } : {}),
           ...(hookAnalysis ? { hookAnalysis } : {}),
           viewProjection: viewProjectionData,
-          agents: DIMENSION_ORDER.map((dim, index) => ({
-            agent: dim,
-            score: defaultAgentRows[index].score,
-            roastText: defaultAgentRows[index].roastText,
-            findings: defaultAgentRows[index].findings,
-            improvementTip: defaultAgentRows[index].improvementTip,
-            scoreJustification: defaultAgentRows[index].scoreJustification,
-            confidence: defaultAgentRows[index].confidence,
-            ...(defaultAgentRows[index].failed ? { failed: true, failureReason: defaultAgentRows[index].failureReason } : {}),
-            timestamp_seconds: AGENT_TIMESTAMPS[dim],
-          })),
+          agents: resultAgents,
           niche: {
             detected: nicheDetection.niche,
             subNiche: nicheDetection.subNiche,
@@ -1545,9 +1707,128 @@ Rules:
           ...(transcript ? { transcriptConfidence: transcript.confidence, transcriptProvider: transcript.provider } : {}),
           metadata: {
             duration: videoDuration?.durationSeconds ?? 0,
-            description: 'Uploaded video',
+            description: sessionDescription || (analysisIntent === 'post_post' ? 'Posted TikTok video' : 'Uploaded video'),
+            ...(typeof platformMetrics.views === 'number' ? { views: platformMetrics.views } : {}),
+            ...(typeof platformMetrics.likes === 'number' ? { likes: platformMetrics.likes } : {}),
+            ...(typeof platformMetrics.comments === 'number' ? { comments: platformMetrics.comments } : {}),
+            ...(typeof platformMetrics.shares === 'number' ? { shares: platformMetrics.shares } : {}),
+            hashtags: sessionDescription.match(/#\w+/g)?.map((token) => token.slice(1)) ?? [],
           },
         };
+
+        if (analysisIntent === 'post_post') {
+          const fallbackPostAudit = buildFallbackPostAudit({
+            platformUrl: sessionRow.platform_url ?? sessionRow.tiktok_url ?? '',
+            hookSummary,
+            transcriptSegments: transcript?.segments,
+            onScreenTextResults,
+            actionPlan,
+            nextSteps,
+            agents: resultAgents,
+            linkedRoast: linkedRoastContext,
+            platformMetrics,
+          });
+          let postAudit: PostAuditResult = fallbackPostAudit;
+
+          try {
+            send({
+              type: 'status',
+              message: linkedRoastContext
+                ? 'Comparing against prior advice and building your post-post audit...'
+                : 'Building your post-post audit...',
+            });
+            const postAuditStartedAtMs = Date.now();
+            const postAuditResponse = await anthropic.messages.create({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 1400,
+              messages: [{
+                role: 'user',
+                content: `You are auditing a TikTok video that has ALREADY been posted. Ground every conclusion in the supplied evidence packet.
+
+Return ONLY valid JSON (no markdown):
+{
+  "confidence": "low" | "medium" | "high",
+  "whatWorked": ["string"],
+  "whatMissed": ["string"],
+  "nextMoves": ["string"],
+  "evidenceSummary": {
+    "strongestSignals": ["string"],
+    "citations": [
+      {
+        "id": "string",
+        "sourceType": "session" | "linked_roast",
+        "label": "string",
+        "detail": "string",
+        "timestampLabel": "optional mm:ss",
+        "sourceRef": "optional linked roast id"
+      }
+    ]
+  },
+  "adviceFollowThrough": {
+    "linkedRoastId": "string",
+    "overallVerdict": "mostly_followed" | "partially_followed" | "not_followed",
+    "items": [
+      {
+        "priority": "P1" | "P2" | "P3",
+        "dimension": "string",
+        "status": "followed" | "partially_followed" | "not_followed" | "not_evaluable",
+        "reason": "string"
+      }
+    ]
+  },
+  "chatEligible": true
+}
+
+Rules:
+- Use the posted video evidence first. Do not invent metrics or causal certainty.
+- Include 3 to 5 citations total when confidence is medium or high.
+- If the linked roast evidence is too weak to judge honestly, mark that item as "not_evaluable".
+- If no linked roast exists, omit adviceFollowThrough entirely.
+- Keep each bullet concise, creator-grade, and specific to THIS video.
+
+Session context:
+${JSON.stringify({
+  platformUrl: sessionRow.platform_url ?? sessionRow.tiktok_url ?? '',
+  platformMetricsSummary: formatPlatformMetricsForPrompt(platformMetrics),
+  verdict,
+  biggestBlocker,
+  hookSummary,
+  nextSteps: nextSteps.slice(0, 3),
+  actionPlan: actionPlan.slice(0, 3),
+  transcriptSegments: transcript?.segments?.slice(0, 4) ?? [],
+  onScreenText: onScreenTextResults.slice(0, 4),
+  strongestAgentFindings: resultAgents
+    .filter((agent) => !agent.failed)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map((agent) => ({
+      dimension: agent.agent,
+      score: agent.score,
+      findings: agent.findings.slice(0, 2),
+    })),
+}, null, 2)}
+
+Linked roast context:
+${linkedRoastContext ? JSON.stringify({
+  id: linkedRoastContext.id,
+  verdict: linkedRoastContext.verdict,
+  actionPlan: linkedRoastContext.actionPlan.slice(0, 3),
+}, null, 2) : 'No linked roast provided.'}`,
+              }],
+            });
+            stageTimings.post_audit_generation = Date.now() - postAuditStartedAtMs;
+            const postAuditText = postAuditResponse.content[0]?.type === 'text'
+              ? postAuditResponse.content[0].text
+              : '';
+            postAudit = parsePostAuditResponse(postAuditText, fallbackPostAudit);
+          } catch (postAuditError) {
+            stageTimings.post_audit_generation = stageTimings.post_audit_generation ?? 0;
+            logFailure('post-audit', id, postAuditError);
+          }
+
+          result.postAudit = postAudit;
+        }
+
         const analysisCompletedAtMs = Date.now();
         const uploadStartedAtMs = uploadStartedAtIso ? new Date(uploadStartedAtIso).getTime() : null;
         const uploadToCompleteMs = uploadStartedAtMs && Number.isFinite(uploadStartedAtMs)
@@ -1675,19 +1956,30 @@ Rules:
         send({ type: 'done', overallScore, id });
       } catch (err) {
         logFailure('agent', id, err, { stage: 'stream-outer' });
+        const rawMessage = err instanceof Error ? err.message : 'Analysis failed. Please try again.';
+        const userFacingMessage = rawMessage.toLowerCase().includes('private')
+          || rawMessage.toLowerCase().includes('unavailable')
+          || rawMessage.toLowerCase().includes('login')
+          ? 'This TikTok post looks private, removed, or unavailable for public analysis.'
+          : rawMessage.toLowerCase().includes('direct video link')
+            ? rawMessage
+            : rawMessage.toLowerCase().includes('retrieve video')
+              || rawMessage.toLowerCase().includes('downloaded tiktok video')
+              ? 'We could not fetch the posted TikTok video for analysis.'
+              : 'Analysis failed. Please try again.';
         try {
           await supabaseServer.from('rmt_roast_sessions').update({
             analysis_status: 'failed',
-            verdict: 'Analysis failed',
+            verdict: userFacingMessage,
           }).eq('id', id);
         } catch (saveErr) {
           logFailure('supabase-save', id, saveErr, { status: 'failed' });
         }
-        send({ type: 'error', message: 'Analysis failed. Please try again.' });
+        send({ type: 'error', message: userFacingMessage });
       } finally {
         // Clean up temp video and audio
         try {
-          if (existsSync(videoPath)) unlinkSync(videoPath);
+          if (videoPath && existsSync(videoPath)) unlinkSync(videoPath);
         } catch { /* ignore cleanup errors */ }
         if (audioPath) cleanupAudio(audioPath);
         controller.close();

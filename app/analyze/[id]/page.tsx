@@ -11,6 +11,7 @@ import {
   AnalysisStageProgress,
   deriveAnalysisProgressPercent,
   deriveAnalysisStageIndex,
+  URL_AUDIT_STAGE_LABELS,
 } from '@/components/upload/AnalysisStageProgress';
 import { getUploadErrorMessage } from '@/components/upload/uploadFlow';
 import {
@@ -57,6 +58,8 @@ export default function AnalyzePage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const connectedRef = useRef(false);
   const analysisTimeoutMs = 8 * 60 * 1000;
+  const source = searchParams.get('source') === 'url' ? 'url' : 'upload';
+  const isUrlAudit = source === 'url';
 
   useEffect(() => {
     let cancelled = false;
@@ -205,7 +208,7 @@ export default function AnalyzePage() {
               description: 'Uploaded video',
             },
           };
-          const source = searchParams.get('source') ?? 'upload';
+          const source = searchParams.get('source') === 'url' ? 'url' : 'upload';
           const filename = searchParams.get('filename') ?? '';
           void (async () => {
             let resolvedResult = fallbackResult;
@@ -231,10 +234,11 @@ export default function AnalyzePage() {
         if (data.type === 'error') {
           clearTimeout(timeout);
           eventSource.close();
+          const message = typeof data.message === 'string' ? data.message : '';
           setError(
-            typeof data.message === 'string' && (data.message.includes('429') || data.message.toLowerCase().includes('free limit'))
+            message && (message.includes('429') || message.toLowerCase().includes('free limit'))
               ? getUploadErrorMessage('rate_limited')
-              : getUploadErrorMessage('analysis_failed')
+              : message || getUploadErrorMessage('analysis_failed')
           );
         }
       } catch {
@@ -259,6 +263,7 @@ export default function AnalyzePage() {
   const mediaAgentsStarted =
     agentStatuses.audio?.status !== 'waiting' || agentStatuses.accessibility?.status !== 'waiting';
   const stageIndex = deriveAnalysisStageIndex({
+    flow: isUrlAudit ? 'url' : 'upload',
     uploadComplete: true,
     statusMessage,
     completedAgents: completedCount,
@@ -293,10 +298,13 @@ export default function AnalyzePage() {
           <AnalysisStageProgress
             activeIndex={stageIndex}
             progressPercent={progressPct}
-            eyebrow="Hook-first analysis running"
-            title="Building your hook survival report"
-            description="The analysis now starts where TikTok starts: the first 3 to 6 seconds. We extract hook frames, read the opener, score hold through 3s and 5s, then decide whether the rest of the video is worth analyzing."
+            eyebrow={isUrlAudit ? 'Post-post audit running' : 'Hook-first analysis running'}
+            title={isUrlAudit ? 'Auditing your posted TikTok' : 'Building your hook survival report'}
+            description={isUrlAudit
+              ? 'We validate the public TikTok URL, fetch the posted video, analyze the opener and supporting signals, then compare it against prior advice when available.'
+              : 'The analysis now starts where TikTok starts: the first 3 to 6 seconds. We extract hook frames, read the opener, score hold through 3s and 5s, then decide whether the rest of the video is worth analyzing.'}
             liveDetail={statusMessage}
+            stageLabels={isUrlAudit ? URL_AUDIT_STAGE_LABELS : undefined}
           />
         </motion.div>
 

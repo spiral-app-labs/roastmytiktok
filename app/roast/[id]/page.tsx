@@ -11,6 +11,7 @@ import { buildViewProjection } from '@/lib/view-projection';
 import { useToast } from '@/components/ui';
 
 import RoastMasthead from './_components/RoastMasthead';
+import PostAuditPanel from './_components/PostAuditPanel';
 import HookSurvivalPanel from './_components/HookSurvivalPanel';
 import HookSpotlight from './_components/HookSpotlight';
 import FixTracksPanel from './_components/FixTracksPanel';
@@ -40,7 +41,7 @@ export default function RoastPage() {
     let cancelled = false;
 
     async function loadRoast() {
-      const source = 'upload';
+      const source = searchParams.get('source') === 'url' ? 'url' : 'upload';
       const filename = searchParams.get('filename') ?? undefined;
 
       // Try sessionStorage first
@@ -188,6 +189,8 @@ function RoastContent({ roast, id }: RoastContentProps) {
         )}
 
         <RoastMasthead roast={roast} projection={viewProjection} />
+
+        <PostAuditPanel roast={roast} />
 
         <HookSurvivalPanel roast={roast} />
 

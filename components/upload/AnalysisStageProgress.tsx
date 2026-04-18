@@ -12,6 +12,16 @@ export const ANALYSIS_STAGE_LABELS = [
   'Done!',
 ] as const;
 
+export const URL_AUDIT_STAGE_LABELS = [
+  'Validating public URL...',
+  'Fetching TikTok metadata...',
+  'Downloading posted video...',
+  'Analyzing hook and media...',
+  'Comparing against prior advice...',
+  'Building the audit...',
+  'Done!',
+] as const;
+
 export type AnalysisStageLabel = (typeof ANALYSIS_STAGE_LABELS)[number];
 
 type StageState = 'pending' | 'active' | 'done';
@@ -23,6 +33,7 @@ function getStageState(index: number, activeIndex: number): StageState {
 }
 
 export function deriveAnalysisStageIndex(params: {
+  flow?: 'upload' | 'url';
   uploadComplete?: boolean;
   statusMessage?: string;
   completedAgents?: number;
@@ -33,6 +44,7 @@ export function deriveAnalysisStageIndex(params: {
   done?: boolean;
 }): number {
   const {
+    flow = 'upload',
     uploadComplete = false,
     statusMessage = '',
     completedAgents = 0,
@@ -48,6 +60,31 @@ export function deriveAnalysisStageIndex(params: {
 
   const normalized = statusMessage.toLowerCase();
 
+  if (flow === 'url') {
+    if (normalized.includes('validating public tiktok url')) return 0;
+    if (normalized.includes('metadata')) return 1;
+    if (normalized.includes('downloading posted tiktok video') || normalized.includes('saving downloaded video')) return 2;
+    if (normalized.includes('comparing against prior advice')) return 4;
+    if (normalized.includes('post-post audit') || normalized.includes('building your post-post audit')) return 5;
+    if (
+      hookStarted
+      || mediaAgentsStarted
+      || completedAgents > 0
+      || normalized.includes('extracting hook frame')
+      || normalized.includes('transcrib')
+      || normalized.includes('audio')
+      || normalized.includes('analyzing')
+    ) {
+      return 3;
+    }
+    return 0;
+  }
+
+  if (normalized.includes('validating public tiktok url')) return 0;
+  if (normalized.includes('metadata')) return 1;
+  if (normalized.includes('downloading posted tiktok video') || normalized.includes('saving downloaded video')) return 2;
+  if (normalized.includes('comparing against prior advice')) return 4;
+  if (normalized.includes('post-post audit') || normalized.includes('building your post-post audit')) return 5;
   if (!uploadComplete) return 0;
   if (normalized.includes('extracting hook frame') || normalized.includes('extracting frame')) return 1;
   if (hookStarted && completedAgents <= 1) return 2;
@@ -85,6 +122,7 @@ interface AnalysisStageProgressProps {
   description?: string;
   liveDetail?: string;
   compact?: boolean;
+  stageLabels?: readonly string[];
 }
 
 export function AnalysisStageProgress({
@@ -95,6 +133,7 @@ export function AnalysisStageProgress({
   description = 'The system is moving through the real analysis pipeline so you can see what is happening next.',
   liveDetail,
   compact = false,
+  stageLabels = ANALYSIS_STAGE_LABELS,
 }: AnalysisStageProgressProps) {
   const percent = progressPercent ?? deriveAnalysisProgressPercent(activeIndex);
 
@@ -138,7 +177,7 @@ export function AnalysisStageProgress({
         </div>
 
         <div className="w-full max-w-xl space-y-3">
-          {ANALYSIS_STAGE_LABELS.map((label, index) => {
+          {stageLabels.map((label, index) => {
             const stageState = getStageState(index, activeIndex);
 
             return (

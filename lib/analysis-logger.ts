@@ -13,6 +13,7 @@ export type AnalysisStage =
   | 'hook-analysis'
   | 'agent'
   | 'verdict'
+  | 'post-audit'
   | 'text-extraction'
   | 'supabase-save'
   | 'cleanup';

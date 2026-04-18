@@ -22,6 +22,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
     // Fallback: construct partial result from individual columns
     const agentKeys = ['hook', 'visual', 'audio', 'authenticity', 'conversion', 'accessibility'] as const;
+    const platformMetrics = data.platform_metrics && typeof data.platform_metrics === 'object'
+      ? data.platform_metrics as Record<string, unknown>
+      : {};
     const agents = agentKeys.map(key => {
       const hasScore = data.agent_scores?.[key] != null;
       return {
@@ -37,12 +40,18 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return Response.json({
       id: data.id,
       tiktokUrl: data.tiktok_url ?? '',
+      platform: data.platform ?? 'tiktok',
+      analysisIntent: data.analysis_intent ?? 'pre_post',
       overallScore: data.overall_score ?? 0,
       verdict: data.verdict ?? '',
       agents,
       metadata: {
         duration: 0,
-        description: 'Uploaded video',
+        description: data.description ?? (data.analysis_intent === 'post_post' ? 'Posted TikTok video' : 'Uploaded video'),
+        ...(typeof platformMetrics.views === 'number' ? { views: platformMetrics.views } : {}),
+        ...(typeof platformMetrics.likes === 'number' ? { likes: platformMetrics.likes } : {}),
+        ...(typeof platformMetrics.comments === 'number' ? { comments: platformMetrics.comments } : {}),
+        ...(typeof platformMetrics.shares === 'number' ? { shares: platformMetrics.shares } : {}),
       },
     });
   } catch (err) {

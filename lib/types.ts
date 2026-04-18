@@ -293,10 +293,56 @@ export interface ActionPlanStep {
   whyItMatters: string;
 }
 
+export type AnalysisIntent = 'pre_post' | 'post_post';
+
+export interface EvidenceCitation {
+  id: string;
+  sourceType: 'session' | 'linked_roast' | 'market';
+  label: string;
+  detail: string;
+  timestampLabel?: string;
+  sourceRef?: string;
+}
+
+export interface MarketEvidenceMatch {
+  exampleId: string;
+  hookText: string;
+  creatorHandle?: string;
+  reason: string;
+  matchScore: number;
+}
+
+export interface PostAuditResult {
+  platform: 'tiktok';
+  platformUrl: string;
+  metricsAvailable: boolean;
+  confidence: 'low' | 'medium' | 'high';
+  evidenceSummary: {
+    strongestSignals: string[];
+    citations: EvidenceCitation[];
+    marketEvidence?: MarketEvidenceMatch[];
+  };
+  whatWorked: string[];
+  whatMissed: string[];
+  nextMoves: string[];
+  adviceFollowThrough?: {
+    linkedRoastId: string;
+    overallVerdict: 'mostly_followed' | 'partially_followed' | 'not_followed';
+    items: Array<{
+      priority: 'P1' | 'P2' | 'P3';
+      dimension: string;
+      status: 'followed' | 'partially_followed' | 'not_followed' | 'not_evaluable';
+      reason: string;
+    }>;
+  };
+  chatEligible: boolean;
+}
+
 export interface RoastResult {
   id: string;
   tiktokUrl: string;
   platform?: 'tiktok' | 'reels';
+  analysisIntent?: AnalysisIntent;
   overallScore: number;
   verdict: string;
   viralPotential?: number;
@@ -354,6 +400,7 @@ export interface RoastResult {
   /** Sound detected from the TikTok video URL (Phase 1 - free HTML extraction) */
   viewProjection?: ViewProjection;
   hookIdentification?: HookIdentification;
+  postAudit?: PostAuditResult;
   detectedSound?: {
     name: string;
     author: string;

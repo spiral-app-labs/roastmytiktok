@@ -10,7 +10,9 @@ export type UploadErrorCode =
   | 'file_too_large'
   | 'unsupported_format'
   | 'analysis_failed'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'invalid_url'
+  | 'url_analysis_unavailable';
 
 function getExtension(filename: string): string {
   return filename.split('.').pop()?.toLowerCase() ?? '';
@@ -32,6 +34,10 @@ export function getUploadErrorMessage(code: UploadErrorCode): string {
       return 'We support MP4, MOV, and WebM. Convert your file and try again.';
     case 'rate_limited':
       return "You've hit your free limit. Upgrade to analyze more videos.";
+    case 'invalid_url':
+      return 'Paste a direct public TikTok video URL to run a post-post audit.';
+    case 'url_analysis_unavailable':
+      return 'Public TikTok URL analysis is not available on this deployment right now.';
     case 'analysis_failed':
     default:
       return 'Analysis hit an error. Try again — if it keeps failing, the video may be too short or corrupted.';
@@ -48,4 +54,23 @@ export function validateVideoFile(file: File): string | null {
   }
 
   return null;
+}
+
+export function validateTikTokUrlInput(rawUrl: string): string | null {
+  try {
+    const parsedUrl = new URL(rawUrl.trim());
+    const hostname = parsedUrl.hostname.trim().toLowerCase().replace(/^www\./, '');
+    const allowedHosts = new Set(['tiktok.com', 'm.tiktok.com', 'vm.tiktok.com']);
+    if (!allowedHosts.has(hostname)) {
+      return getUploadErrorMessage('invalid_url');
+    }
+
+    if (!/\/@[^/]+\/video\/\d+/i.test(parsedUrl.pathname)) {
+      return getUploadErrorMessage('invalid_url');
+    }
+
+    return null;
+  } catch {
+    return getUploadErrorMessage('invalid_url');
+  }
 }
