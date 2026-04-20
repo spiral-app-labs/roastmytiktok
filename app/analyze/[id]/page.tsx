@@ -337,7 +337,7 @@ export default function AnalyzePage() {
                   href="/pricing"
                   className="inline-block rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
                 >
-                  Upgrade
+                  Start Pro
                 </a>
                 <button
                   onClick={() => router.push('/dashboard')}

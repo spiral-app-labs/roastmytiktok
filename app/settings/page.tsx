@@ -6,7 +6,6 @@ import Link from "next/link";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionId } from "@/lib/history";
-import { getSubscriptionSnapshot } from "@/lib/settings";
 import type { DebugLevel } from "@/lib/debug-types";
 
 const ADMIN_EMAILS = ["ethan@ethantalreja.com", "ethan@spiralapplabs.com"];
@@ -28,6 +27,7 @@ interface UsageState {
   roastsInWindow: number;
   minutesProcessedAllTime: number;
   roastLimit: number | null;
+  renewalDate: string | null;
 }
 
 // ─── Danger Modal ─────────────────────────────────────────────────────────────
@@ -134,7 +134,6 @@ export default function SettingsPage() {
       if (!user) return;
       setUserEmail(user.email ?? null);
       setUserId(user.id);
-      setSubscriptionRenewalDate(getSubscriptionSnapshot(user).renewalDate);
       const stored = user.user_metadata?.debug_level as string | undefined;
       const valid: DebugLevel[] = ["off", "simple", "complex", "extremely_verbose"];
       if (stored && valid.includes(stored as DebugLevel)) {
@@ -167,10 +166,12 @@ export default function SettingsPage() {
           roastsInWindow: data.usage?.totals?.roastsInWindow ?? 0,
           minutesProcessedAllTime: data.usage?.totals?.minutesProcessedAllTime ?? 0,
           roastLimit: data.usage?.caps?.roastLimit ?? null,
+          renewalDate: data.subscription?.renewalDate ?? null,
         });
+        setSubscriptionRenewalDate(data.subscription?.renewalDate ?? null);
       })
       .catch(() => {
-        setUsage({ plan: "free", roastsAllTime: 0, roastsInWindow: 0, minutesProcessedAllTime: 0, roastLimit: 3 });
+        setUsage({ plan: "free", roastsAllTime: 0, roastsInWindow: 0, minutesProcessedAllTime: 0, roastLimit: 3, renewalDate: null });
       });
   }, []);
 
@@ -234,7 +235,7 @@ export default function SettingsPage() {
   // Subscription (wired to Stripe billing portal)
   const plan = usage?.plan === "paid" ? "Pro" : "Free";
   const isFree = plan === "Free";
-  const renewalDate = subscriptionRenewalDate;
+  const renewalDate = usage?.renewalDate ?? subscriptionRenewalDate;
   const roastsUsed = usage?.roastsInWindow ?? 0;
   const roastsLimit = usage?.roastLimit;
   const roastMeterWidth = roastsLimit == null

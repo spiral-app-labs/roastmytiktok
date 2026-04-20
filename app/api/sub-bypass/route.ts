@@ -14,11 +14,5 @@ export async function POST(req: NextRequest) {
     maxAge: 30 * 24 * 60 * 60,
     path: '/',
   })
-  res.cookies.set('rmt_paid_bypass', '1', {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 30 * 24 * 60 * 60,
-    path: '/',
-  })
   return res
 }

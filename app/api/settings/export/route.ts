@@ -1,3 +1,4 @@
+import { getSubscriptionSnapshotForUserId } from '@/lib/entitlements';
 import { NextRequest } from 'next/server';
 import { buildAccountExport } from '@/lib/settings';
 import {
@@ -19,11 +20,13 @@ export async function POST(request: NextRequest) {
     const roastSessions = await listOwnedRoastSessions(auth.user.id);
     const nicheProfile = await listNicheProfile(auth.user.id);
     const nichePatterns = nicheProfile?.id ? await listNichePatterns(nicheProfile.id) : [];
+    const subscription = await getSubscriptionSnapshotForUserId(auth.user.id);
 
     const payload = buildAccountExport(auth.user, {
       roastSessions,
       nicheProfile,
       nichePatterns,
+      subscription,
     });
 
     return new Response(JSON.stringify(payload, null, 2), {
