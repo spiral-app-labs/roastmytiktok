@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const { buildFramePlan } = await import('../lib/frame-extractor.ts');
 const { parseAssemblyTranscript } = await import('../lib/whisper-transcribe.ts');
 const { assessTranscriptQuality } = await import('../lib/transcript-quality.ts');
+const { ensureRoastResultId } = await import('../lib/roast-result.ts');
 const { sanitizeUserFacingText, sanitizeAgentResult, sanitizeActionPlan } = await import('../lib/analysis-safety.ts');
 const { getFirstFiveSecondsDiagnosis } = await import('../lib/hook-help.ts');
 
@@ -61,6 +62,19 @@ test('buildFramePlan handles very short videos without crashing', () => {
   assert.ok(frames[0].timestampSec >= 0.03, 'First frame should be at least 0.03s into the video');
   const sorted = frames.every((frame, index) => index === 0 || frame.timestampSec > frames[index - 1].timestampSec);
   assert.ok(sorted, 'Frames should be sorted ascending for short videos');
+});
+
+test('ensureRoastResultId replaces stale placeholder ids before replay links are saved', () => {
+  const result = ensureRoastResultId(
+    {
+      id: 'demo-result',
+      verdict: 'placeholder',
+    },
+    '6a80c4e1-bf49-47d0-882f-b3c4183752d9',
+  );
+
+  assert.equal(result.id, '6a80c4e1-bf49-47d0-882f-b3c4183752d9');
+  assert.equal(result.verdict, 'placeholder');
 });
 
 // ─── Requirement 3: Audio-hook analysis path ──────────────────────────────────
