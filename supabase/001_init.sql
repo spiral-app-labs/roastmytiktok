@@ -16,6 +16,31 @@ create table if not exists rmt_roast_sessions (
 create index if not exists idx_rmt_sessions_session_id on rmt_roast_sessions(session_id);
 create index if not exists idx_rmt_sessions_created_at on rmt_roast_sessions(created_at desc);
 
--- Enable RLS (allow all for MVP — anon key is read/write)
+-- Enable RLS
 alter table rmt_roast_sessions enable row level security;
-create policy "allow_all" on rmt_roast_sessions for all using (true) with check (true);
+drop policy if exists "allow_all" on rmt_roast_sessions;
+drop policy if exists "users_can_insert_own_roast_sessions" on rmt_roast_sessions;
+drop policy if exists "users_can_read_own_roast_sessions" on rmt_roast_sessions;
+drop policy if exists "users_can_update_own_roast_sessions" on rmt_roast_sessions;
+drop policy if exists "users_can_delete_own_roast_sessions" on rmt_roast_sessions;
+
+create policy "users_can_insert_own_roast_sessions" on rmt_roast_sessions
+  for insert
+  to authenticated
+  with check ((select auth.uid()) = user_id);
+
+create policy "users_can_read_own_roast_sessions" on rmt_roast_sessions
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+create policy "users_can_update_own_roast_sessions" on rmt_roast_sessions
+  for update
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+create policy "users_can_delete_own_roast_sessions" on rmt_roast_sessions
+  for delete
+  to authenticated
+  using ((select auth.uid()) = user_id);

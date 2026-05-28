@@ -15,4 +15,4 @@ create table if not exists tmt_trending_content (
 );
 create index if not exists idx_tmt_trending_fetched_at on tmt_trending_content(fetched_at desc);
 alter table tmt_trending_content enable row level security;
-create policy "allow_all" on tmt_trending_content for all using (true) with check (true);
+drop policy if exists "allow_all" on tmt_trending_content;
